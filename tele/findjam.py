@@ -1,8 +1,10 @@
 import numpy as np
 import scipy.special
+import matplotlib.pylab as plt
 
 class Jams():
     def __init__(self, ngrid=5, slope=1.):
+        self.step = 0
         self.ngrid = ngrid
         self.slope = slope
         self.hq = (0,0)
@@ -48,7 +50,7 @@ class Jams():
             self.p_obs = self.p_success if obs else 1-self.p_success
             return self.p_obs
 
-    def run(self, steps=3):
+    def run(self, steps=1):
         for _ in range(steps):
             self.asset_contacted = self.contact(self.asset)       # True/False at veridical jammer location
             self.hq_contacted = self.contact(self.hq)          # True/False at veridical jammer location
@@ -57,6 +59,14 @@ class Jams():
             self.logPjammer_unnormalized = np.log(self.p_obs_asset) + np.log(self.p_obs_hq) + self.logPjammer_prior
             self.logPjammer_prior = scipy.special.log_softmax(self.logPjammer_unnormalized)  # Prior updated to Posterior
             self.teleport_comm()
+            self.step += 1
 
     def render(self):
-        pass
+        l = plt.imshow(self.logPjammer_prior, cmap='hot', interpolation='nearest')
+        plt.text(self.asset[0], self.asset[1],"Asset")
+        plt.text(self.jammer[0], self.jammer[1],"Jammer")
+        plt.text(self.hq[0], self.hq[1],"Headquarters")
+        plt.text(self.comm[0], self.comm[1],"Comm")
+        plt.title("Steps = " + str(self.step))
+        plt.show()
+        return(l)
