@@ -71,25 +71,23 @@ class Jams():
             if i >= dims:
                 break
 
-    def makeJs(self):
+    def makeJm(self, k):
+        Jm = np.zeros([self.ngrid]*(2*self.njams))
+        for I, ik in self.itertuple(k):
+            Jm[I] = ik
+        return Jm
+
+    def makeJxy(self):
+        Jx = []
+        Jy = []
         for k in range(self.njams):
-            Jx = [np.zeros([self.ngrid]*(2*self.njams)) for _ in range(self.njams)]
-            for I, ik in self.itertuple(2*k):
-                assert len(Jx) == self.njams
-                assert len(I) == 2*self.njams
-                assert Jx[k].shape == tuple([self.ngrid]*(2*self.njams))
-                Jx[k][I] = ik
-            Jy = [np.zeros([self.ngrid]*(2*self.njams)) for _ in range(self.njams)]
-            for I, ik in self.itertuple(2*k+1):
-                assert len(Jy) == self.njams
-                assert len(I) == 2*self.njams
-                assert Jy[k].shape == tuple([self.ngrid]*(2*self.njams))
-                Jy[k][I] = ik
+            Jx.append(self.makeJm(2*k))
+            Jy.append(self.makeJm(2*k+1))
         return Jx, Jy
 
     def loglikelihood(self, target, jam=None, kc=0):
         if jam is None:   # need njams jx's and jy's then AIC with njams unknown
-            jx, jy = self.makeJs()
+            jx, jy = self.makeJxy()
         else:
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
