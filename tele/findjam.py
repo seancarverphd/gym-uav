@@ -119,12 +119,20 @@ class Jams():
             self.teleport_comm()
             self.step += 1
 
+    def marginal(self, P):
+        M = np.zeros((self.ngrid, self.ngrid))
+        for i in range(self.ngrid):
+            for j in range(self.ngrid):
+                M += P[(i,j)]
+        return M
+
     def render(self):
-        l = plt.imshow(self.logPjammer_prior, cmap='hot', interpolation='nearest')
-        plt.text(self.asset[0], self.asset[1],"Asset")
-        plt.text(self.hq[0], self.hq[1],"Headquarters")
+        l = plt.imshow(self.marginal(self.logPjammer_prior), cmap='hot', interpolation='nearest')
+        plt.text(self.asset[0], self.asset[1], "Asset")
+        plt.text(self.hq[0], self.hq[1], "Headquarters")
+        # plt.text(self.comm[0][0], self.comm[0][1], "Comm")
         for kc in range(self.ncomms):
-            plt.text(self.comm[kc][0], self.comm[kc][1],"Comm")
+            plt.text(self.comm[kc][0], self.comm[kc][1], "Comm")
         for kj in range(self.njams):
             plt.text(self.jammer[kj][0], self.jammer[kj][1],"Jammer")
         plt.title("Steps = " + str(self.step))
