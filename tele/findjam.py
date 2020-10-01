@@ -34,24 +34,29 @@ class Jams():
     def teleport(self, ngrid):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
-    def sig(self, x):
-        return scipy.special.expit(2*self.slope*x)
+    def logsig(self, x):
+        return np.log(scipy.special.expit(2*self.slope*x))
 
-    def likelihood(self, target, jam=None):
-        if jam is None:
-            jx = self.jx  # numpy array, all locations
-            jy = self.jy  # numpy array, all locations
+    def logsumexp_listofarrays(self, loa):
+        # logsumexp across the array-elements of a list of arrays and return a new array of same shape
+        s = loa[0].shape
+        flats = [loa[k].flatten() for k in range(len(loa))]
+        logsumexpflats = np.array([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(np.prod(s))])
+        return logsumexpflats.reshape(s)
+
+    def loglikelihood(self, target, jam=None, kc=0):
+        if jam is None:   # need njams jx's and jy's then AIC with njams unknown
+            jx = [self.jx]*self.njams  # numpy array, all locations
+            jy = [self.jy]*self.njams  # numpy array, all locations
         else:
-            jx = jam[0]   # single float, one location
-            jy = jam[1]   # single float, one location
-        kc = 0  # need to make this a loop
-        return self.sig(np.sqrt((jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2) -
-                        np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2))
+            jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
+            jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
+        self.logsigs = [self.logsig(np.sqrt((jx[kj] - self.comm[kc][0])**2 + (jy[kj] - self.comm[kc][1])**2) -
+                        np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
+        return self.logsumexp_listofarrays(self.logsigs)
 
     def contact(self, target):
-        kj = 0  # need to make this a loop
-        jam = self.jammer[kj]
-        p = self.likelihood(target, jam)
+        p = np.exp(self.loglikelihood(target, self.jammer))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
     def likelihood_obs(self, target, obs):
