@@ -35,14 +35,23 @@ class Jams():
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
     def logsig(self, x):
-        return np.log(scipy.special.expit(2*self.slope*x))
+        l = np.log(scipy.special.expit(2*self.slope*x))
+        assert (l<=0).all()
+        return l
 
     def logsumexp_listofarrays(self, loa):
         # logsumexp across the array-elements of a list of arrays and return a new array of same shape
         s = loa[0].shape
         flats = [loa[k].flatten() for k in range(len(loa))]
-        logsumexpflats = np.array([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(np.prod(s))])
+        logsumexpflats = np.array([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(int(np.prod(s)))])
         return logsumexpflats.reshape(s)
+
+    def sum_listofarrays(self, loa):
+        # sum across the array-elements of a list of arrays and return a new array of same shape
+        s = loa[0].shape
+        flats = [loa[k].flatten() for k in range(len(loa))]
+        sumflats = np.array([sum(np.array([flats[k][i] for k in range(len(loa))])) for i in range(int(np.prod(s)))])
+        return sumflats.reshape(s)
 
     def loglikelihood(self, target, jam=None, kc=0):
         if jam is None:   # need njams jx's and jy's then AIC with njams unknown
@@ -53,26 +62,28 @@ class Jams():
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
         self.logsigs = [self.logsig(np.sqrt((jx[kj] - self.comm[kc][0])**2 + (jy[kj] - self.comm[kc][1])**2) -
                         np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
-        return self.logsumexp_listofarrays(self.logsigs)
+        l = self.sum_listofarrays(self.logsigs)
+        assert (l <= 0).all()
+        return l
 
     def contact(self, target):
         p = np.exp(self.loglikelihood(target, self.jammer))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
-    def likelihood_obs(self, target, obs):
-            self.p_success = self.likelihood(target)              # Prob at all locations
-            self.p_obs = self.p_success if obs else 1-self.p_success
-            return self.p_obs
+    def loglikelihood_obs(self, target, obs):
+        self.log_p_success = self.loglikelihood(target)
+        self.log_p_obs = self.log_p_success if obs else np.log(1 - np.exp(self.log_p_success))
+        return self.log_p_obs
 
     def run(self, steps=1):
         for _ in range(steps):
             # need to loop these over comms
             self.asset_contacted = self.contact(self.asset)       # True/False at veridical jammer location
-            self.hq_contacted = self.contact(self.hq)          # True/False at veridical jammer location
+            self.hq_contacted = self.contact(self.hq)             # True/False at veridical jammer location
             # also need to contact comms <--> comms
-            self.p_obs_asset = self.likelihood_obs(self.asset, self.asset_contacted)
-            self.p_obs_hq = self.likelihood_obs(self.hq, self.hq_contacted)
-            self.logPjammer_unnormalized = np.log(self.p_obs_asset + self.smallest) + np.log(self.p_obs_hq + self.smallest) + self.logPjammer_prior
+            self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)
+            self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)
+            self.logPjammer_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammer_prior
             self.logPjammer_prior = scipy.special.log_softmax(self.logPjammer_unnormalized)  # Prior updated to Posterior
             self.teleport_comm()
             self.step += 1
