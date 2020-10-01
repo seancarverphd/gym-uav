@@ -53,10 +53,43 @@ class Jams():
         sumflats = np.array([sum(np.array([flats[k][i] for k in range(len(loa))])) for i in range(int(np.prod(s)))])
         return sumflats.reshape(s)
 
+    def itertuple(self, k):
+        dims = 2*self.njams
+        top = self.ngrid
+        I = [0]*dims
+        i = 0
+        yield tuple(I), I[k]
+        while True:
+            I[i] += 1
+            if I[i] >= top:
+                assert I[i] == top
+                I[i] = 0
+                i += 1
+            else:
+                i = 0
+                yield tuple(I), I[k]
+            if i >= dims:
+                break
+
+    def makeJs(self):
+        for k in range(self.njams):
+            Jx = [np.zeros([self.ngrid]*(2*self.njams)) for _ in range(self.njams)]
+            for I, ik in self.itertuple(2*k):
+                assert len(Jx) == self.njams
+                assert len(I) == 2*self.njams
+                assert Jx[k].shape == tuple([self.ngrid]*(2*self.njams))
+                Jx[k][I] = ik
+            Jy = [np.zeros([self.ngrid]*(2*self.njams)) for _ in range(self.njams)]
+            for I, ik in self.itertuple(2*k+1):
+                assert len(Jy) == self.njams
+                assert len(I) == 2*self.njams
+                assert Jy[k].shape == tuple([self.ngrid]*(2*self.njams))
+                Jy[k][I] = ik
+        return Jx, Jy
+
     def loglikelihood(self, target, jam=None, kc=0):
         if jam is None:   # need njams jx's and jy's then AIC with njams unknown
-            jx = [self.jx]*self.njams  # numpy array, all locations
-            jy = [self.jy]*self.njams  # numpy array, all locations
+            jx, jy = self.makeJs()
         else:
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
