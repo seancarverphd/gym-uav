@@ -90,14 +90,21 @@ class Jams():
             Jy.append(self.makeJm(2*k+1))
         return Jx, Jy
 
+    def distdiff(self, target, jxjk, jyjk, kc=0):
+        ddiff = (np.sqrt((jxjk - self.comm[kc][0])**2 + (jyjk - self.comm[kc][1])**2) -
+                np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2))
+        return ddiff
+        # self.logsigs = [self.logsig(np.sqrt((jx[kj] - self.comm[kc][0])**2 + (jy[kj] - self.comm[kc][1])**2) -
+        #                             np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
+
     def loglikelihood(self, target, jam=None, kc=0):
         if jam is None:   # need njams jx's and jy's then AIC with njams unknown
             jx, jy = self.makeJxy()
         else:
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
-        self.logsigs = [self.logsig(np.sqrt((jx[kj] - self.comm[kc][0])**2 + (jy[kj] - self.comm[kc][1])**2) -
-                                    np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
+        # ToDo: make below into a numpy array of one more dimension, then add along that dimension.
+        self.logsigs = [self.logsig(self.distdiff(target, jx[kj], jy[kj], kc)) for kj in range(self.njams)]
         loglike = self.sum_listofarrays(self.logsigs)
         assert (loglike <= 0).all()
         return loglike
