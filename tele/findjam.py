@@ -3,10 +3,11 @@ import scipy.special
 import matplotlib.pylab as plt
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=1.):
-        self.step = 0
-        self.smallest = 1e-323
-        self.ngrid = ngrid
+    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=1., seed=None):
+        self.seed = seed
+        np.random.seed(self.seed)
+        self.step = 0  # initialize counter for number of steps
+        self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.njams = njams
         self.slope = slope
@@ -121,13 +122,15 @@ class Jams():
     def run(self, steps=1):
         for _ in range(steps):
             # need to loop these over comms
-            self.asset_contacted = self.try_to_contact(self.asset)       # True/False using veridical jammer location(s)
-            self.hq_contacted = self.try_to_contact(self.hq)             # True/False using veridical jammer location(s)
+            self.asset_contacted = self.try_to_contact(self.asset)       # Returns True/False using veridical jammer location(s)
+            self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
             # also need to contact comms <--> comms
-            self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)
-            self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)
-            self.logPjammers_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammers_prior
-            self.logPjammers_prior = scipy.special.log_softmax(self.logPjammers_unnormalized)  # Prior updated to Posterior
+            # The rest of the calculations should NOT use the unknown jammer location(s)
+            # Instead use ND-Array of all jammer locations
+            self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
+            self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
+            self.logPjammers_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammers_prior  # Perform the Update
+            self.logPjammers_prior = scipy.special.log_softmax(self.logPjammers_unnormalized)  # New Prior equals normalized Posterior
             self.teleport_comm()
             self.step += 1
 
