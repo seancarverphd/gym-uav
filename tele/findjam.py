@@ -126,8 +126,10 @@ class Jams():
 
     def marginal(self, P):
         M = np.zeros((self.ngrid, self.ngrid))
+        Ps = []
         for I, ik in self.itertuple(-1):
-            M += P[I]
+            Ps.append(P[I])
+        M = self.logsumexp_listofarrays(Ps)
         return M.T
 
     def render(self):
