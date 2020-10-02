@@ -20,7 +20,7 @@ class Jams():
         self.jx = np.arange(ngrid).reshape(1,ngrid)*np.ones((ngrid,1))
         self.jy = np.arange(ngrid).reshape(ngrid,1)*np.ones((1,ngrid))
         # All distributions are represented as logs for stability
-        self.logPjammers_prior = np.ones((ngrid, ngrid))*(-2.)*np.log(ngrid) # logProb(jammers@loc); init to uniform
+        self.logPjammers_prior = np.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid) # logProb(jammers@loc); init to uniform
 
     def teleport_comm(self):
         self.comm = []
@@ -105,10 +105,15 @@ class Jams():
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
         # ToDo: make below into a numpy array of one more dimension, then add along that dimension.
-        self.logsigs = [self.logsig(self.distdiff(target, jx[kj], jy[kj], kc)) for kj in range(self.njams)]
-        loglike = self.sum_listofarrays(self.logsigs)
-        assert (loglike <= 0).all()
-        return loglike
+        self.ddiff = np.zeros([self.njams] + list(np.array(jx[0]).shape))
+        for kj in range(self.njams):
+            self.ddiff[kj] = self.distdiff(target, jx[kj], jy[kj], kc)
+        self.logsigma = self.logsig(self.ddiff)
+        self.loglike = self.logsigma.sum(axis=0)
+        # self.logsigs = [self.logsig(self.distdiff(target, jx[kj], jy[kj], kc)) for kj in range(self.njams)]
+        # self.loglike = self.sum_listofarrays(self.logsigs)
+        assert (self.loglike <= 0).all()
+        return self.loglike
 
     def try_to_contact(self, target):
         p = np.exp(self.loglikelihood(target, self.jammers))
@@ -127,10 +132,12 @@ class Jams():
             # also need to contact comms <--> comms
             # The rest of the calculations should NOT use the unknown jammer location(s)
             # Instead use ND-Array of all jammer locations
-            self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
-            self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
-            self.logPjammers_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammers_prior  # Perform the Update
-            self.logPjammers_prior = scipy.special.log_softmax(self.logPjammers_unnormalized)  # New Prior equals normalized Posterior
+               # self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
+               # self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
+               # self.logPjammers_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammers_prior  # Perform the Update
+            self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
+            self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
+            self.logPjammers_prior = scipy.special.log_softmax(self.logPjammers_prior)  # New Prior equals normalized Posterior
             self.teleport_comm()
             self.step += 1
 
