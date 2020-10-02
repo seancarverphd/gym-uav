@@ -43,6 +43,7 @@ class Jams():
         # logsumexp across the array-elements of a list of arrays and return a new array of same shape
         s = loa[0].shape
         flats = [loa[k].flatten() for k in range(len(loa))]
+        # The following constructs a flattened array of the sum
         logsumexpflats = np.array([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(int(np.prod(s)))])
         return logsumexpflats.reshape(s)
 
@@ -50,11 +51,15 @@ class Jams():
         # sum across the array-elements of a list of arrays and return a new array of same shape
         s = loa[0].shape
         flats = [loa[k].flatten() for k in range(len(loa))]
+        # The following constructs a flattened array of the sum
         sumflats = np.array([sum(np.array([flats[k][i] for k in range(len(loa))])) for i in range(int(np.prod(s)))])
         return sumflats.reshape(s)
 
     def itertuple(self, k):
-        dims = 2*self.njams
+        if k == -1:
+            dims = 2*self.njams - 2
+        else:
+            dims = 2*self.njams
         top = self.ngrid
         I = [0]*dims
         i = 0
@@ -92,10 +97,10 @@ class Jams():
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
         self.logsigs = [self.logsig(np.sqrt((jx[kj] - self.comm[kc][0])**2 + (jy[kj] - self.comm[kc][1])**2) -
-                        np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
-        l = self.sum_listofarrays(self.logsigs)
-        assert (l <= 0).all()
-        return l
+                                    np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
+        loglike = self.sum_listofarrays(self.logsigs)
+        assert (loglike <= 0).all()
+        return loglike
 
     def contact(self, target):
         p = np.exp(self.loglikelihood(target, self.jammer))
@@ -121,10 +126,9 @@ class Jams():
 
     def marginal(self, P):
         M = np.zeros((self.ngrid, self.ngrid))
-        for i in range(self.ngrid):
-            for j in range(self.ngrid):
-                M += P[(i,j)]
-        return M
+        for I, ik in self.itertuple(-1):
+            M += P[I]
+        return M.T
 
     def render(self):
         l = plt.imshow(self.marginal(self.logPjammer_prior), cmap='hot', interpolation='nearest')
