@@ -13,23 +13,23 @@ class Jams():
         self.hq = (0,0)
         self.asset = (ngrid-1,ngrid-1)
         self.comm = None
-        self.jammer = None
+        self.jammers = None
         self.teleport_comm()
-        self.teleport_jammer()
+        self.teleport_jammers()
         self.jx = np.arange(ngrid).reshape(1,ngrid)*np.ones((ngrid,1))
         self.jy = np.arange(ngrid).reshape(ngrid,1)*np.ones((1,ngrid))
         # All distributions are represented as logs for stability
-        self.logPjammer_prior = np.ones((ngrid, ngrid))*(-2.)*np.log(ngrid) # logProb(jammer@loc); init to uniform
+        self.logPjammers_prior = np.ones((ngrid, ngrid))*(-2.)*np.log(ngrid) # logProb(jammers@loc); init to uniform
 
     def teleport_comm(self):
         self.comm = []
         for _ in range(self.ncomms):
             self.comm.append(self.teleport(self.ngrid))
 
-    def teleport_jammer(self):
-        self.jammer = []
+    def teleport_jammers(self):
+        self.jammers = []
         for _ in range(self.njams):
-            self.jammer.append(self.teleport(self.ngrid))
+            self.jammers.append(self.teleport(self.ngrid))
 
     def teleport(self, ngrid):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
@@ -110,7 +110,7 @@ class Jams():
         return loglike
 
     def try_to_contact(self, target):
-        p = np.exp(self.loglikelihood(target, self.jammer))
+        p = np.exp(self.loglikelihood(target, self.jammers))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
     def loglikelihood_obs(self, target, obs):
@@ -121,13 +121,13 @@ class Jams():
     def run(self, steps=1):
         for _ in range(steps):
             # need to loop these over comms
-            self.asset_contacted = self.try_to_contact(self.asset)       # True/False at veridical jammer location
-            self.hq_contacted = self.try_to_contact(self.hq)             # True/False at veridical jammer location
+            self.asset_contacted = self.try_to_contact(self.asset)       # True/False using veridical jammer location(s)
+            self.hq_contacted = self.try_to_contact(self.hq)             # True/False using veridical jammer location(s)
             # also need to contact comms <--> comms
             self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)
             self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)
-            self.logPjammer_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammer_prior
-            self.logPjammer_prior = scipy.special.log_softmax(self.logPjammer_unnormalized)  # Prior updated to Posterior
+            self.logPjammers_unnormalized = self.log_p_obs_asset + self.log_p_obs_hq + self.logPjammers_prior
+            self.logPjammers_prior = scipy.special.log_softmax(self.logPjammers_unnormalized)  # Prior updated to Posterior
             self.teleport_comm()
             self.step += 1
 
@@ -140,13 +140,13 @@ class Jams():
         return M.T
 
     def render(self):
-        l = plt.imshow(self.marginal(self.logPjammer_prior), cmap='hot', interpolation='nearest')
+        l = plt.imshow(self.marginal(self.logPjammers_prior), cmap='hot', interpolation='nearest')
         plt.text(self.asset[0], self.asset[1], "Asset")
         plt.text(self.hq[0], self.hq[1], "Headquarters")
         # plt.text(self.comm[0][0], self.comm[0][1], "Comm")
         for kc in range(self.ncomms):
             plt.text(self.comm[kc][0], self.comm[kc][1], "Comm")
         for kj in range(self.njams):
-            plt.text(self.jammer[kj][0], self.jammer[kj][1],"Jammer")
+            plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer")
         plt.title("Steps = " + str(self.step))
         return(l)
