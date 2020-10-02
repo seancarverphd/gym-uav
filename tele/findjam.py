@@ -109,7 +109,7 @@ class Jams():
         assert (loglike <= 0).all()
         return loglike
 
-    def contact(self, target):
+    def try_to_contact(self, target):
         p = np.exp(self.loglikelihood(target, self.jammer))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
@@ -121,8 +121,8 @@ class Jams():
     def run(self, steps=1):
         for _ in range(steps):
             # need to loop these over comms
-            self.asset_contacted = self.contact(self.asset)       # True/False at veridical jammer location
-            self.hq_contacted = self.contact(self.hq)             # True/False at veridical jammer location
+            self.asset_contacted = self.try_to_contact(self.asset)       # True/False at veridical jammer location
+            self.hq_contacted = self.try_to_contact(self.hq)             # True/False at veridical jammer location
             # also need to contact comms <--> comms
             self.log_p_obs_asset = self.loglikelihood_obs(self.asset, self.asset_contacted)
             self.log_p_obs_hq = self.loglikelihood_obs(self.hq, self.hq_contacted)
