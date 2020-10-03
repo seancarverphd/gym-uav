@@ -43,22 +43,6 @@ class Jams():
     def logsig(self, x):
         return torch.log(scipy.special.expit(2*self.slope*x))
 
-    def logsumexp_listofarrays(self, loa):
-        # logsumexp across the array-elements of a list of arrays and return a new array of same shape
-        s = loa[0].shape
-        flats = [loa[k].flatten() for k in range(len(loa))]
-        # The following constructs a flattened array of the sum
-        logsumexpflats = torch.tensor([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(int(torch.prod(s)))])
-        return logsumexpflats.reshape(s)
-
-    def sum_listofarrays(self, loa):
-        # sum across the array-elements of a list of arrays and return a new array of same shape
-        s = loa[0].shape
-        flats = [loa[k].flatten() for k in range(len(loa))]
-        # The following constructs a flattened array of the sum
-        sumflats = torch.tensor([sum(tensor.tensor([flats[k][i] for k in range(len(loa))])) for i in range(int(tensor.prod(s)))])
-        return sumflats.reshape(s)
-
     def itertuple(self, k):
         if k == -1:
             dims = 2*self.njams - 2
