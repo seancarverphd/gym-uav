@@ -158,10 +158,13 @@ class Jams():
         plt.title("Steps = " + str(self.step))
         return(l)
 
-    def unravel_index(index, shape):
+    def unravel_index(self, index, shape):
         out = []
         for dim in reversed(shape):
             out.append(index % dim)
             index = index // dim
         return tuple(reversed(out))
 
+    def estimates(self):
+        imax = self.logPjammers_prior.argmax()
+        return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
