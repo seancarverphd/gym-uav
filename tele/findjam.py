@@ -4,9 +4,10 @@ import scipy.special
 import matplotlib.pylab as plt
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=1., seed=None):
+    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., seed=None):
         self.seed = seed
-        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed+1)
         self.step = 0  # initialize counter for number of steps
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
@@ -39,9 +40,6 @@ class Jams():
 
     def teleport(self, ngrid):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
-
-    def logsig(self, x):
-        return torch.log(scipy.special.expit(2*self.slope*x))
 
     def itertuple(self, k):
         if k == -1:
@@ -79,6 +77,10 @@ class Jams():
         Jrx = torch.tensor(np.array(Jx), dtype=float)
         Jry = torch.tensor(np.array(Jy), dtype=float)
         return Jrx, Jry
+
+    def logsig(self, x):
+        return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
+        # return torch.log(scipy.special.expit(2*self.slope*x))
 
     def distdiff(self, target, jx, jy, kc=0):
         arg1 = (jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2 
