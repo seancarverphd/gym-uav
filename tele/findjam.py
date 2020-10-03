@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 import scipy.special
 import matplotlib.pylab as plt
@@ -5,7 +6,7 @@ import matplotlib.pylab as plt
 class Jams():
     def __init__(self, ngrid=5, ncomms=1, njams=1, slope=1., seed=None):
         self.seed = seed
-        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
         self.step = 0  # initialize counter for number of steps
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
@@ -18,12 +19,12 @@ class Jams():
         self.teleport_comm()
         self.teleport_jammers()
         self.Jx, self.Jy = self.makeJxy()
-        self.Jx1 = np.array([self.jammers[kj][0] for kj in range(self.njams)])  # single float, one location
-        self.Jy1 = np.array([self.jammers[kj][1] for kj in range(self.njams)])  # single float, one location
-        self.ddiff = np.zeros([self.njams] + list(np.array(self.Jx[0]).shape))
-        self.ddiff1 = np.zeros(self.njams)
+        self.Jx1 = torch.tensor([self.jammers[kj][0] for kj in range(self.njams)])  # single float, one location
+        self.Jy1 = torch.tensor([self.jammers[kj][1] for kj in range(self.njams)])  # single float, one location
+        self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
+        self.ddiff1 = torch.zeros(self.njams)
         # All distributions are represented as logs for stability
-        self.logPjammers_prior = np.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid) # logProb(jammers@loc); init to uniform
+        self.logPjammers_prior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid) # logProb(jammers@loc); init to uniform
 
     def teleport_comm(self):
         self.comm = []
@@ -39,14 +40,14 @@ class Jams():
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
     def logsig(self, x):
-        return np.log(scipy.special.expit(2*self.slope*x))
+        return torch.log(scipy.special.expit(2*self.slope*x))
 
     def logsumexp_listofarrays(self, loa):
         # logsumexp across the array-elements of a list of arrays and return a new array of same shape
         s = loa[0].shape
         flats = [loa[k].flatten() for k in range(len(loa))]
         # The following constructs a flattened array of the sum
-        logsumexpflats = np.array([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(int(np.prod(s)))])
+        logsumexpflats = torch.tensor([scipy.special.logsumexp([flats[k][i] for k in range(len(loa))]) for i in range(int(torch.prod(s)))])
         return logsumexpflats.reshape(s)
 
     def sum_listofarrays(self, loa):
@@ -54,7 +55,7 @@ class Jams():
         s = loa[0].shape
         flats = [loa[k].flatten() for k in range(len(loa))]
         # The following constructs a flattened array of the sum
-        sumflats = np.array([sum(np.array([flats[k][i] for k in range(len(loa))])) for i in range(int(np.prod(s)))])
+        sumflats = torch.tensor([sum(tensor.tensor([flats[k][i] for k in range(len(loa))])) for i in range(int(tensor.prod(s)))])
         return sumflats.reshape(s)
 
     def itertuple(self, k):
@@ -90,12 +91,14 @@ class Jams():
         for k in range(self.njams):
             Jx.append(self.makeJm(2*k))
             Jy.append(self.makeJm(2*k+1))
-        return np.array(Jx), np.array(Jy)
+        Jrx = torch.tensor(np.array(Jx))
+        Jry = torch.tensor(np.array(Jy))
+        return Jrx, Jry
 
     def distdiff(self, target, jxjk, jyjk, kc=0):
-        ddiff = (np.sqrt((jxjk - self.comm[kc][0])**2 + (jyjk - self.comm[kc][1])**2) -
-                np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2))
-        return ddiff
+        arg1 = torch.tensor((jxjk - self.comm[kc][0])**2 + (jyjk - self.comm[kc][1])**2, dtype=float) 
+        arg2 = torch.tensor((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2, dtype=float)
+        return torch.sqrt(arg1) - torch.sqrt(arg2)
 
     def loglikelihood(self, target, kc=0):
         self.ddiff = self.distdiff(target, self.Jx, self.Jy, kc)
@@ -103,7 +106,7 @@ class Jams():
 
     def loglikelihood_obs(self, target, obs):
         self.log_p_success = self.loglikelihood(target)
-        self.log_p_obs = self.log_p_success if obs else np.log(1 - np.exp(self.log_p_success))
+        self.log_p_obs = self.log_p_success if obs else torch.log(1 - torch.exp(self.log_p_success))
         return self.log_p_obs
 
     def loglikelihood_scalar(self, target, kc=0):
@@ -111,7 +114,7 @@ class Jams():
         return self.logsig(self.ddiff1).sum(axis=0)  # axis 0 is jammer num, add logs because independent
 
     def try_to_contact(self, target):
-        p = np.exp(self.loglikelihood_scalar(target))
+        p = torch.exp(self.loglikelihood_scalar(target))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
     def run(self, steps=1):
@@ -122,12 +125,12 @@ class Jams():
             # The rest of the calculations should NOT use the unknown jammer location(s): instead ND-Array of all jammer locations
             self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
             self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
-            self.logPjammers_prior = scipy.special.log_softmax(self.logPjammers_prior)  # New Prior equals normalized Posterior
+            self.logPjammers_prior = torch.nn.functional.log_softmax(self.logPjammers_prior)  # New Prior equals normalized Posterior
             self.teleport_comm()
             self.step += 1
 
     def marginal(self, P):
-        M = np.zeros((self.ngrid, self.ngrid))
+        M = torch.zeros((self.ngrid, self.ngrid))
         Ps = []
         for I, ik in self.itertuple(-1):
             Ps.append(P[I])
