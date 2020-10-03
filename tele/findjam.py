@@ -158,3 +158,10 @@ class Jams():
         plt.title("Steps = " + str(self.step))
         return(l)
 
+    def unravel_index(index, shape):
+        out = []
+        for dim in reversed(shape):
+            out.append(index % dim)
+            index = index // dim
+        return tuple(reversed(out))
+
