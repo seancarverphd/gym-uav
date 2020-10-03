@@ -18,10 +18,14 @@ class Jams():
         self.teleport_comm()
         self.teleport_jammers()
         self.Jx, self.Jy = self.makeJxy()
-        # self.jx = np.arange(ngrid).reshape(1,ngrid)*np.ones((ngrid,1))
-        # self.jy = np.arange(ngrid).reshape(ngrid,1)*np.ones((1,ngrid))
+        self.Jx1 = [self.jammers[kj][0] for kj in range(self.njams)]  # single float, one location
+        self.Jy1 = [self.jammers[kj][1] for kj in range(self.njams)]  # single float, one location
+        self.ddiff = np.zeros([self.njams] + list(np.array(self.Jx[0]).shape))
+        self.ddiff1 = np.zeros(self.njams)
         # All distributions are represented as logs for stability
         self.logPjammers_prior = np.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid) # logProb(jammers@loc); init to uniform
+        # self.jx = np.arange(ngrid).reshape(1,ngrid)*np.ones((ngrid,1))
+        # self.jy = np.arange(ngrid).reshape(ngrid,1)*np.ones((1,ngrid))
 
     def teleport_comm(self):
         self.comm = []
@@ -98,24 +102,22 @@ class Jams():
         # self.logsigs = [self.logsig(np.sqrt((jx[kj] - self.comm[kc][0])**2 + (jy[kj] - self.comm[kc][1])**2) -
         #                             np.sqrt((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2)) for kj in range(self.njams)]
 
-    def loglikelihood(self, target, jam=None, kc=0):
-        if jam is None:   # need njams jx's and jy's then AIC with njams unknown
-            jx = self.Jx
-            jy = self.Jy
-        else:
-            jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
-            jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
-        self.ddiff = np.zeros([self.njams] + list(np.array(jx[0]).shape))
+    def loglikelihood(self, target, kc=0):
         for kj in range(self.njams):
-            self.ddiff[kj] = self.distdiff(target, jx[kj], jy[kj], kc)
-        return self.logsig(self.ddiff).sum(axis=0)
+            self.ddiff[kj] = self.distdiff(target, self.Jx[kj], self.Jy[kj], kc)
+        return self.logsig(self.ddiff).sum(axis=0)  # axis 0 is jammer num, add logs because independent
+
+    def loglikelihood1(self, target, kc=0):
+        for kj in range(self.njams):
+            self.ddiff1[kj] = self.distdiff(target, self.Jx1[kj], self.Jy1[kj], kc)
+        return self.logsig(self.ddiff1).sum(axis=0)  # axis 0 is jammer num, add logs because independent
         # self.logsigs = [self.logsig(self.distdiff(target, jx[kj], jy[kj], kc)) for kj in range(self.njams)]
         # self.loglike = self.sum_listofarrays(self.logsigs)
         # assert (self.loglike <= 0).all()
         # return self.loglike
 
     def try_to_contact(self, target):
-        p = np.exp(self.loglikelihood(target, self.jammers))
+        p = np.exp(self.loglikelihood1(target))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
     def loglikelihood_obs(self, target, obs):
