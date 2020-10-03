@@ -17,8 +17,9 @@ class Jams():
         self.jammers = None
         self.teleport_comm()
         self.teleport_jammers()
-        self.jx = np.arange(ngrid).reshape(1,ngrid)*np.ones((ngrid,1))
-        self.jy = np.arange(ngrid).reshape(ngrid,1)*np.ones((1,ngrid))
+        self.Jx, self.Jy = self.makeJxy()
+        # self.jx = np.arange(ngrid).reshape(1,ngrid)*np.ones((ngrid,1))
+        # self.jy = np.arange(ngrid).reshape(ngrid,1)*np.ones((1,ngrid))
         # All distributions are represented as logs for stability
         self.logPjammers_prior = np.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid) # logProb(jammers@loc); init to uniform
 
@@ -100,7 +101,8 @@ class Jams():
 
     def loglikelihood(self, target, jam=None, kc=0):
         if jam is None:   # need njams jx's and jy's then AIC with njams unknown
-            jx, jy = self.makeJxy()
+            jx = self.Jx
+            jy = self.Jy
         else:
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
