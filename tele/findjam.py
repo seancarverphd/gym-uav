@@ -41,15 +41,33 @@ class Jams():
     def teleport(self, ngrid):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
-    def itertuple(self, k):
-        if k == -1:
-            dims = 2*self.njams - 2
-        else:
-            dims = 2*self.njams
+    def iter2(self):
+        dims = 2*self.njams - 2
+        if dims == 0:
+            yield tuple()
+            return
         top = self.ngrid
         I = [0]*dims
+        yield tuple(I)
         i = 0
+        while True:
+            I[i] += 1
+            if I[i] >= top:
+                assert I[i] == top
+                I[i] = 0
+                i += 1
+            else:
+                i = 0
+                yield tuple(I)
+            if i >= dims:
+                break
+
+    def itertuple(self, k):
+        dims = 2*self.njams
+        top = self.ngrid
+        I = [0]*dims
         yield tuple(I), I[k]
+        i = 0
         while True:
             I[i] += 1
             if I[i] >= top:
@@ -121,11 +139,11 @@ class Jams():
             self.step += 1
 
     def marginal(self, P):
-        for i, I in enumerate(self.itertuple(-1)):
+        for i, I in enumerate(self.iter2()):
             pass
         Ps = torch.zeros((i+1, self.ngrid, self.ngrid))
-        for j, I in enumerate(self.itertuple(-1)):
-            Ps[j] = P[I[0]]
+        for j, I in enumerate(self.iter2()):
+            Ps[j] = P[I]
         return torch.logsumexp(Ps, dim=0).T
 
     def render(self):
