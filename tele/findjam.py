@@ -37,9 +37,8 @@ class Jams():
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
     def logsig(self, x):
-        l = np.log(scipy.special.expit(2*self.slope*x))
-        assert (l<=0).all()
-        return l
+        return np.log(scipy.special.expit(2*self.slope*x))
+        # assert (l<=0).all()
 
     def logsumexp_listofarrays(self, loa):
         # logsumexp across the array-elements of a list of arrays and return a new array of same shape
@@ -106,16 +105,14 @@ class Jams():
         else:
             jx = [jam[kj][0] for kj in range(self.njams)]  # single float, one location
             jy = [jam[kj][1] for kj in range(self.njams)]  # single float, one location
-        # ToDo: make below into a numpy array of one more dimension, then add along that dimension.
         self.ddiff = np.zeros([self.njams] + list(np.array(jx[0]).shape))
         for kj in range(self.njams):
             self.ddiff[kj] = self.distdiff(target, jx[kj], jy[kj], kc)
-        self.logsigma = self.logsig(self.ddiff)
-        self.loglike = self.logsigma.sum(axis=0)
+        return self.logsig(self.ddiff).sum(axis=0)
         # self.logsigs = [self.logsig(self.distdiff(target, jx[kj], jy[kj], kc)) for kj in range(self.njams)]
         # self.loglike = self.sum_listofarrays(self.logsigs)
-        assert (self.loglike <= 0).all()
-        return self.loglike
+        # assert (self.loglike <= 0).all()
+        # return self.loglike
 
     def try_to_contact(self, target):
         p = np.exp(self.loglikelihood(target, self.jammers))
