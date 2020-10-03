@@ -18,8 +18,8 @@ class Jams():
         self.teleport_comm()
         self.teleport_jammers()
         self.Jx, self.Jy = self.makeJxy()
-        self.Jx1 = [self.jammers[kj][0] for kj in range(self.njams)]  # single float, one location
-        self.Jy1 = [self.jammers[kj][1] for kj in range(self.njams)]  # single float, one location
+        self.Jx1 = np.array([self.jammers[kj][0] for kj in range(self.njams)])  # single float, one location
+        self.Jy1 = np.array([self.jammers[kj][1] for kj in range(self.njams)])  # single float, one location
         self.ddiff = np.zeros([self.njams] + list(np.array(self.Jx[0]).shape))
         self.ddiff1 = np.zeros(self.njams)
         # All distributions are represented as logs for stability
@@ -90,7 +90,7 @@ class Jams():
         for k in range(self.njams):
             Jx.append(self.makeJm(2*k))
             Jy.append(self.makeJm(2*k+1))
-        return Jx, Jy
+        return np.array(Jx), np.array(Jy)
 
     def distdiff(self, target, jxjk, jyjk, kc=0):
         ddiff = (np.sqrt((jxjk - self.comm[kc][0])**2 + (jyjk - self.comm[kc][1])**2) -
@@ -98,8 +98,9 @@ class Jams():
         return ddiff
 
     def loglikelihood(self, target, kc=0):
-        for kj in range(self.njams):
-            self.ddiff[kj] = self.distdiff(target, self.Jx[kj], self.Jy[kj], kc)
+        self.ddiff = self.distdiff(target, self.Jx, self.Jy, kc)
+        # for kj in range(self.njams):
+        #     self.ddiff[kj] = self.distdiff(target, self.Jx[kj], self.Jy[kj], kc)
         return self.logsig(self.ddiff).sum(axis=0)  # axis 0 is jammer num, add logs because independent
 
     def loglikelihood_obs(self, target, obs):
@@ -108,8 +109,9 @@ class Jams():
         return self.log_p_obs
 
     def loglikelihood_scalar(self, target, kc=0):
-        for kj in range(self.njams):
-            self.ddiff1[kj] = self.distdiff(target, self.Jx1[kj], self.Jy1[kj], kc)
+        self.ddiff1 = self.distdiff(target, self.Jx1, self.Jy1, kc)
+        # for kj in range(self.njams):
+        #     self.ddiff1[kj] = self.distdiff(target, self.Jx1[kj], self.Jy1[kj], kc)
         return self.logsig(self.ddiff1).sum(axis=0)  # axis 0 is jammer num, add logs because independent
 
     def try_to_contact(self, target):
