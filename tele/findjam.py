@@ -4,7 +4,12 @@ import scipy.special
 import matplotlib.pylab as plt
 
 class Jams():
-    def __init__(self):
+    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., seed=None):
+        self.ngrid = ngrid  # grid points on map in 1D
+        self.ncomms = ncomms
+        self.njams = njams
+        self.slope = slope
+        self.seed = seed
         self.hq = (0,0)
         self.asset = (self.ngrid-1,self.ngrid-1)
         np.random.seed(self.seed)
@@ -17,13 +22,8 @@ class JamsPoint():
         pass
 
 class JamsGrid(Jams):
-    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., seed=None):
-        self.ngrid = ngrid  # grid points on map in 1D
-        self.ncomms = ncomms
-        self.njams = njams
-        self.slope = slope
-        self.seed = seed
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.teleport_comm()
         self.teleport_jammers()
         self.step = 0  # initialize counter for number of steps
