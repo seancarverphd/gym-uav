@@ -4,10 +4,19 @@ import scipy.special
 import matplotlib.pylab as plt
 
 class Jams():
-    def __init__():
+    def __init__(self):
+        self.hq = (0,0)
+        self.asset = (self.ngrid-1,self.ngrid-1)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed+1)
+        self.comm = None
+        self.jammers = None
+
+class JamsPoint():
+    def __init__(self):
         pass
 
-class JamsGrid():
+class JamsGrid(Jams):
     def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
@@ -15,12 +24,6 @@ class JamsGrid():
         self.slope = slope
         self.seed = seed
         super().__init__()
-        self.hq = (0,0)
-        self.asset = (ngrid-1,ngrid-1)
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed+1)
-        self.comm = None
-        self.jammers = None
         self.teleport_comm()
         self.teleport_jammers()
         self.step = 0  # initialize counter for number of steps
