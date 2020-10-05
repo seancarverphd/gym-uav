@@ -4,21 +4,26 @@ import scipy.special
 import matplotlib.pylab as plt
 
 class Jams():
+    def __init__():
+        pass
+
+class JamsGrid():
     def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., seed=None):
-        self.seed = seed
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed+1)
-        self.step = 0  # initialize counter for number of steps
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.njams = njams
         self.slope = slope
+        self.seed = seed
+        super().__init__()
         self.hq = (0,0)
         self.asset = (ngrid-1,ngrid-1)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed+1)
         self.comm = None
         self.jammers = None
         self.teleport_comm()
         self.teleport_jammers()
+        self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
         self.Jx1 = torch.tensor([self.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # single float, one location
         self.Jy1 = torch.tensor([self.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # single float, one location
@@ -134,9 +139,9 @@ class Jams():
             # The rest of the calculations should NOT use the unknown jammer location(s): instead ND-Array of all jammer locations
             self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
             self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
-            self.logPjammers_prior = self.normalize()
             self.teleport_comm()
             self.step += 1
+        self.logPjammers_prior = self.normalize()
 
     def marginal(self, P):
         for i, I in enumerate(self.iter2()):
@@ -156,6 +161,7 @@ class Jams():
         for kj in range(self.njams):
             plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer")
         plt.title("Steps = " + str(self.step))
+        plt.show()
         return(l)
 
     def unravel_index(self, index, shape):
