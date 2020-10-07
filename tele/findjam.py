@@ -4,11 +4,12 @@ import scipy.special
 import matplotlib.pylab as plt
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., seed=None):
+    def __init__(self, ngrid=5, ncomms=1, njams=1, slope=10., nsteps=1, seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.njams = njams
         self.slope = slope
+        self.nsteps = nsteps
         self.seed = seed
         self.hq = (0,0)
         self.asset = (self.ngrid-1,self.ngrid-1)
@@ -17,9 +18,9 @@ class Jams():
         self.comm = None
         self.jammers = None
 
-class JamsPoint():
+class JamsPoint(Jams):
     def __init__(self):
-        pass
+        super().__init__(**kwargs)
 
 class JamsGrid(Jams):
     def __init__(self, **kwargs):
@@ -134,7 +135,9 @@ class JamsGrid(Jams):
         flat = self.logPjammers_prior = torch.nn.functional.log_softmax(self.logPjammers_prior.flatten(), dim=0)  # New Prior equals normalized Posterior
         return flat.reshape(self.priorshape)
 
-    def run(self, steps=1):
+    def run(self, steps=None):
+        if steps is None:
+            steps = self.nsteps
         for _ in range(steps):
             # need to loop these over comms, also need to contact comms <--> comms
             self.asset_contacted = self.try_to_contact(self.asset)       # Returns True/False using veridical jammer location(s)
@@ -177,3 +180,24 @@ class JamsGrid(Jams):
     def estimates(self):
         imax = self.logPjammers_prior.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
+
+class test1D():
+    def __init__(self, ngrid=64, slope=1):
+        self.ngrid = ngrid
+        self.slope = 1
+
+    def run(self):
+        self.grid = torch.zeros((self.ngrid, self.ngrid))
+        for j in range(self.ngrid):
+            for c in range(self.ngrid):
+                self.grid[j, c] = torch.abs(torch.tensor(c) - torch.tensor(j)) - torch.abs(torch.tensor(c))
+
+    def render0(self):
+        l = plt.imshow(self.grid, cmap='hot', interpolation='nearest')
+
+    def logsig(self, x):
+        return torch.log(scipy.special.expit(torch.true_divide(2*self.slope*x, self.ngrid))
+
+    def render2(self):
+        l = plt.imshow(self.logsig(self.grid), cmap='hot', interpolation='nearest')
+
