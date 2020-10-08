@@ -52,7 +52,9 @@ class JamsGrid(Jams):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
     def itertuple(self, dims):
-        # usually dims = 2*self.njams or 2*self.njams-2 (for plotting purposes)
+        # itertuple is a generator producing the multiindexes of all elements of a "square" tensor
+        #           where the the square tensor has dim dimensions of all length self.ngrid
+        #           usually dims = 2*self.njams (for calculations) or 2*self.njams-2 (for plotting)
         if dims == 0:
             yield tuple()
             return
@@ -73,29 +75,54 @@ class JamsGrid(Jams):
                 break
 
     def makeJm(self, k):
+        # makeJm creates an np.array of size [self.ngrid]*(2*self.njams)
+        #        the array returned projects the index onto the kth coordinate
+        #        Jm[i1,i2,...,ik,...] = ik
+        #        This is usefull with doing vectorized tensor arithmetic on ik
+        #        Question: could I do the same thing with broadcasting?
         Jm = np.zeros([self.ngrid]*(2*self.njams))
         for I in self.itertuple(2*self.njams):
             Jm[I] = I[k] 
         return Jm
 
     def makeJxy(self):
+        # makeJxy creates 2 tensors Jrx, Jry.  Each of these tensors has shape [self.njams] + [self.ngrid]*(2*self.njams)
+        #         the zeroth dimension is j indexing jammers the rest of the dimensions are the size of the joint grid. 
+        #         The tensor components are Jrx[x1,y1,x2,y2,...,xj,...] = xj; for Jry[...] = yj; the x's and y's alternate
+        #         Note xj and yj are integer indicies as well as xy-coordinates representing longitude and lattitude.
+        #         This works because we put our xy-grid on integer range(self.ngrid) values of x and y.
+        #         To generalize, transform Jx --> longitude(Jx) and Jy --> latitude(Jy) or whatever xy values you are using
+        # makeJxy is called once on object initialization and the values returned are stored as self.Jx and self.Jy
         Jx = []
         Jy = []
         for k in range(self.njams):
             Jx.append(self.makeJm(2*k))
             Jy.append(self.makeJm(2*k+1))
+        # Update for non-integer x, y here
         Jrx = torch.tensor(np.array(Jx), dtype=float)
         Jry = torch.tensor(np.array(Jy), dtype=float)
         return Jrx, Jry
 
-    def logsig(self, x):
-        return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
-        # return torch.log(scipy.special.expit(2*self.slope*x))
+    def dist_to_comm(self, cx, cy, jx, jy):
+        # dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
+        #              jx, jy could be grid tensors for jammers or scalars for known targets
+        # Might generalize Euclidean plane to globe but probably isn't necessary
+        return torch.sqrt((jx - cx)**2 + (jy - cy)**2)
 
     def distdiff(self, target, jx, jy, kc=0):
-        arg1 = (jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2 
-        arg2 = torch.tensor((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2, dtype=float)
-        return torch.sqrt(arg1) - torch.sqrt(arg2)
+        # distdiff computes the difference between the distances comm <--> jammer and comm <--> target
+        dist_c2j = self.dist_to_comm(self.comm[kc][0], self.comm[kc][1], jx, jy)
+        dist_c2t = self.dist_to_comm(self.comm[kc][0], self.comm[kc][1], torch.tensor(target[0], dtype=float), torch.tensor(target[1], dtype=float))
+        # arg1 = (jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2
+        # arg2 = torch.tensor((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2, dtype=float)
+        return dist_c2j - dist_c2t
+
+    def logsig(self, x):
+        # logsig returns the log of the sigmoid function (expit) of its argument
+        #        scaled so that result is independent of grid size with same self.slope
+        # before adjusting for grid size: return torch.log(scipy.special.expit(2*self.slope*x)) with slope specifed at
+        #        "half activation" meaning equal distance between comm-jammer and comm-target, where expit=1/2
+        return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
 
     def loglikelihood(self, target, kc=0):
         self.ddiff = self.distdiff(target, self.Jx, self.Jy, kc)
