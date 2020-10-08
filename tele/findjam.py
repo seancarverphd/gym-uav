@@ -51,35 +51,13 @@ class JamsGrid(Jams):
     def teleport(self, ngrid):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
-    # def iter2(self):
-    #     dims = 2*self.njams - 2
-    #     if dims == 0:
-    #         yield tuple()
-    #         return
-    #     top = self.ngrid
-    #     I = [0]*dims
-    #     yield tuple(I)
-    #     i = 0
-    #     while True:
-    #         I[i] += 1
-    #         if I[i] >= top:
-    #             assert I[i] == top
-    #             I[i] = 0
-    #             i += 1
-    #         else:
-    #             i = 0
-    #             yield tuple(I)
-    #         if i >= dims:
-    #             break
-
     def itertuple(self, dims):
-        # dims = 2*self.njams
+        # usually dims = 2*self.njams or 2*self.njams-2 (for plotting purposes)
         if dims == 0:
             yield tuple()
             return
         top = self.ngrid
         I = [0]*dims
-        # yield tuple(I), I[k]
         yield tuple(I)
         i = 0
         while True:
@@ -90,7 +68,6 @@ class JamsGrid(Jams):
                 i += 1
             else:
                 i = 0
-                # yield tuple(I), I[k]
                 yield tuple(I)
             if i >= dims:
                 break
