@@ -113,7 +113,7 @@ class JamsGrid(Jams):
         return torch.sqrt((jx - cx)**2 + (jy - cy)**2)
 
     def distdiff(self, target, jx, jy, kc=0):
-        # distdiff computes the difference between the distances comm <--> jammer and comm <--> target
+        # distdiff computes the difference between the distances: comm <--> jammer minus comm <--> target
         targetx = torch.tensor(target[0], dtype=float)
         targety = torch.tensor(target[1], dtype=float)
         dist_c2j = self.dist_to_comm(jx, jy, kc)
@@ -121,16 +121,16 @@ class JamsGrid(Jams):
         return dist_c2j - dist_c2t
 
     def logsig(self, x):
-        # logsig returns the log of the sigmoid function (expit) of its argument
-        #        scaled so that result is independent of grid size with same self.slope
+        # logsig returns the log of the sigmoid function (expit) of its argument x
+        #        scaled so that result is independent of grid size assuming the same self.slope
         # before adjusting for grid size: return torch.log(scipy.special.expit(2*self.slope*x)) with slope specifed at
-        #        "half activation" meaning equal distance between comm-jammer and comm-target, where expit=1/2
+        #        equal distance between comm-jammer and comm-target, where expit=1/2
         return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
 
     def loglikelihood(self, target, kc=0):
         # loglikelihood: log-likelihood of successful communication between comm and target
-        self.ddiff = self.distdiff(target, self.Jx, self.Jy, kc)
-        return self.logsig(self.ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
+        ddiff = self.distdiff(target, self.Jx, self.Jy, kc)
+        return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
     def loglikelihood_obs(self, target, obs):
         # loglikelihood_obs: log likelihood of observed success or failure of communication (obs is True for success)
