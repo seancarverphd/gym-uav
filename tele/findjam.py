@@ -114,7 +114,7 @@ class JamsGrid(Jams):
     def distdiff(self, target, jx, jy, kc=0):
         # distdiff computes the difference between the distances comm <--> jammer and comm <--> target
         targetx = torch.tensor(target[0], dtype=float)
-        targetu = torch.tensor(target[1], dtype=float)
+        targety = torch.tensor(target[1], dtype=float)
         dist_c2j = self.dist_to_comm(kc, jx, jy)
         dist_c2t = self.dist_to_comm(kc, targetx, targety)
         # arg1 = (jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2
