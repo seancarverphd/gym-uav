@@ -176,9 +176,11 @@ class JamsGrid(Jams):
 
     def marginal(self, P):
         # marginal is required for plotting if joint density has greater than 2 dimensions
-        for i, I in enumerate(self.itertuple(2*self.njams-2)):
-            pass
-        Ps = torch.zeros((i+1, self.ngrid, self.ngrid))
+        # for i, I in enumerate(self.itertuple(2*self.njams-2)):
+        #    pass
+        # assert i+1 == self.ngrid**(2*self.njams-2)
+        npoints = self.ngrid**(2*self.njams-2)
+        Ps = torch.zeros((npoints, self.ngrid, self.ngrid))
         for j, I in enumerate(self.itertuple(2*self.njams-2)):
             Ps[j] = P[I]
         return torch.logsumexp(Ps, dim=0).T
