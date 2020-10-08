@@ -141,7 +141,7 @@ class JamsGrid(Jams):
         return self.loglikelihood(target, self.Jx1, self.Jy1, kc)
 
     def loglikelihood_obs(self, target, obs):
-        # loglikelihood_obs: loglikelihood_grid of observed success or failure of communication 
+        # loglikelihood_obs: loglikelihood_grid of observed success or failure of communication
         #                    pass obs=True for likelihood of success communication
         #                    pass obs=False for likelihood of unsuccessful communication
         log_p_success = self.loglikelihood_grid(target)
@@ -153,10 +153,14 @@ class JamsGrid(Jams):
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
     def normalize(self):
+        # normalize is required after a Bayesian update to make the distributions sum to 1.
+        #           However this is not necessary to do within the run() loop or to get maximum aposteriori estimates of Jammer location
+        #           normalize is called at the end of the loop.
         flat = self.logPjammers_prior = torch.nn.functional.log_softmax(self.logPjammers_prior.flatten(), dim=0)  # New Prior equals normalized Posterior
         return flat.reshape(self.priorshape)
 
     def run(self, steps=None):
+        # run take steps or self.nsteps of moving comm (teleport for now) and Bayesian update of prior
         if steps is None:
             steps = self.nsteps
         for _ in range(steps):
@@ -171,6 +175,7 @@ class JamsGrid(Jams):
         self.logPjammers_prior = self.normalize()
 
     def marginal(self, P):
+        # marginal is required for plotting if joint density has greater than 2 dimensions
         for i, I in enumerate(self.itertuple(2*self.njams-2)):
             pass
         Ps = torch.zeros((i+1, self.ngrid, self.ngrid))
@@ -179,6 +184,7 @@ class JamsGrid(Jams):
         return torch.logsumexp(Ps, dim=0).T
 
     def render(self):
+        # render plots the marginal
         l = plt.imshow(self.marginal(self.logPjammers_prior), cmap='hot', interpolation='nearest')
         plt.text(self.asset[0], self.asset[1], "Asset")
         plt.text(self.hq[0], self.hq[1], "Headquarters")
@@ -192,6 +198,7 @@ class JamsGrid(Jams):
         return(l)
 
     def unravel_index(self, index, shape):
+        # unravel_index came from the web needed for finding the argmax of maximum aposteriori from grid
         out = []
         for dim in reversed(shape):
             out.append(index % dim)
@@ -199,10 +206,12 @@ class JamsGrid(Jams):
         return tuple(reversed(out))
 
     def estimates(self):
+        # estimates produces the maximum aposteriori estimates of the jammer locations based on the information currently in grid
         imax = self.logPjammers_prior.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
 
 class test1D():
+    # Unfinished classed for doing 1 dimensional grids: Jammers and Comms move in 1D
     def __init__(self, ngrid=64, slope=1):
         self.ngrid = ngrid
         self.slope = 1
