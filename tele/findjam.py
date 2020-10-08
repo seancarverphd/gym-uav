@@ -13,8 +13,9 @@ class Jams():
         self.seed = seed
         self.hq = (0,0)
         self.asset = (self.ngrid-1,self.ngrid-1)
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed+1)
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed+1)
         self.comm = None
         self.jammers = None
 
@@ -50,13 +51,35 @@ class JamsGrid(Jams):
     def teleport(self, ngrid):
         return (np.random.choice(ngrid), np.random.choice(ngrid))
 
-    def iter2(self):
-        dims = 2*self.njams - 2
+    # def iter2(self):
+    #     dims = 2*self.njams - 2
+    #     if dims == 0:
+    #         yield tuple()
+    #         return
+    #     top = self.ngrid
+    #     I = [0]*dims
+    #     yield tuple(I)
+    #     i = 0
+    #     while True:
+    #         I[i] += 1
+    #         if I[i] >= top:
+    #             assert I[i] == top
+    #             I[i] = 0
+    #             i += 1
+    #         else:
+    #             i = 0
+    #             yield tuple(I)
+    #         if i >= dims:
+    #             break
+
+    def itertuple(self, dims):
+        # dims = 2*self.njams
         if dims == 0:
             yield tuple()
             return
         top = self.ngrid
         I = [0]*dims
+        # yield tuple(I), I[k]
         yield tuple(I)
         i = 0
         while True:
@@ -67,32 +90,15 @@ class JamsGrid(Jams):
                 i += 1
             else:
                 i = 0
+                # yield tuple(I), I[k]
                 yield tuple(I)
-            if i >= dims:
-                break
-
-    def itertuple(self, k):
-        dims = 2*self.njams
-        top = self.ngrid
-        I = [0]*dims
-        yield tuple(I), I[k]
-        i = 0
-        while True:
-            I[i] += 1
-            if I[i] >= top:
-                assert I[i] == top
-                I[i] = 0
-                i += 1
-            else:
-                i = 0
-                yield tuple(I), I[k]
             if i >= dims:
                 break
 
     def makeJm(self, k):
         Jm = np.zeros([self.ngrid]*(2*self.njams))
-        for I, ik in self.itertuple(k):
-            Jm[I] = ik
+        for I in self.itertuple(2*self.njams):
+            Jm[I] = I[k] 
         return Jm
 
     def makeJxy(self):
@@ -150,10 +156,10 @@ class JamsGrid(Jams):
         self.logPjammers_prior = self.normalize()
 
     def marginal(self, P):
-        for i, I in enumerate(self.iter2()):
+        for i, I in enumerate(self.itertuple(2*self.njams-2)):
             pass
         Ps = torch.zeros((i+1, self.ngrid, self.ngrid))
-        for j, I in enumerate(self.iter2()):
+        for j, I in enumerate(self.itertuple(2*self.njams-2)):
             Ps[j] = P[I]
         return torch.logsumexp(Ps, dim=0).T
 
@@ -196,7 +202,7 @@ class test1D():
         l = plt.imshow(self.grid, cmap='hot', interpolation='nearest')
 
     def logsig(self, x):
-        return torch.log(scipy.special.expit(torch.true_divide(2*self.slope*x, self.ngrid))
+        return torch.log(scipy.special.expit(torch.true_divide(2*self.slope*x, self.ngrid)))
 
     def render2(self):
         l = plt.imshow(self.logsig(self.grid), cmap='hot', interpolation='nearest')
