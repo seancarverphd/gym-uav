@@ -103,9 +103,10 @@ class JamsGrid(Jams):
         Jry = torch.tensor(np.array(Jy), dtype=float)
         return Jrx, Jry
 
-    def dist_to_comm(self, kc, jx, jy):
+    def dist_to_comm(self, jx, jy, kc=0):
         # dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
         #              jx, jy could be grid tensors for jammers or scalars for known targets
+        #              For comm location, Uses kc^th value stored in self.comm (might be more than one commi, kc>0)
         # Might generalize Euclidean plane to globe but probably isn't necessary
         cx = self.comm[kc][0]
         cy = self.comm[kc][1]
@@ -115,10 +116,8 @@ class JamsGrid(Jams):
         # distdiff computes the difference between the distances comm <--> jammer and comm <--> target
         targetx = torch.tensor(target[0], dtype=float)
         targety = torch.tensor(target[1], dtype=float)
-        dist_c2j = self.dist_to_comm(kc, jx, jy)
-        dist_c2t = self.dist_to_comm(kc, targetx, targety)
-        # arg1 = (jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2
-        # arg2 = torch.tensor((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2, dtype=float)
+        dist_c2j = self.dist_to_comm(jx, jy, kc)
+        dist_c2t = self.dist_to_comm(targetx, targety, kc)
         return dist_c2j - dist_c2t
 
     def logsig(self, x):
@@ -129,15 +128,18 @@ class JamsGrid(Jams):
         return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
 
     def loglikelihood(self, target, kc=0):
+        # loglikelihood: log-likelihood of successful communication between comm and target
         self.ddiff = self.distdiff(target, self.Jx, self.Jy, kc)
-        return self.logsig(self.ddiff).sum(axis=0)  # axis 0 is jammer num, add logs because independent
+        return self.logsig(self.ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
     def loglikelihood_obs(self, target, obs):
+        # loglikelihood_obs: log likelihood of observed success or failure of communication (obs is True for success)
         self.log_p_success = self.loglikelihood(target)
         self.log_p_obs = self.log_p_success if obs else torch.log(1 - torch.exp(self.log_p_success))
         return self.log_p_obs
 
     def loglikelihood_scalar(self, target, kc=0):
+        # same as loglikelihood but passes veridical jammer location instead of grid
         self.ddiff1 = self.distdiff(target, self.Jx1, self.Jy1, kc)
         return self.logsig(self.ddiff1).sum(axis=0)  # axis 0 is jammer num, add logs because independent
 
