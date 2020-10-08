@@ -103,16 +103,20 @@ class JamsGrid(Jams):
         Jry = torch.tensor(np.array(Jy), dtype=float)
         return Jrx, Jry
 
-    def dist_to_comm(self, cx, cy, jx, jy):
+    def dist_to_comm(self, kc, jx, jy):
         # dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
         #              jx, jy could be grid tensors for jammers or scalars for known targets
         # Might generalize Euclidean plane to globe but probably isn't necessary
+        cx = self.comm[kc][0]
+        cy = self.comm[kc][1]
         return torch.sqrt((jx - cx)**2 + (jy - cy)**2)
 
     def distdiff(self, target, jx, jy, kc=0):
         # distdiff computes the difference between the distances comm <--> jammer and comm <--> target
-        dist_c2j = self.dist_to_comm(self.comm[kc][0], self.comm[kc][1], jx, jy)
-        dist_c2t = self.dist_to_comm(self.comm[kc][0], self.comm[kc][1], torch.tensor(target[0], dtype=float), torch.tensor(target[1], dtype=float))
+        targetx = torch.tensor(target[0], dtype=float)
+        targetu = torch.tensor(target[1], dtype=float)
+        dist_c2j = self.dist_to_comm(kc, jx, jy)
+        dist_c2t = self.dist_to_comm(kc, targetx, targety)
         # arg1 = (jx - self.comm[kc][0])**2 + (jy - self.comm[kc][1])**2
         # arg2 = torch.tensor((target[0] - self.comm[kc][0])**2 + (target[1] - self.comm[kc][1])**2, dtype=float)
         return dist_c2j - dist_c2t
