@@ -221,21 +221,25 @@ class JamsGrid(Jams):
             self.step += 1
         self.logPjammers_prior = self.normalize()
 
-    def marginal(self, P):
+    def marginal(self, joint):
         '''
-        marginal is required for plotting if joint density has greater than 2 dimensions
+        marginal: needed for plotting in 2D if joint density has greater than 2 dimensions
+                  adds probabilities for each x_njams and y_njams on 2D grid
+                  where njams references the marginal of last jammer position x and y (last two coordinates of joint distribution).
+                  All jammer positions are equivalent and should give same answer, but this way book keeping simplifies.
         '''
-        npoints = self.ngrid**(2*self.njams-2)
-        Ps = torch.zeros((npoints, self.ngrid, self.ngrid))
-        for j, I in enumerate(self.itertuple(2*self.njams-2)):
-            Ps[j] = P[I]
-        return torch.logsumexp(Ps, dim=0).T
+        dims_summing_across = 2*self.njams-2  # two less dimensions than number of dimensions in joint distribution
+        nterms = self.ngrid**dims_summing_across  # number of terms in sum for each x and y in the computation of the marginal
+        terms_rearranged_for_sum = torch.zeros((nterms, self.ngrid, self.ngrid))  # coordinates are (term, x, y)
+        for term_number, term_multiindex in enumerate(self.itertuple(dims_summing_across)):  # enumerate all term_multiindecies in a tensor with two less coordinates
+            terms_rearranged_for_sum[term_number] = joint[term_multiindex]  # each side of this assignment is a 2D tensor in x and y
+        return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
 
     def render(self):
         '''
-        render plots the marginal
+        render: plots the marginal
         '''
-        l = plt.imshow(self.marginal(self.logPjammers_prior), cmap='hot', interpolation='nearest')
+        l = plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         plt.text(self.asset[0], self.asset[1], "Asset")
         plt.text(self.hq[0], self.hq[1], "Headquarters")
         # plt.text(self.comm[0][0], self.comm[0][1], "Comm")
@@ -263,6 +267,11 @@ class JamsGrid(Jams):
         '''
         imax = self.logPjammers_prior.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
+
+    def test_independence(self):
+        logjoint = self.logPjammers_prior
+        logmargin = self.marginal(logjoint)
+        # for 
 
 class test1D():
     '''
