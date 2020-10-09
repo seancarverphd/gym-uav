@@ -30,8 +30,7 @@ class JamsGrid(Jams):
         self.teleport_jammers()
         self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
-        self.Jx1 = torch.tensor([self.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # single float, one location
-        self.Jy1 = torch.tensor([self.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # single float, one location
+        self.Jx1, self.Jy1 = self.makeJxy1()
         self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
         self.ddiff1 = torch.zeros(self.njams)
         # All distributions are represented as logs for stability
@@ -86,7 +85,7 @@ class JamsGrid(Jams):
         return Jm
 
     def makeJxy(self):
-        # makeJxy creates 2 tensors Jrx, Jry.  Each of these tensors has shape [self.njams] + [self.ngrid]*(2*self.njams)
+        # makeJxy creates and returns 2 tensors Jrx, Jry.  Each of these tensors has shape [self.njams] + [self.ngrid]*(2*self.njams)
         #         the zeroth dimension is j indexing jammers the rest of the dimensions are the size of the joint grid. 
         #         The tensor components are Jrx[x1,y1,x2,y2,...,xj,...] = xj; for Jry[...] = yj; the x's and y's alternate
         #         Note xj and yj are integer indicies as well as xy-coordinates representing longitude and lattitude.
@@ -103,17 +102,26 @@ class JamsGrid(Jams):
         Jry = torch.tensor(np.array(Jy), dtype=float)
         return Jrx, Jry
 
+    def makeJxy1(self):
+        # makeJrxy1 creates and returns 2 tensors Jrx1, and Jry1.  Each of these has shape [self.njams] -- 1D-tensor
+        #    The jth component of Jrx1 is the veridical x-value of the jth jammer
+        Jrx1 = torch.tensor([self.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # each component single float, veridical x-location 
+        Jry1 = torch.tensor([self.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # each component single float, veridical y-location
+        return Jrx1, Jry1
+
     def dist_to_comm(self, jx, jy, kc=0):
         # dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
-        #              jx, jy could be grid tensors for jammers or scalars for known targets
-        #              For comm location, Uses kc^th value stored in self.comm (might be more than one commi, kc>0)
-        # Might generalize Euclidean plane to globe but probably isn't necessary
+        #              jx, jy could be grid tensors for jammers or 1D veridical jammer locations in x and y
+        #              kc^th comm
+        # Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         cx = self.comm[kc][0]
         cy = self.comm[kc][1]
         return torch.sqrt((jx - cx)**2 + (jy - cy)**2)
 
     def distdiff(self, target, jx, jy, kc=0):
         # distdiff computes the difference between the distances: comm <--> jammer minus comm <--> target
+        #          if distance comm <--> jammer is larger than distance comm <--> target, then
+        #          difference is positive and probability of successful transmission is closer to one
         targetx = torch.tensor(target[0], dtype=float)
         targety = torch.tensor(target[1], dtype=float)
         dist_c2j = self.dist_to_comm(jx, jy, kc)
@@ -123,25 +131,27 @@ class JamsGrid(Jams):
     def logsig(self, x):
         # logsig returns the log of the sigmoid function (expit) of its argument x
         #        scaled so that result is independent of grid size assuming the same self.slope
-        # before adjusting for grid size: return torch.log(scipy.special.expit(2*self.slope*x)) with slope specifed at
-        #        equal distance between comm-jammer and comm-target, where expit=1/2
+        # before adjusting for grid size: returned "torch.log(scipy.special.expit(2*self.slope*x))" in this case
+        #        self.slope was slope of sigmoid (before log) specifed at x=0 where there is 
+        #        equal distance between comm-jammer and comm-target, where value of sigmoid (before log) is expit=1/2
         return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
 
-    def loglikelihood(self, target, jammer_x, jammer_y, kc=0):
-        # loglikelihood: log-likelihood of successful communication between comm and target with specified jammer locations
-        ddiff = self.distdiff(target, jammer_x, jammer_y, kc)
+    def loglikelihood(self, target, jx, jy, kc=0):
+        # loglikelihood: log-likelihood of successful communication between comm and target with specified jammer location(s)
+        #                Depending on jammer_x and jammer_y will compute for whole grid or just veridical locations (see wrappers below)
+        ddiff = self.distdiff(target, jx, jy, kc)
         return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
     def loglikelihood_grid(self, target, kc=0):
-        # loglikelihood_grid wrapper for loglikelihood passing object's whole grid for jammer locations
+        # loglikelihood_grid: wrapper for loglikelihood passing object's whole grid for possible jammer locations
         return self.loglikelihood(target, self.Jx, self.Jy, kc)
 
     def loglikelihood_veridical(self, target, kc=0):
-        # loglikelihood_veridical wrapper for loglikelihood passing veridical jammer locations instead of whole grid of possible locations
+        # loglikelihood_veridical: wrapper for loglikelihood passing veridical jammer locations instead of whole grid for possible jammer locations
         return self.loglikelihood(target, self.Jx1, self.Jy1, kc)
 
     def loglikelihood_obs(self, target, obs):
-        # loglikelihood_obs: loglikelihood_grid of observed success or failure of communication
+        # loglikelihood_obs: loglikelihood_grid of actual communication between comm and target
         #                    pass obs=True for likelihood of success communication
         #                    pass obs=False for likelihood of unsuccessful communication
         log_p_success = self.loglikelihood_grid(target)
@@ -176,9 +186,6 @@ class JamsGrid(Jams):
 
     def marginal(self, P):
         # marginal is required for plotting if joint density has greater than 2 dimensions
-        # for i, I in enumerate(self.itertuple(2*self.njams-2)):
-        #    pass
-        # assert i+1 == self.ngrid**(2*self.njams-2)
         npoints = self.ngrid**(2*self.njams-2)
         Ps = torch.zeros((npoints, self.ngrid, self.ngrid))
         for j, I in enumerate(self.itertuple(2*self.njams-2)):
