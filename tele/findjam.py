@@ -253,7 +253,8 @@ class JamsGrid(Jams):
 
     def unravel_index(self, index, shape):
         '''
-        unravel_index came from the web needed for finding the argmax of maximum aposteriori from grid
+        unravel_index: copied from the web, converts an integer index to a multiindex for a tensor of specified shape
+                       needed for finding the grid indicies from argmax's output that point to the maximum aposteriori grid location for jammers
         '''
         out = []
         for dim in reversed(shape):
@@ -268,10 +269,23 @@ class JamsGrid(Jams):
         imax = self.logPjammers_prior.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
 
+    def logjoint_iid_from_logmarginal(self, logmarginal):
+        '''
+        logjoint_iid_from_logmarginal:  Construct a joint distribution from a marginal under the assumption that coordinates are iid
+                                        iid means independent and identically distributed
+                                        In this case, it's pairs of coordinates x and y
+        '''
+        logjoint_iid = torch.zeros([self.ngrid]*(2*self.njams))  # same shape as logjoint
+        for index_joint in self.itertuple(2*self.njams):
+            for kj in range(self.njams):
+                logjoint_iid[index_joint] += logmarginal[index_joint[2*kj], index_joint[2*kj+1]]
+        return logjoint_iid
+
     def test_independence(self):
         logjoint = self.logPjammers_prior
         logmargin = self.marginal(logjoint)
-        # for 
+        logjoint_iid = self.logjoint_iid_from_logmarginal(logmargin)
+        return logjoint_iid.allclose(logjoint)
 
 class test1D():
     '''
