@@ -195,14 +195,21 @@ class JamsGrid(Jams):
         p = torch.exp(self.loglikelihood_veridical(target))
         return np.random.choice([True, False],p=(p, 1.-p)) 
 
-    def normalize(self):
+    def normalize(self, distrib):
         '''
         normalize is required after a Bayesian update to make the distributions sum to 1.
                   However this is not necessary to do within the run() loop or to get maximum aposteriori estimates of Jammer location
                   normalize is called at the end of the loop.
         '''
-        flat = self.logPjammers_prior = torch.nn.functional.log_softmax(self.logPjammers_prior.flatten(), dim=0)  # New Prior equals normalized Posterior
-        return flat.reshape(self.priorshape)
+        priorshape = distrib.shape
+        flat = torch.nn.functional.log_softmax(distrib.flatten(), dim=0)  # New Prior equals normalized Posterior
+        return flat.reshape(priorshape)
+
+    def normalize_prior(self):
+        '''
+        normalize_prior: wrapper for normalize that normalizes prior (not used in code but might be on command line)
+        '''
+        return self.normalize(self.logPjammers_prior)
 
     def run(self, steps=None):
         '''
@@ -219,7 +226,7 @@ class JamsGrid(Jams):
             self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
             self.teleport_comm()
             self.step += 1
-        self.logPjammers_prior = self.normalize()
+        self.logPjammers_prior = self.normalize(self.logPjammers_prior)
 
     def marginal(self, joint):
         '''
@@ -235,11 +242,10 @@ class JamsGrid(Jams):
             terms_rearranged_for_sum[term_number] = joint[term_multiindex]  # each side of this assignment is a 2D tensor in x and y
         return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
 
-    def render(self):
+    def annotations(self):
         '''
-        render: plots the marginal
+        annotations: add annotations to plot
         '''
-        l = plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         plt.text(self.asset[0], self.asset[1], "Asset")
         plt.text(self.hq[0], self.hq[1], "Headquarters")
         # plt.text(self.comm[0][0], self.comm[0][1], "Comm")
@@ -249,7 +255,13 @@ class JamsGrid(Jams):
             plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer")
         plt.title("Steps = " + str(self.step))
         plt.show()
-        return(l)
+
+    def render(self):
+        '''
+        render: plots the marginal
+        '''
+        plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        self.annotations()
 
     def unravel_index(self, index, shape):
         '''
@@ -280,6 +292,19 @@ class JamsGrid(Jams):
             for kj in range(self.njams):
                 logjoint_iid[index_joint] += logmarginal[index_joint[2*kj], index_joint[2*kj+1]]
         return logjoint_iid
+
+    def conditional(self, joint, freeze):
+        '''
+        conditional: create the conditional distribution from the joint distribution
+                     if the joint distribution is P(x1, y1, x2, y2, x3, y3)
+                     then conditional([4,5,3,1]) is the distribution P(x3, y3|x1=4, y1=5, x2=3, y1=1)
+        '''
+        return self.normalize(joint[freeze])
+
+    def show_conditional(self, freeze):
+        assert len(freeze) + 2 == len(self.logPjammers_prior.shape)
+        plt.imshow(self.conditional(self.logPjammers_prior, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        self.annotations()
 
     def test_independence(self):
         logjoint = self.logPjammers_prior
