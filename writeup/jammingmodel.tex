@@ -1,0 +1,122 @@
+\documentclass{article}
+\title{Model for UAV Jamming}
+\author{Sean Caver @ Data Machines Corporation}
+\begin{document}
+\maketitle
+
+This model is cobbled together based on things I found on the web,
+things conveyed to me by colleagues at Data Machines, and my own logic
+and understanding.  Uncertainty is so noted.
+
+\section{Scenario}
+
+The field of interest is a square in the Euclidean plane.  In this
+field, there is a ``source,'' or ``sender,'' labeled $S$, a receiver,
+labeled $R$, and $n$ different ``jammers,'' labeled $J_1, \dots, J_n$.
+We do not assume that the ability to communicate is symmetric---a
+separate calculation is needed when the roles of sender and receiver
+are reversed.
+
+\section{TL;DR}
+Let $P_{j}(d_j)$ be the power of jammer $j$ at the receiver, at
+distance $d_j$.  Let $P_S(d_S)$ be power of the source at the
+receiver, at distance $d_S$.  Let $P_N$ be the power of the ambient
+noise.
+
+These functions are given by $P_j = \frac{M_j}{d_j^2}$, for $j = 1,
+\dots, n$ and $P_S = \frac{M_S}{d_S^2}$; $P_N$ is a constant.
+
+The probability of a successful transmission is given by
+
+$$\mbox{sigmoid}\left( 10 \log_{10}\left(\frac{P_S(d_S)}{P_1(d_1) +
+  P_2(d_2) + \dots + P_n(d_n) + P_N} \right) \right)$$
+
+The quantity in the sigmoid is the strength expressed in decibels, of
+the signal against the background that includes all jammers and the
+ambient noise, see Equation (1) in reference \cite{parlin2018jamming}
+
+\section{Some thoughts about the man-in-the-middle}
+Billy had alerted us to the fact that it was more than just distance
+to jammer--jammers in the line of sight were more potent than those
+off of it.
+
+I spent a long time trying to justify putting this feature explicitly
+in the model.  But the model above seemed most consistent with what I
+was reading in the literature and it made sense.  It is distance to
+receiver that matters.  A man in the middle generally will jam the
+receiver, unless distances are great enough, the ambient noise is
+small enough, and the proportionality constant of the jammer is small
+enough compared to the proportionality constant of the sender.  This
+makes sense to me.
+
+There is such a thing as electomagnetic interferece.  According to
+Wikipedia: ``The effect of unwanted energy due to one or a combination
+of emissions, radiations, or inductions upon reception in a
+radiocommunication system, manifested by any performance degradation,
+misinterpretation, or loss of information which could be extracted in
+the absence of such unwanted energy.'' My reading of this is this:
+interference happens upon the reception of the signal, in the circuits
+of a radiocommunication system, not with signal itself.
+Electomagnetic waves don't interact, as far as I am aware, but it can
+be impossible to pick out the signal in the noise.
+
+Having said all that, a directional receiving antenna would sharpen
+the effect of a man-in-the-middle jammer, versus one off to the side,
+but for the moment I'm keeping it simple and assuming the antennae
+have no preferred direction.  Could change that next, though, by
+assuming they are optimally directed to receive the signal in a
+particular orientation, and to reject signals in substantially
+different directions.
+
+\section{Power}
+
+The power of the radio signal from a point source at a distance $r$ is
+given by (assuming the free-space propagation loss model):
+$$P_{\mbox{signal}}(d) = \frac{M}{d^2},$$ where $M$ is a
+proportionality constant that depends on units, and even with the same
+units, can be different for different senders.  Note that $M$ is the
+power of the signal at distance 1.  The value of $M$ may be know for
+friendlies but need to be extimated for jammers.  Equation (1) in
+reference \cite{benner1996effects}, showed a similar equation for
+``path loss'' relaxing the free-space propagation loss model with a
+proportionality exponent possibly different from 2.  It seems that the
+units of distance are important in this model---see reference
+\cite{benner1996effects}. I note this observation for the future as I
+intend to use the free-space propagation loss model for now.
+
+
+Equation (5) in reference \cite{xu2007adjusting} gives
+$$M = \frac{P_T G_T G_R}{4 \pi},$$ where $P_T$ is the power of the
+transmitter, $G_T$ is the gain of the transmitter in the direction of
+the receiver, and $G_R$ is the gain of the receiver in the direction
+of the transmitter.  Presumably the transmitter could be either the
+jammer or the source.  Reference \cite{benner1996effects}, gives a
+similar equation that may not be entirely consistent that has a
+dependence on wavelength, Equation (1).  The basic thing I get from
+this is kind of obvious for anyone raised in the era before cable
+television---it depends on the orientation of the anntena how strong
+the signal.  Again, I am just putting this observation in this
+document for the future.  For the first cut the power received by the
+anntena is just a function of the distance to the transmitter, not the
+orientation of the antenna.
+
+\section{Jamming}
+
+One reference I have \cite{xu2007adjusting} talks about channel
+capacity as the maximum bit rate $S \rightarrow R$, under the
+assumption of error correcting codes, etc.  So it seems in this
+paradigm that it is not whether you are jammed or not, but how many
+bits get through per second.  In several references, including this
+one there is a noise term which adds power to the jammer in a
+symmetric way.  When the decibels in the equation above drops below
+the 0, the channel capacity falls below the bandwidth of the channel.
+
+I am going to ignore the details of channel capacity and error
+correcting codes and just say probability of transmission is a
+function of the ratio of the powers of signal to background, expressed
+as a sigmoid of decibels.
+
+\nocite{*}
+\bibliography{jam.bib}
+\bibliographystyle{ieeetr}
+\end{document}
