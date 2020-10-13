@@ -14,14 +14,97 @@ class Jams():
         self.slope = slope
         self.nsteps = nsteps
         self.seed = seed
-        self.adjacency = 
-        # self.hq = (0,0)
-        # self.asset = (self.ngrid-1,self.ngrid-1)
+        self.adjacency = torch.zeros((self.njams,self.njams), dtype=bool) 
+        self.hq = [(0,0)]
+        self.assets0 = ((self.ngrid-1,self.ngrid-1),)
+        self.assign_assets(self.assets0)
         if self.seed is not None:
             np.random.seed(self.seed)
             torch.manual_seed(self.seed+1)
-        self.comm = None
-        self.jammers = None
+        self.hq = [(0,0)]
+        self.friendly_initalize()
+
+
+    def assign_assets(self, a0):
+        '''
+        assign_assets: returns a list of asset locations, copying assets0, then using randomly assigned assets up to self.nassets
+        '''
+        assets = []
+        for a in range(self.nassets):
+            if a < len(a0):
+                assets.append(a0[a])
+            else:
+                assets.append(self.teleport_ongrid(self.ngrid))
+        self.assets0 = a0  # update assets0 with what is passed in
+        self.assets = assets
+
+
+    def teleport_ongrid(self, ngrid):
+        '''
+        teleport_ongrid: select a random location on grid
+        '''
+        return (np.random.choice(ngrid), np.random.choice(ngrid))
+
+
+    def teleport_offgrid(self, ngrid):
+        '''
+        teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
+        '''
+        return tuple(np.random.uniform(low=0.0, high=ngrid, size=2))
+
+    
+    def teleport_comms(self):
+        '''
+        teleport_comms: select random locations on grid for comm(s)
+                           done once during every step of the loop
+        '''
+        comms = []
+        for comm in comms_set: 
+            comms.append(self.teleport_ongrid(self.ngrid))
+        return comms
+
+
+    def friendly_flatten(hq, comms, assets):
+        '''
+        friendly_flatten: combine all friendly units into one tuple, in specified order
+        '''
+        ff = []
+        ff.extend(hq)  # just one headquarters
+        ff.extend(comms)  # ncomm comm units
+        ff.extend(assets) # nassets assets including len(assets0) predefined, others, if any, random
+        return tuple(ff)
+
+
+    def friendly_move(self):
+        '''
+        friendly_move: right now a wrapper for teleport_comm but will be generalized
+        '''
+        self.teleport_comms()
+        self.friendly = friendly_flatten(self.hq, self.comms, self.assets)
+
+    
+    def friendly_initialize(self):
+        '''
+        friendly_initialize: Initialize the friendly's
+        '''
+        friendly_move()
+
+
+    def teleport_jammers(self):
+        '''
+        teleport_jammers: select random locations on grid for jammers
+                          done once on class initialization
+        '''
+        self.jammers = []
+        for _ in range(self.njams):
+            self.jammers.append(self.teleport_offgrid(self.ngrid))
+
+
+    def jammers_initialize(self):
+        '''
+        jammers_initialize: initialize jammers
+        '''
+        self.teleport_jammers()
 
 
 class JamsPoint(Jams):
@@ -33,71 +116,15 @@ class JamsGrid(Jams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.teleport_jammers()
-        self.teleport_set = {(i + 1) for i in range(self.ncomms)}
+        self.comms_set = {(i + 1) for i in range(self.ncomms)}
         self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
         self.Jx1, self.Jy1 = self.makeJxy1()
         self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
         self.ddiff1 = torch.zeros(self.njams)
         # All distributions are represented as logs for stability
-        self.logPjammers_prior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid) # logProb(jammers@loc); init to uniform
+        self.logPjammers_prior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
         self.priorshape = self.logPjammers_prior.shape
-
-
-    def teleport_friendly(self):
-        '''
-        teleport_friendly: select random locations on grid for comm(s)
-                           done once during every step of the loop
-        '''
-        self.comm = []
-        for friend in range(self.nfriendly):
-            if friend in teleport_set: 
-            self.comm.append(self.teleport(self.ngrid))
-
-
-    def teleport_jammers(self):
-        '''
-        teleport_jammers: select random locations on grid for jammers
-                          done once on class initialization
-        '''
-        self.jammers = []
-        for _ in range(self.njams):
-            self.jammers.append(self.teleport(self.ngrid))
-
-
-    def teleport_ongrid(self, ngrid):
-        '''
-        teleport_ongrid: select a random location on grid
-        '''
-        return (np.random.choice(ngrid), np.random.choice(ngrid))
-
-
-    def teleport_off(self, ngrid):
-        '''
-        teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
-        '''
-        return tuple(np.random.uniform(low=0.0, high=ngrid, size=2))
-
-    
-    def friendly_move(self):
-        '''
-        friendly_move: right now a wrapper for teleport_comm but will be generalized
-        '''
-        self.teleport_comms()
-
-
-    def jammers_move(self):
-        '''
-        jammers_move: right now a stub for when jammers will move (currently they don't)
-        '''
-        pass
-
-
-    def jammers_predict(self):
-        '''
-        jammers_predict: right now does nothing because jammers don't move
-        '''
-        pass
 
 
     def itertuple(self, dims):
@@ -171,6 +198,20 @@ class JamsGrid(Jams):
         return Jrx1, Jry1
 
 
+    def jammers_move(self):
+        '''
+        jammers_move: right now a stub for when jammers will move (currently they don't)
+        '''
+        pass  # don't move
+
+
+    def jammers_predict(self):
+        '''
+        jammers_predict: right now does nothing because jammers don't move
+        '''
+        pass  # don't change prediction
+
+
     def dist_to_friendly(self, jx, jy, kf=0):
         '''
         dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
@@ -183,7 +224,9 @@ class JamsGrid(Jams):
         return torch.sqrt((jx - cx)**2 + (jy - cy)**2)
 
 
-    def power_of_source = 
+    #TODO
+    def power_of_source(self):
+        pass
 
 
     def distdiff(self, target, jx, jy, kc=0):
@@ -253,8 +296,8 @@ class JamsGrid(Jams):
 
 
     def all_try(self):
-        for sender in range(nfriendly):
-            for receiver in range(nfriendly)
+        for sender in range(self.nfriendly):
+            for receiver in range(self.nfriendly):
                 self.adjacency[sender, receiver] = self.try_to_contact(sender, receiver)
         return(self.adjacency)
 
@@ -323,11 +366,11 @@ class JamsGrid(Jams):
         '''
         plt.text(self.asset[0], self.asset[1], "Asset")
         for kf in range(self.friendly):
-            if kf==0:
+            if kf==0:  # headquarters
                 plt.text(self.friendly[kf][0], self.friendly[kf][1], "Headquarters")
-            elif kf in self.teleport_set: 
+            elif kf in self.comms_set:  # comms
                 plt.text(self.friendly[kf][0], self.friendly[kf][1], "Comm")
-            else:
+            else:  # assets
                 plt.text(self.friendly[kf][0], self.friendly[kf][1], "Asset")
         for kj in range(self.njams):
             plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer")
