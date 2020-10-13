@@ -22,7 +22,8 @@ class Jams():
             np.random.seed(self.seed)
             torch.manual_seed(self.seed+1)
         self.hq = [(0,0)]
-        self.friendly_initalize()
+        self.friendly_initialize()
+        self.jammer_initialize()
 
 
     def assign_assets(self, a0):
@@ -59,12 +60,12 @@ class Jams():
                            done once during every step of the loop
         '''
         comms = []
-        for comm in comms_set: 
+        for comm in self.comms_set: 
             comms.append(self.teleport_ongrid(self.ngrid))
         return comms
 
 
-    def friendly_flatten(hq, comms, assets):
+    def friendly_flatten(self, hq, comms, assets):
         '''
         friendly_flatten: combine all friendly units into one tuple, in specified order
         '''
@@ -79,15 +80,16 @@ class Jams():
         '''
         friendly_move: right now a wrapper for teleport_comm but will be generalized
         '''
-        self.teleport_comms()
-        self.friendly = friendly_flatten(self.hq, self.comms, self.assets)
+        self.comms = self.teleport_comms()
+        self.friendly = self.friendly_flatten(self.hq, self.comms, self.assets)
 
     
     def friendly_initialize(self):
         '''
         friendly_initialize: Initialize the friendly's
         '''
-        friendly_move()
+        self.comms_set = {(i + 1) for i in range(self.ncomms)}
+        self.friendly_move()
 
 
     def teleport_jammers(self):
@@ -100,7 +102,7 @@ class Jams():
             self.jammers.append(self.teleport_offgrid(self.ngrid))
 
 
-    def jammers_initialize(self):
+    def jammer_initialize(self):
         '''
         jammers_initialize: initialize jammers
         '''
@@ -115,8 +117,6 @@ class JamsPoint(Jams):
 class JamsGrid(Jams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.teleport_jammers()
-        self.comms_set = {(i + 1) for i in range(self.ncomms)}
         self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
         self.Jx1, self.Jy1 = self.makeJxy1()
