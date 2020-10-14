@@ -8,24 +8,29 @@ class Jams():
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
-        self.nfriendly = 1 + self.ncomms + self.nassets  # 1 for headquarters
-        self.adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
         self.njams = njams
         self.slope = slope
         self.nsteps = nsteps
         self.seed = seed
-        self.adjacency = torch.zeros((self.njams,self.njams), dtype=bool) 
-        self.hq = [(0,0)]
-        self.assets0 = ((self.ngrid-1,self.ngrid-1),)
-        self.assign_assets(self.assets0)
         if self.seed is not None:
             np.random.seed(self.seed)
             torch.manual_seed(self.seed+1)
-        self.hq = [(0,0)]
+        self.hq = self.headquarters()
+        self.nfriendly = len(self.hq) + self.ncomms + self.nassets  # 1 for headquarters
+        self.adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
+        self.assets0 = ((self.ngrid-1,self.ngrid-1),)
+        self.assign_assets(self.assets0)
         self.friendly_initialize()
         self.jammer_initialize()
 
 
+    def headquarters(self):
+        '''
+        headquarters: return coordinates of headquarters on grid
+        '''
+        return [(0,0)]
+
+    
     def assign_assets(self, a0):
         '''
         assign_assets: returns a list of asset locations, copying assets0, then using randomly assigned assets up to self.nassets
@@ -122,6 +127,9 @@ class JamsGrid(Jams):
         self.Jx1, self.Jy1 = self.makeJxy1()
         self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
         self.ddiff1 = torch.zeros(self.njams)
+        self.ambient_noise_power = 0
+        self.makeMj()
+        self.makeMf1()
         # All distributions are represented as logs for stability
         self.logPjammers_prior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
         self.priorshape = self.logPjammers_prior.shape
@@ -212,21 +220,49 @@ class JamsGrid(Jams):
         pass  # don't change prediction
 
 
-    def dist_to_friendly(self, jx, jy, kf=0):
+    def dist_jxy_to_friendly(self, jx, jy, kf=0):
         '''
         dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
                      jx, jy could be grid tensors for jammers or 1D veridical jammer locations in x and y
                      kc^th comm
         Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         '''
-        cx = self.comm[kf][0]
-        cy = self.comm[kf][1]
-        return torch.sqrt((jx - cx)**2 + (jy - cy)**2)
+        fx = self.friendly[kf][0]
+        fy = self.friendly[kf][1]
+        return torch.sqrt((jx - fx)**2 + (jy - fy)**2)
 
 
-    #TODO
-    def power_of_source(self):
+    def power_friendy_at_friendly(self):
+        return torch.tensor([[0 if f1 == f2 else 
+                (#self.Mf1[f1]
+                    1/self.dist_jxy_to_friendly(self.friendly[f1][0], self.friendly[f1][1], f2)**2) for f1 in self.friendly] for f2 in self.friendly])
+    
+
+    def power_jammers_at_friendly_grid(self):
+        return torch.tensor([(#self.Mj
+                               1/(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)])
+
+
+    def power_jammers_at_friendly_veridical(self):
+        return torch.tensor([(#self.Mj
+                               1/(self.dist_jxy_to_friendly(self.Jx1, self.Jy1, kf)**2)) for kf in range(self.nfriendly)])
+
+
+    def power_ambient(self):
+        return self.ambient_noise_power
+
+
+
+    def sjr_db(self):
         pass
+
+
+    def makeMj(self):
+        self.Mj = torch.ones((self.njammers))   # Will make this more general later
+
+
+    def makeMf1(self):
+        self.Mf1 = torch.ones((self.nfriendly))  # Will make this more general later
 
 
     def distdiff(self, target, jx, jy, kc=0):
