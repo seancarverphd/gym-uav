@@ -227,30 +227,27 @@ class JamsGrid(Jams):
                      kc^th comm
         Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         '''
-        fx = self.friendly[kf][0]
-        fy = self.friendly[kf][1]
+        fx = torch.tensor(self.friendly[kf][0], dtype=float)
+        fy = torch.tensor(self.friendly[kf][1], dtype=float)
         return torch.sqrt((jx - fx)**2 + (jy - fy)**2)
 
 
-    def power_friendy_at_friendly(self):
+    def power_friendly_at_friendly(self):
         return torch.tensor([[0 if f1 == f2 else 
                 (#self.Mf1[f1]
-                    1/self.dist_jxy_to_friendly(self.friendly[f1][0], self.friendly[f1][1], f2)**2) for f1 in self.friendly] for f2 in self.friendly])
+                    1/self.dist_jxy_to_friendly(self.friendly[f1][0], self.friendly[f1][1], f2)**2) for f1 in range(self.nfriendly)] for f2 in range(self.nfriendly)])
     
 
     def power_jammers_at_friendly_grid(self):
-        return torch.tensor([(#self.Mj
-                               1/(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)])
+        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0) # Mj  # friendly at 0th position
 
 
     def power_jammers_at_friendly_veridical(self):
-        return torch.tensor([(#self.Mj
-                               1/(self.dist_jxy_to_friendly(self.Jx1, self.Jy1, kf)**2)) for kf in range(self.nfriendly)])
+        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx1, self.Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0)  # Mj
 
 
     def power_ambient(self):
         return self.ambient_noise_power
-
 
 
     def sjr_db(self):
@@ -258,7 +255,7 @@ class JamsGrid(Jams):
 
 
     def makeMj(self):
-        self.Mj = torch.ones((self.njammers))   # Will make this more general later
+        self.Mj = torch.ones((self.njams))   # Will make this more general later
 
 
     def makeMf1(self):
