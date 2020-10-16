@@ -233,7 +233,7 @@ class JamsGrid(Jams):
 
 
     def power_friendly_at_friendly(self):
-        return torch.tensor([[0 if f1 == f2 else 
+        return torch.tensor([[# 0 if f1 == f2 else 
                 (#self.Mf1[f1]
                     1/self.dist_jxy_to_friendly(self.friendly[f1][0], self.friendly[f1][1], f2)**2) for f1 in range(self.nfriendly)] for f2 in range(self.nfriendly)])
     
@@ -250,8 +250,16 @@ class JamsGrid(Jams):
         return self.ambient_noise_power
 
 
-    def sjr_db(self):
-        pass
+    def power_background_at_friendly_veridical(self):
+        return self.power_jammers_at_friendly_veridical().sum(dim=1) + self.power_ambient()
+
+
+    def power_background_at_friendly_grid(self):
+        return self.power_jammers_at_friendly_grid().sum(dim=1) + self.power_ambient()
+
+
+    def sjr_db_veridical(self):
+        return 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
 
 
     def makeMj(self):
@@ -365,7 +373,7 @@ class JamsGrid(Jams):
         if steps is None:
             steps = self.nsteps
         for _ in range(steps):
-            self.friendly_move()  # teleports all jammers to new locations
+            self.friendly_move()  # teleports comms to new locations
             self.jammers_move()  # so far, doesn't do anything
             self.jammers_predict()  # so far, doesn't do anything
             adjacency = self.all_try()
@@ -397,16 +405,16 @@ class JamsGrid(Jams):
         '''
         annotations: add annotations to plot
         '''
-        plt.text(self.asset[0], self.asset[1], "Asset")
-        for kf in range(self.friendly):
+        col = 'lightblue' if self.step == 0 else 'black'
+        for kf in range(self.nfriendly):
             if kf==0:  # headquarters
-                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Headquarters")
+                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Headquarters", color=col)
             elif kf in self.comms_set:  # comms
-                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Comm")
+                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Comm", color=col)
             else:  # assets
-                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Asset")
+                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Asset", color=col)
         for kj in range(self.njams):
-            plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer")
+            plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer", color=col)
         plt.title("Steps = " + str(self.step))
         plt.show()
 
