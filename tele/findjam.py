@@ -294,13 +294,13 @@ class JamsGrid(Jams):
         return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
 
 
-    def loglikelihood(self, target, jx, jy, kc=0):
-        '''
-        loglikelihood: log-likelihood of successful communication between comm and target with specified jammer location(s)
-                       Depending on jammer_x and jammer_y will compute for whole grid or just veridical locations (see wrappers below)
-        '''
-        ddiff = self.distdiff(target, jx, jy, kc)
-        return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
+    # def loglikelihood_ddiff(self, target, jx, jy, kc=0):
+    #    '''
+    #    loglikelihood: log-likelihood of successful communication between comm and target with specified jammer location(s)
+    #                   Depending on jammer_x and jammer_y will compute for whole grid or just veridical locations (see wrappers below)
+    #    '''
+    #    ddiff = self.distdiff(target, jx, jy, kc)
+    #    return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
 
     def loglikelihood_grid(self, target, kc=0):
@@ -310,11 +310,11 @@ class JamsGrid(Jams):
         return self.loglikelihood(target, self.Jx, self.Jy, kc)
 
 
-    def loglikelihood_veridical(self, target, kc=0):
+    def loglikelihood_veridical(self):
         '''
         loglikelihood_veridical: wrapper for loglikelihood passing veridical jammer locations instead of whole grid for possible jammer locations
         '''
-        return self.loglikelihood(target, self.Jx1, self.Jy1, kc)
+        return self.logsig(self.sjr_db_veridical())
 
 
     def loglikelihood_obs(self, target, obs):
