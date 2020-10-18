@@ -262,6 +262,12 @@ class JamsGrid(Jams):
         return 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
 
 
+    def sjr_db_grid(self):
+        S = self.power_friendly_at_friendly()  # TODO No need to do this twice
+        B = self.power_background_at_friendly_grid().permute([1,2,3,4,0]).unsqueeze(4)
+        return 10*torch.log10(S/B)
+
+
     def makeMj(self):
         self.Mj = torch.ones((self.njams))   # Will make this more general later
 
@@ -303,11 +309,11 @@ class JamsGrid(Jams):
     #    return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
 
-    def loglikelihood_grid(self, target, kc=0):
+    def loglikelihood_grid(self):
         '''
         loglikelihood_grid: wrapper for loglikelihood passing object's whole grid for possible jammer locations
         '''
-        return self.loglikelihood(target, self.Jx, self.Jy, kc)
+        return self.logsig(self.sjr_db_grid())
 
 
     def loglikelihood_veridical(self):
@@ -327,13 +333,12 @@ class JamsGrid(Jams):
         return log_p_success if obs else torch.log(1 - torch.exp(log_p_success))
 
 
-    #TODO
     def try_to_contact(self, sender, receiver):
         '''
         try_to_contact flips a "coin" (usually unfair) to simulate success or failure to communicate based on likelihood derived from veridical jammer locations
         '''
-        p = torch.exp(self.loglikelihood_veridical(target))
-        return np.random.choice([True, False],p=(p, 1.-p)) 
+        p = torch.exp(self.loglikelihood_veridical())
+        return torch.tensor(np.random.choice([True, False],p=(p[sender, receiver], 1.-p[sender, receiver])))
 
 
     def all_try(self):
