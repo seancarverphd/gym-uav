@@ -333,6 +333,11 @@ class JamsGrid(Jams):
         return log_p_success if obs else torch.log(1 - torch.exp(log_p_success))
 
 
+    #TODO
+    def update_jammers(self, adjacency):
+        pass
+
+
     def try_to_contact(self, sender, receiver):
         '''
         try_to_contact flips a "coin" (usually unfair) to simulate success or failure to communicate based on likelihood derived from veridical jammer locations
@@ -346,11 +351,6 @@ class JamsGrid(Jams):
             for receiver in range(self.nfriendly):
                 self.adjacency[sender, receiver] = self.try_to_contact(sender, receiver)
         return(self.adjacency)
-
-
-    #TODO
-    def update_jammers(self):
-        pass
 
 
     def normalize(self, distrib):
