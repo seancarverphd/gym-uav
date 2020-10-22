@@ -263,13 +263,19 @@ class JamsGrid(Jams):
 
 
     def sjr_db_grid(self):
+        j = self.njams
         S = self.power_friendly_at_friendly()  # TODO No need to do this twice
-        B = self.power_background_at_friendly_grid().permute([1,2,3,4,0]).unsqueeze(4)
-        return 10*torch.log10(S/B)
+        perm = [k+1 for k in range(2*j)]
+        perm.append(0)
+        B = self.power_background_at_friendly_grid().permute(perm).unsqueeze(2*j)
+        db = 10*torch.log10(S/B)
+        perm = [2*j, 2*j+1]
+        perm.extend([k for k in range(2*j)])
+        return db.permute(perm)
 
 
     def makeMj(self):
-        self.Mj = torch.ones((self.njams))   # Will make this more general later
+        self.Mj = torch.ones((self.njams))  # Will make this more general later
 
 
     def makeMf1(self):
@@ -323,15 +329,18 @@ class JamsGrid(Jams):
         return self.logsig(self.sjr_db_veridical())
 
 
-    def loglikelihood_obs(self, target, obs):
+    def loglikelihood_obs(self, adjacency):
         '''
         loglikelihood_obs: loglikelihood_grid of actual communication between comm and target
                            pass obs=True for likelihood of success communication
                            pass obs=False for likelihood of unsuccessful communication
         '''
-        log_p_success = self.loglikelihood_grid(target)
-        return log_p_success if obs else torch.log(1 - torch.exp(log_p_success))
-
+        log_p_success = self.loglikelihood_grid()
+        log_p_obs = torch.zeros(log_p_success.shape)
+        for f1 in range(self.nfriendly):
+            for f2 in range(self.nfriendly):
+                log_p_obs[f1,f2] = log_p_success[f1,f2] if adjacency[f1,f2] else torch.log(1 - torch.exp(log_p_success[f1,f2]))
+        return log_p_obs
 
     #TODO
     def update_jammers(self, adjacency):
