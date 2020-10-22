@@ -3,7 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# # LaTeX files
+#
+*.swp
+
+# LaTeX files
 *.aux
 *.bbl
 *.blg
