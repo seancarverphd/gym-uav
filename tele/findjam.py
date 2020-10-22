@@ -223,7 +223,8 @@ class JamsGrid(Jams):
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
         '''
         dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
-                     jx, jy could be grid tensors for jammers or 1D veridical jammer locations in x and y
+                     jx, jy could be grid tensors (shape: [njams] + Grid.shape) for jammers or 
+                                                  (shape: [njams]) for 1D veridical jammer locations in x and y
                      kc^th comm
         Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         '''
