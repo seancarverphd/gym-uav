@@ -367,10 +367,11 @@ class JamsGrid(Jams):
 
 
     def all_try(self):
+        adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
         for sender in range(self.nfriendly):
             for receiver in range(self.nfriendly):
-                self.adjacency[sender, receiver] = self.try_to_contact(sender, receiver)
-        return(self.adjacency)
+                adjacency[sender, receiver] = self.try_to_contact(sender, receiver)
+        return adjacency
 
 
     def normalize(self, distrib):
@@ -401,8 +402,8 @@ class JamsGrid(Jams):
             self.friendly_move()  # teleports comms to new locations
             self.jammers_move()  # so far, doesn't do anything
             self.jammers_predict()  # so far, doesn't do anything
-            adjacency = self.all_try()
-            self.jammers_update(adjacency)
+            self.adjacency = self.all_try()
+            self.jammers_update(self.adjacency)
             self.step += 1
             # self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
