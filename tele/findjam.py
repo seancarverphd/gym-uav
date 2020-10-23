@@ -404,7 +404,7 @@ class JamsGrid(Jams):
             self.jammers_move()  # so far, doesn't do anything
             self.jammers_predict()  # so far, doesn't do anything
             self.adjacency = self.all_try()
-            self.jammers_update(self.adjacency)
+            self.logPjammers_prior += self.update_jammers(self.adjacency)
             self.step += 1
             # self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
