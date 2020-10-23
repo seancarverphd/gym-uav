@@ -279,7 +279,7 @@ class JamsGrid(Jams):
 
 
     def sjr_db_grid(self):
-        S = self.power_friendly_at_friendly()  # TODO No need to do this twice
+        S = self.power_friendly_at_friendly()
         B = self.prepare_background()
         db = 10*torch.log10(S/B)
         return self.prepare_db(db)
@@ -353,9 +353,10 @@ class JamsGrid(Jams):
                 log_p_obs[f1,f2] = log_p_success[f1,f2] if adjacency[f1,f2] else torch.log(1 - torch.exp(log_p_success[f1,f2]))
         return log_p_obs
 
-    #TODO
+
     def update_jammers(self, adjacency):
-        pass
+        # Does account for missing information from out of reach friendlys
+        return self.loglikelihood_obs(adjacency).sum(dim=0).sum(dim=0)  # First two slots are for to from friendly; add them up as independent
 
 
     def try_to_contact(self, sender, receiver):
