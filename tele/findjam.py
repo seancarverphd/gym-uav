@@ -264,16 +264,25 @@ class JamsGrid(Jams):
         return 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
 
 
-    def sjr_db_grid(self):
+    def prepare_background(self):
         j = self.njams
-        S = self.power_friendly_at_friendly()  # TODO No need to do this twice
         perm = [k+1 for k in range(2*j)]
         perm.append(0)
-        B = self.power_background_at_friendly_grid().permute(perm).unsqueeze(2*j)
-        db = 10*torch.log10(S/B)
+        return self.power_background_at_friendly_grid().permute(perm).unsqueeze(2*j)
+
+
+    def prepare_db(self, db):
+        j = self.njams
         perm = [2*j, 2*j+1]
         perm.extend([k for k in range(2*j)])
         return db.permute(perm)
+
+
+    def sjr_db_grid(self):
+        S = self.power_friendly_at_friendly()  # TODO No need to do this twice
+        B = self.prepare_background()
+        db = 10*torch.log10(S/B)
+        return self.prepare_db(db)
 
 
     def makeMj(self):
