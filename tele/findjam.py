@@ -18,7 +18,7 @@ class Jams():
         self.hq = self.headquarters()
         self.nfriendly = len(self.hq) + self.ncomms + self.nassets  # 1 for headquarters
         self.adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
-        self.assets0 = ((self.ngrid-1,self.ngrid-1),)
+        self.assets0 = ((self.ngrid-1.1,self.ngrid-1.1),)
         self.assign_assets(self.assets0)
         self.friendly_initialize()
         self.jammer_initialize()
@@ -28,7 +28,7 @@ class Jams():
         '''
         headquarters: return coordinates of headquarters on grid
         '''
-        return [(0,0)]
+        return [(0.1, 0.1)]
 
     
     def assign_assets(self, a0):
@@ -66,7 +66,7 @@ class Jams():
         '''
         comms = []
         for comm in self.comms_set: 
-            comms.append(self.teleport_ongrid(self.ngrid))
+            comms.append(self.teleport_offgrid(self.ngrid))
         return comms
 
 
@@ -183,6 +183,7 @@ class JamsGrid(Jams):
                 Note xj and yj are integer indicies as well as xy-coordinates representing longitude and lattitude.
                 This works because we put our xy-grid on integer range(self.ngrid) values of x and y.
                 To generalize, transform Jx --> longitude(Jx) and Jy --> latitude(Jy) or whatever xy values you are using
+                The Jrx is [x1, x2, x3, ..., xnjams].  Likewise for Jry.
         makeJxy is called once on object initialization and the values returned are stored as self.Jx and self.Jy
         '''
         Jx = []
@@ -240,11 +241,11 @@ class JamsGrid(Jams):
     
 
     def power_jammers_at_friendly_grid(self):
-        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0) # Mj  # friendly at 0th position
+        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1) # Mj  # friendly at 0th position
 
 
     def power_jammers_at_friendly_veridical(self):
-        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx1, self.Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0)  # Mj
+        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx1, self.Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1)  # Mj
 
 
     def power_ambient(self):
@@ -252,11 +253,11 @@ class JamsGrid(Jams):
 
 
     def power_background_at_friendly_veridical(self):
-        return self.power_jammers_at_friendly_veridical().sum(dim=1) + self.power_ambient()
+        return self.power_jammers_at_friendly_veridical() + self.power_ambient()
 
 
     def power_background_at_friendly_grid(self):
-        return self.power_jammers_at_friendly_grid().sum(dim=1) + self.power_ambient()
+        return self.power_jammers_at_friendly_grid() + self.power_ambient()
 
 
     def sjr_db_veridical(self):
