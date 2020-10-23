@@ -293,17 +293,17 @@ class JamsGrid(Jams):
         self.Mf1 = torch.ones((self.nfriendly))  # Will make this more general later
 
 
-    def distdiff(self, target, jx, jy, kc=0):
-        '''
-        distdiff computes the difference between the distances: comm <--> jammer minus comm <--> target
-                 if distance comm <--> jammer is larger than distance comm <--> target, then
-                 difference is positive and probability of successful transmission is closer to one
-        '''
-        targetx = torch.tensor(target[0], dtype=float)
-        targety = torch.tensor(target[1], dtype=float)
-        dist_c2j = self.dist_to_comm(jx, jy, kc)
-        dist_c2t = self.dist_to_comm(targetx, targety, kc)
-        return dist_c2j - dist_c2t
+    # def distdiff(self, target, jx, jy, kc=0):
+    #     '''
+    #     distdiff computes the difference between the distances: comm <--> jammer minus comm <--> target
+    #              if distance comm <--> jammer is larger than distance comm <--> target, then
+    #              difference is positive and probability of successful transmission is closer to one
+    #     '''
+    #     targetx = torch.tensor(target[0], dtype=float)
+    #     targety = torch.tensor(target[1], dtype=float)
+    #     dist_c2j = self.dist_to_comm(jx, jy, kc)
+    #     dist_c2t = self.dist_to_comm(targetx, targety, kc)
+    #     return dist_c2j - dist_c2t
 
 
     def logsig(self, x):
