@@ -15,7 +15,31 @@ field, there is a ``source,'' or ``sender,'' labeled $S$, a receiver,
 labeled $R$, and $n$ different ``jammers,'' labeled $J_1, \dots, J_n$.
 We do not assume that the ability to communicate is symmetric---a
 separate calculation is needed when the roles of sender and receiver
-are reversed.
+are reversed.  Additionally there are $m$ different comms to
+facilitate communication.
+
+\section{Optimal Placement Of Comms}
+
+Let $c_i$ denote positions of comms and let $j_k$ denote positions
+position of jammers.  If these quantities are known, we can compute
+the probability of a successful communication between the headquarters
+and an asset (see more details below).  We denote this probability
+
+$$P(\mbox{transmission}|c_i,j_k)$$
+
+Some choices still need to be made about how this probability will be
+computed, but it shouldn't be hard.  By total probability,
+
+$$P(\mbox{transmission}|c_i) = \sum_k P(\mbox{transmission}|c_i,j_k)
+  P(j_k)$$
+
+It is a sum rather than an integral because we only consider grid
+points as possible locations.  That may need to be generalized.  The
+second factor of each term in the sum is the posterior probability
+already coded for computation and described below.
+
+A final step in the computation is a optimization over the comm
+positions $c_i$.
 
 \section{TL;DR}
 Let $P_{j}(d_j)$ be the power of jammer $j$ at the receiver, at
