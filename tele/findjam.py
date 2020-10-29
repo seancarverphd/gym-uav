@@ -42,23 +42,23 @@ class Jams():
             if a < len(a0):
                 assets.append(a0[a])
             else:
-                assets.append(self.teleport_ongrid(self.ngrid))
+                assets.append(self.teleport_ongrid())
         self.assets0 = a0  # update assets0 with what is passed in
         self.assets = assets
 
 
-    def teleport_ongrid(self, ngrid):
+    def teleport_ongrid(self):
         '''
         teleport_ongrid: select a random location on grid
         '''
-        return (np.random.choice(ngrid), np.random.choice(ngrid))
+        return (np.random.choice(self.ngrid), np.random.choice(self.ngrid))
 
 
-    def teleport_offgrid(self, ngrid):
+    def teleport_offgrid(self):
         '''
         teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
         '''
-        return tuple(np.random.uniform(low=0.0, high=ngrid, size=2))
+        return tuple(np.random.uniform(low=0.0, high=self.ngrid-1, size=2))
 
     
     def teleport_comms(self):
@@ -68,7 +68,7 @@ class Jams():
         '''
         comms = []
         for comm in self.comms_set: 
-            comms.append(self.teleport_offgrid(self.ngrid))
+            comms.append(self.teleport_offgrid())
         return comms
 
 
@@ -106,7 +106,7 @@ class Jams():
         '''
         self.jammers = []
         for _ in range(self.njams):
-            self.jammers.append(self.teleport_offgrid(self.ngrid))
+            self.jammers.append(self.teleport_offgrid())
 
 
     def jammer_initialize(self):
@@ -209,27 +209,27 @@ class JamsGrid(Jams):
         return Jrx1, Jry1
 
 
+    def adjacent_grid_coord(self, old_coord):
+        new_coord = old_coord + np.random.choice([-1., 0., 1.])
+        if new_coord < 0.:
+            new_coord += 1.
+        elif new_coord > self.ngrid-1:
+            new_coord -= 1.
+        return new_coord
+
+
     def jammers_move(self):
         '''
         jammers_move:
         '''
         for kj in range(self.njams):
-            jam_with_delta = list(self.jammers[kj])
-            jam_with_delta[0] += np.random.choice([-1., 0., 1.])
-            if jam_with_delta[0] < 0:
-                jam_with_delta[0] += 1
-            if jam_with_delta[0] > self.ngrid - 1:
-                jam_with_delta[0] += 1
-            jam_with_delta[1] += np.random.choice([-1., 0., 1.])
-            if jam_with_delta[1] < 0:
-                jam_with_delta[1] += 1
-            if jam_with_delta[1] > self.ngrid - 1:
-                jam_with_delta[1] += 1
-            self.jammers[kj] = tuple(jam_with_delta)
+            newx = self.adjacent_grid_coord(self.jammers[kj][0])
+            newy = self.adjacent_grid_coord(self.jammers[kj][1])
+            self.jammers[kj] = (newx, newy)
 
  
     def list_of_neighbors(self, idx):
-        list1 = [idx[0]-1, idx[0], idx[0]+1]
+        list1 = [0, 1] if idx[0] == 0 else [self.ngrid-2, self.ngrid-1] if idx[0]== self.ngrid-1 else [idx[0]-1, idx[0], idx[0]+1]
         if len(idx) == 1:
             return list1
         elif len(idx) == 2:
@@ -247,17 +247,51 @@ class JamsGrid(Jams):
         elif len(idx) == 6:
             list2 = self.list_of_neighbors(idx[1:])
             return [(a, b, c, d, e, f) for (a, (b, c, d, e, f)) in itertools.product(list1, list2)]
+        else:
+            assert False
 
 
-    def jammers_predict(self, logP):
+    def number_of_boundaries(self, idx):
+        nbounds = 0
+        for i in idx:
+            if i < 0:
+                nbounds = -np.inf
+                print("Warning: number_of_boundaries outside of grid!")
+            elif i == 0:
+                nbounds += 1
+            elif i == self.ngrid-1:
+                nbounds += 1
+            elif i > self.ngrid-1:
+                nbounds = -np.inf
+                print("Warning: number_of_boundaries outside of grid!")
+        return nbounds
+
+
+    def weight_of_index(self, idx):
+        assert len(idx) == 2*self.njams
+        return torch.tensor((2**self.number_of_boundaries(idx))/(3**(2*self.njams)))
+
+
+    def jam_convolve(self, idx, logP):
+        terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor)) for neighbor in self.list_of_neighbors(idx)])
+        return torch.logsumexp(terms, dim=0)
+
+
+    def jammers_predict_args(self, logP):
         '''
-        jammers_predict:
+        jammers_predict_args: version of function with calling and returning arguments
         '''
         newP = copy.deepcopy(logP)
-        for idx in itertuple(self, dims):
-            kern = convolution_kernel(idx, logP)
-            newP[idx] = logsumexp(kern)
+        for idx in self.itertuple(2*self.njams):
+            newP[idx] = self.jam_convolve(idx, logP)
         return newP
+
+
+    def jammers_predict(self):
+        '''
+        jamemrs_predict: wrapper for jammers_predict_args that doesn't use arguments, takes them from self
+        '''
+        self.logPjammers_prior = self.jammers_predict_args(self.logPjammers_prior)
 
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
@@ -440,8 +474,8 @@ class JamsGrid(Jams):
             steps = self.nsteps
         for _ in range(steps):
             self.friendly_move()  # teleports comms to new locations
-            self.jammers_move()  # so far, doesn't do anything
-            self.jammers_predict()  # so far, doesn't do anything
+            self.jammers_move()
+            self.jammers_predict()
             self.adjacency = self.all_try()
             self.logPjammers_prior += self.update_jammers(self.adjacency)
             self.step += 1
@@ -489,6 +523,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
+        plt.clf()
         plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
