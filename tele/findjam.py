@@ -1,7 +1,9 @@
-import torch
+import copy
+import itertools
+import matplotlib.pylab as plt
 import numpy as np
 import scipy.special
-import matplotlib.pylab as plt
+import torch
 
 class Jams():
     def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, seed=None):
@@ -209,16 +211,53 @@ class JamsGrid(Jams):
 
     def jammers_move(self):
         '''
-        jammers_move: right now a stub for when jammers will move (currently they don't)
+        jammers_move:
         '''
-        pass  # don't move
+        for kj in range(self.njams):
+            jam_with_delta = list(self.jammers[kj])
+            jam_with_delta[0] += np.random.choice([-1., 0., 1.])
+            if jam_with_delta[0] < 0:
+                jam_with_delta[0] += 1
+            if jam_with_delta[0] > self.ngrid - 1:
+                jam_with_delta[0] += 1
+            jam_with_delta[1] += np.random.choice([-1., 0., 1.])
+            if jam_with_delta[1] < 0:
+                jam_with_delta[1] += 1
+            if jam_with_delta[1] > self.ngrid - 1:
+                jam_with_delta[1] += 1
+            self.jammers[kj] = tuple(jam_with_delta)
+
+ 
+    def list_of_neighbors(self, idx):
+        list1 = [idx[0]-1, idx[0], idx[0]+1]
+        if len(idx) == 1:
+            return list1
+        elif len(idx) == 2:
+            list2 = self.list_of_neighbors(idx[1:])
+            return [a for a in itertools.product(list1, list2)]
+        elif len(idx) == 3:
+            list2 = self.list_of_neighbors(idx[1:])
+            return [(a, b, c) for (a, (b, c)) in itertools.product(list1, list2)]
+        elif len(idx) == 4:
+            list2 = self.list_of_neighbors(idx[1:])
+            return [(a, b, c, d) for (a, (b, c, d)) in itertools.product(list1, list2)]
+        elif len(idx) == 5:
+            list2 = self.list_of_neighbors(idx[1:])
+            return [(a, b, c, d, e) for (a, (b, c, d, e)) in itertools.product(list1, list2)]
+        elif len(idx) == 6:
+            list2 = self.list_of_neighbors(idx[1:])
+            return [(a, b, c, d, e, f) for (a, (b, c, d, e, f)) in itertools.product(list1, list2)]
 
 
-    def jammers_predict(self):
+    def jammers_predict(self, logP):
         '''
-        jammers_predict: right now does nothing because jammers don't move
+        jammers_predict:
         '''
-        pass  # don't change prediction
+        newP = copy.deepcopy(logP)
+        for idx in itertuple(self, dims):
+            kern = convolution_kernel(idx, logP)
+            newP[idx] = logsumexp(kern)
+        return newP
 
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
