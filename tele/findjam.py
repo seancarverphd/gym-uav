@@ -238,27 +238,7 @@ class JamsGrid(Jams):
         else:
             list2 = self.list_of_neighbors(idx[1:])
             return [(a, *b) for (a, (*b,)) in itertools.product(list1, list2)]
-        '''
-        else:
-            list2 = self.list_of_neighbors(idx[1:])
-            return [(a[0], *a[1]) for a in itertools.product(list1, list2)]
-        '''
-        ''' KLUGE to get it to work
-        elif len(idx) == 3:
-            list2 = self.list_of_neighbors(idx[1:])
-            return [(a, b, c) for (a, (b, c)) in itertools.product(list1, list2)]
-        elif len(idx) == 4:
-            list2 = self.list_of_neighbors(idx[1:])
-            return [(a, b, c, d) for (a, (b, c, d)) in itertools.product(list1, list2)]
-        elif len(idx) == 5:
-            list2 = self.list_of_neighbors(idx[1:])
-            return [(a, b, c, d, e) for (a, (b, c, d, e)) in itertools.product(list1, list2)]
-        elif len(idx) == 6:
-            list2 = self.list_of_neighbors(idx[1:])
-            return [(a, b, c, d, e, f) for (a, (b, c, d, e, f)) in itertools.product(list1, list2)]
-        else:
-            assert False
-        '''
+
 
     def number_of_boundaries(self, idx):
         nbounds = 0
