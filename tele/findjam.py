@@ -267,13 +267,14 @@ class JamsGrid(Jams):
         return nbounds
 
 
-    def weight_of_index(self, idx):
+    def weight_of_index(self, neighbor, idx):
         assert len(idx) == 2*self.njams
-        return torch.tensor((2**self.number_of_boundaries(idx))/(3**(2*self.njams)))
-
+        centerweight = torch.tensor((2**self.number_of_boundaries(idx))/(3**(2*self.njams)))
+        neighborweight = torch.tensor((2**self.number_of_boundaries(neighbor))/(3**(2*self.njams)))
+        return torch.tensor([centerweight, neighborweight]).min()
 
     def jam_convolve(self, idx, logP):
-        terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor)) for neighbor in self.list_of_neighbors(idx)])
+        terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor, idx)) for neighbor in self.list_of_neighbors(idx)])
         return torch.logsumexp(terms, dim=0)
 
 
@@ -475,9 +476,9 @@ class JamsGrid(Jams):
         for _ in range(steps):
             self.friendly_move()  # teleports comms to new locations
             self.jammers_move()
-            self.jammers_predict()
+            self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
             self.adjacency = self.all_try()
-            self.logPjammers_prior += self.update_jammers(self.adjacency)
+            self.logPjammers_prior = self.logPjammers_predict + self.update_jammers(self.adjacency)
             self.step += 1
             # self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
@@ -525,6 +526,15 @@ class JamsGrid(Jams):
         '''
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        self.annotations()
+
+
+    def render_prediction(self):
+        '''
+        render: plots the marginal
+        '''
+        plt.clf()
+        plt.imshow(self.marginal(self.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
 
