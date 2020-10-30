@@ -229,7 +229,14 @@ class JamsGrid(Jams):
 
  
     def list_of_neighbors(self, idx):
-        list1 = [0, 1] if idx[0] == 0 else [self.ngrid-2, self.ngrid-1] if idx[0]== self.ngrid-1 else [idx[0]-1, idx[0], idx[0]+1]
+        if idx[0] < 1:
+            lowest = idx[0] % 1
+            list1 = [lowest, lowest+1]
+        elif idx[0] > self.ngrid - 2:
+            highest = (idx[0] % 1) + self.ngrid - 1
+            list1 = [highest-1, highest]
+        else:
+            list1 = [idx[0]-1, idx[0], idx[0]+1]
         if len(idx) == 1:
             return list1
         elif len(idx) == 2:
