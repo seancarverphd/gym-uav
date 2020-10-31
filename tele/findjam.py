@@ -6,13 +6,14 @@ import scipy.special
 import torch
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, seed=None):
+    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
         self.njams = njams
         self.slope = slope
         self.nsteps = nsteps
+        self.move = move
         self.seed = seed
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -240,6 +241,8 @@ class JamsGrid(Jams):
         #     newx = self.adjacent_grid_coord(self.jammers[kj][0])
         #     newy = self.adjacent_grid_coord(self.jammers[kj][1])
         #     self.jammers[kj] = (newx, newy)
+        if not self.move:
+            return
         old = self.tuple_of_all_jammers()
         neighbors = self.list_of_neighbors(old)
         new = np.random.choice(len(neighbors))
@@ -300,6 +303,8 @@ class JamsGrid(Jams):
         '''
         jammers_predict_args: version of function with calling and returning arguments
         '''
+        if not self.move:
+            return logP
         newP = copy.deepcopy(logP)
         for idx in self.itertuple(2*self.njams):
             newP[idx] = self.jam_convolve(idx, logP)
