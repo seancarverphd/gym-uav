@@ -218,16 +218,34 @@ class JamsGrid(Jams):
         return new_coord
 
 
+    def tuple_of_all_jammers(self):
+        idx = []  # is an index when indicates position on grid, but doesn't have to and usually doesn't
+        for kj in range(self.njams):
+            idx.extend(list(self.jammers[kj]))
+        return tuple(idx)
+
+
+    def list_of_tuples_for_each_jammer(self, idx):
+        listofjammers = []
+        for kj in range(self.njams):
+            listofjammers.append((idx[2*kj], idx[2*kj+1]))
+        return listofjammers
+
+
     def jammers_move(self):
         '''
         jammers_move:
         '''
-        for kj in range(self.njams):
-            newx = self.adjacent_grid_coord(self.jammers[kj][0])
-            newy = self.adjacent_grid_coord(self.jammers[kj][1])
-            self.jammers[kj] = (newx, newy)
+        # for kj in range(self.njams):
+        #     newx = self.adjacent_grid_coord(self.jammers[kj][0])
+        #     newy = self.adjacent_grid_coord(self.jammers[kj][1])
+        #     self.jammers[kj] = (newx, newy)
+        old = self.tuple_of_all_jammers()
+        neighbors = self.list_of_neighbors(old)
+        new = np.random.choice(len(neighbors))
+        self.jammers = self.list_of_tuples_for_each_jammer(neighbors[new])
 
- 
+
     def list_of_neighbors(self, idx):
         if idx[0] < 1:
             lowest = idx[0] % 1
