@@ -134,8 +134,8 @@ class JamsGrid(Jams):
         self.makeMj()
         self.makeMf1()
         # All distributions are represented as logs for stability
-        self.logPjammers_prior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
-        self.priorshape = self.logPjammers_prior.shape
+        self.logPjammers_posterior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
+        self.priorshape = self.logPjammers_posterior.shape
 
 
     def itertuple(self, dims):
@@ -315,7 +315,7 @@ class JamsGrid(Jams):
         '''
         jamemrs_predict: wrapper for jammers_predict_args that doesn't use arguments, takes them from self
         '''
-        self.logPjammers_prior = self.jammers_predict_args(self.logPjammers_prior)
+        self.logPjammers_posterior = self.jammers_predict_args(self.logPjammers_posterior)
 
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
@@ -487,7 +487,7 @@ class JamsGrid(Jams):
         '''
         normalize_prior: wrapper for normalize that normalizes prior (not used in code but might be on command line)
         '''
-        return self.normalize(self.logPjammers_prior)
+        return self.normalize(self.logPjammers_posterior)
 
 
     def run(self, steps=None):
@@ -499,15 +499,16 @@ class JamsGrid(Jams):
         for _ in range(steps):
             self.friendly_move()  # teleports comms to new locations
             self.jammers_move()
+            self.logPjammers_prior = copy.deepcopy(self.logPjammers_posterior)
             self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
             self.adjacency = self.all_try()
-            self.logPjammers_prior = self.logPjammers_predict + self.update_jammers(self.adjacency)
+            self.logPjammers_posterior = self.logPjammers_predict + self.update_jammers(self.adjacency)
             self.step += 1
             # self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
             # self.asset_contacted = self.try_to_contact(self.asset)       # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
-        self.logPjammers_prior = self.normalize(self.logPjammers_prior)
+        self.logPjammers_posterior = self.normalize(self.logPjammers_posterior)
 
 
     def marginal(self, joint):
@@ -548,7 +549,7 @@ class JamsGrid(Jams):
         render: plots the marginal
         '''
         plt.clf()
-        plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
 
@@ -559,6 +560,15 @@ class JamsGrid(Jams):
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prediction Before: ")
+
+
+    def render_prior(self):
+        '''
+        render: plots the marginal
+        '''
+        plt.clf()
+        plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        self.annotations("Prior Before: ")
 
 
     def unravel_index(self, index, shape):
@@ -577,7 +587,7 @@ class JamsGrid(Jams):
         '''
         estimates: produces the maximum aposteriori estimates of the jammer locations based on the information currently in grid
         '''
-        imax = self.logPjammers_prior.argmax()
+        imax = self.logPjammers_posterior.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
 
 
@@ -604,13 +614,13 @@ class JamsGrid(Jams):
 
 
     def show_conditional(self, freeze):
-        assert len(freeze) + 2 == len(self.logPjammers_prior.shape)
-        plt.imshow(self.conditional(self.logPjammers_prior, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        assert len(freeze) + 2 == len(self.logPjammers_posterior.shape)
+        plt.imshow(self.conditional(self.logPjammers_posterior, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
 
     def test_independence(self):
-        logjoint = self.logPjammers_prior
+        logjoint = self.logPjammers_posterior
         logmargin = self.marginal(logjoint)
         logjoint_iid = self.logjoint_iid_from_logmarginal(logmargin)
         return logjoint_iid.allclose(logjoint)
