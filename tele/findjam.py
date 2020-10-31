@@ -209,17 +209,17 @@ class JamsGrid(Jams):
         return Jrx1, Jry1
 
 
-    def adjacent_grid_coord(self, old_coord):
-        new_coord = old_coord + np.random.choice([-1., 0., 1.])
-        if new_coord < 0.:
-            new_coord += 1.
-        elif new_coord > self.ngrid-1:
-            new_coord -= 1.
-        return new_coord
+    # def adjacent_grid_coord(self, old_coord):
+    #     new_coord = old_coord + np.random.choice([-1., 0., 1.])
+    #     if new_coord < 0.:
+    #         new_coord += 1.
+    #     elif new_coord > self.ngrid-1:
+    #         new_coord -= 1.
+    #     return new_coord
 
 
     def tuple_of_all_jammers(self):
-        idx = []  # is an index when indicates position on grid, but doesn't have to and usually doesn't
+        idx = []  # idx is an index when indicates position on grid---but doesn't have to, and usually doesn't
         for kj in range(self.njams):
             idx.extend(list(self.jammers[kj]))
         return tuple(idx)
@@ -265,30 +265,34 @@ class JamsGrid(Jams):
             return [(a, *b) for (a, (*b,)) in itertools.product(list1, list2)]
 
 
-    def number_of_boundaries(self, idx):
-        nbounds = 0
-        for i in idx:
-            if i < 0:
-                nbounds = -np.inf
-                print("Warning: number_of_boundaries outside of grid!")
-            elif i == 0:
-                nbounds += 1
-            elif i == self.ngrid-1:
-                nbounds += 1
-            elif i > self.ngrid-1:
-                nbounds = -np.inf
-                print("Warning: number_of_boundaries outside of grid!")
-        return nbounds
+    # def number_of_boundaries(self, idx):
+    #     nbounds = 0
+    #     for i in idx:
+    #         if i < 0:
+    #             nbounds = -np.inf
+    #             print("Warning: number_of_boundaries outside of grid!")
+    #         elif i == 0:
+    #             nbounds += 1
+    #         elif i == self.ngrid-1:
+    #             nbounds += 1
+    #         elif i > self.ngrid-1:
+    #             nbounds = -np.inf
+    #             print("Warning: number_of_boundaries outside of grid!")
+    #     return nbounds
 
 
-    def weight_of_index(self, neighbor, idx):
-        assert len(idx) == 2*self.njams
-        centerweight = torch.tensor((2**self.number_of_boundaries(idx))/(3**(2*self.njams)))
-        neighborweight = torch.tensor((2**self.number_of_boundaries(neighbor))/(3**(2*self.njams)))
-        return torch.tensor([centerweight, neighborweight]).min()
+    # def weight_of_index(self, neighbor, idx):
+    #     assert len(idx) == 2*self.njams
+    #     centerweight = torch.tensor((2**self.number_of_boundaries(idx))/(3**(2*self.njams)))
+    #     neighborweight = torch.tensor((2**self.number_of_boundaries(neighbor))/(3**(2*self.njams)))
+    #     return torch.tensor([centerweight, neighborweight]).min()
+
 
     def jam_convolve(self, idx, logP):
-        terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor, idx)) for neighbor in self.list_of_neighbors(idx)])
+        # terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor, idx)) for neighbor in self.list_of_neighbors(idx)])
+        # return torch.logsumexp(terms, dim=0)
+        neighbors = self.list_of_neighbors(idx)
+        terms = torch.tensor([logP[neighbor] - torch.log(torch.tensor(len(neighbors), dtype=float)) for neighbor in neighbors])
         return torch.logsumexp(terms, dim=0)
 
 
@@ -516,7 +520,7 @@ class JamsGrid(Jams):
         return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
 
 
-    def annotations(self):
+    def annotations(self, titleprefix=''):
         '''
         annotations: add annotations to plot
         '''
@@ -530,7 +534,7 @@ class JamsGrid(Jams):
                 plt.text(self.friendly[kf][0], self.friendly[kf][1], "Asset", color=col)
         for kj in range(self.njams):
             plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer", color=col)
-        plt.title("Steps = " + str(self.step))
+        plt.title(titleprefix + "Steps = " + str(self.step))
         plt.show()
 
 
@@ -549,7 +553,7 @@ class JamsGrid(Jams):
         '''
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
-        self.annotations()
+        self.annotations("Prediction Before: ")
 
 
     def unravel_index(self, index, shape):
