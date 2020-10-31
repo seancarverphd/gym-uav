@@ -502,13 +502,16 @@ class JamsGrid(Jams):
             self.logPjammers_prior = copy.deepcopy(self.logPjammers_posterior)
             self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
             self.adjacency = self.all_try()
-            self.logPjammers_posterior = self.logPjammers_predict + self.update_jammers(self.adjacency)
+            self.update = self.update_jammers(self.adjacency)
+            self.logPjammers_posterior = self.logPjammers_predict + self.update
             self.step += 1
             # self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
             # self.asset_contacted = self.try_to_contact(self.asset)       # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
         self.logPjammers_posterior = self.normalize(self.logPjammers_posterior)
+        self.logPjammers_prior = self.normalize(self.logPjammers_prior)
+        self.logPjammers_predict = self.normalize(self.logPjammers_predict)
 
 
     def marginal(self, joint):
@@ -552,6 +555,14 @@ class JamsGrid(Jams):
         plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
+
+    def render_update(self):
+        '''
+        render_update: draws I don't know what; update is not a distribution so marginal might not mean anything for njams>1
+        '''
+        plt.clf()
+        plt.imshow(self.marginal(self.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        self.annotations("Update Before: ")
 
     def render_prediction(self):
         '''
