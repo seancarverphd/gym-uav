@@ -254,7 +254,7 @@ class JamsGrid(Jams):
             lowest = idx[0] % 1
             list1 = [lowest, lowest+1]
         elif idx[0] > self.ngrid - 2:
-            highest = (idx[0] % 1) + self.ngrid - 1
+            highest = (idx[0] % 1) + self.ngrid - 2
             list1 = [highest-1, highest]
         else:
             list1 = [idx[0]-1, idx[0], idx[0]+1]
