@@ -6,7 +6,7 @@ import scipy.special
 import torch
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, seed=None):
+    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, gridpad=0, seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
@@ -14,6 +14,8 @@ class Jams():
         self.slope = slope
         self.nsteps = nsteps
         self.move = move
+        self.gridpad = gridpad
+        self.gridpadintegrity()
         self.seed = seed
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -26,6 +28,9 @@ class Jams():
         self.friendly_initialize()
         self.jammer_initialize()
 
+
+    def gridpadintegrity(self):
+        assert 3*self.gridpad < self.ngrid
 
     def headquarters(self):
         '''
@@ -62,6 +67,13 @@ class Jams():
         return tuple(np.random.uniform(low=0.0, high=self.ngrid-1, size=2))
 
     
+    def teleport_offgrid_pad(self):
+        '''
+        teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
+        '''
+        return tuple(np.random.uniform(low=0.0+self.gridpad, high=self.ngrid-1-self.gridpad, size=2))
+
+
     def teleport_comms(self):
         '''
         teleport_comms: select random locations on grid for comm(s)
@@ -107,7 +119,7 @@ class Jams():
         '''
         self.jammers = []
         for _ in range(self.njams):
-            self.jammers.append(self.teleport_offgrid())
+            self.jammers.append(self.teleport_offgrid_pad())
 
 
     def jammer_initialize(self):
@@ -250,11 +262,12 @@ class JamsGrid(Jams):
 
 
     def list_of_neighbors(self, idx):
+        self.gridpadintegrity()
         if idx[0] < 1:
-            lowest = idx[0] % 1
+            lowest = (idx[0] % 1) + self.gridpad
             list1 = [lowest, lowest+1]
         elif idx[0] > self.ngrid - 2:
-            highest = (idx[0] % 1) + self.ngrid - 2
+            highest = (idx[0] % 1) + self.ngrid - 2 - self.gridpad
             list1 = [highest-1, highest]
         else:
             list1 = [idx[0]-1, idx[0], idx[0]+1]
@@ -543,6 +556,9 @@ class JamsGrid(Jams):
                 plt.text(self.friendly[kf][0], self.friendly[kf][1], "Asset", color=col)
         for kj in range(self.njams):
             plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer", color=col)
+        estimates = [e.item() for e in self.estimates()]
+        for ej in self.list_of_tuples_for_each_jammer(estimates):
+            plt.text(ej[0], ej[1],"Estimate", color=col)
         plt.title(titleprefix + "Steps = " + str(self.step))
         plt.show()
 
