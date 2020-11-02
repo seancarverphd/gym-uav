@@ -6,7 +6,7 @@ import scipy.special
 import torch
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, gridpad=0, seed=None):
+    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, gridpad=0, seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
@@ -14,6 +14,7 @@ class Jams():
         self.slope = slope
         self.nsteps = nsteps
         self.move = move
+        self.assume_move = move if not misspecified else not move
         self.gridpad = gridpad
         self.gridpadintegrity()
         self.seed = seed
@@ -316,7 +317,7 @@ class JamsGrid(Jams):
         '''
         jammers_predict_args: version of function with calling and returning arguments
         '''
-        if not self.move:
+        if not self.assume_move:
             return logP
         newP = copy.deepcopy(logP)
         for idx in self.itertuple(2*self.njams):
