@@ -6,7 +6,7 @@ import scipy.special
 import torch
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, gridpad=0, seed=None):
+    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
@@ -15,8 +15,6 @@ class Jams():
         self.nsteps = nsteps
         self.move = move
         self.assume_move = move if not misspecified else not move
-        self.gridpad = gridpad
-        self.gridpadintegrity()
         self.seed = seed
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -29,9 +27,6 @@ class Jams():
         self.friendly_initialize()
         self.jammer_initialize()
 
-
-    def gridpadintegrity(self):
-        assert 3*self.gridpad < self.ngrid
 
     def headquarters(self):
         '''
@@ -72,7 +67,7 @@ class Jams():
         '''
         teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
         '''
-        return tuple(np.random.uniform(low=0.0+self.gridpad, high=self.ngrid-1-self.gridpad, size=2))
+        return tuple(np.random.uniform(low=0.0, high=self.ngrid-1, size=2))
 
 
     def teleport_comms(self):
@@ -263,7 +258,6 @@ class JamsGrid(Jams):
 
 
     def list_of_neighbors(self, idx):
-        self.gridpadintegrity()
         assert idx[0] >= 0
         assert idx[0] <= self.ngrid - 1
         if idx[0] < 1:
