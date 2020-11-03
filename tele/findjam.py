@@ -312,7 +312,15 @@ class JamsGrid(Jams):
         return torch.logsumexp(terms, dim=0)
 
 
-    def jammers_predict_args(self, logP):
+    def jam_convolve2(self, idx, logP):
+        # terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor, idx)) for neighbor in self.list_of_neighbors(idx)])
+        # return torch.logsumexp(terms, dim=0)
+        neighbors = self.list_of_neighbors(idx)
+        terms = torch.tensor([logP[neighbor] for neighbor in neighbors])
+        return torch.logsumexp(terms, dim=0) - torch.log(torch.tensor(len(neighbors), dtype=float)) 
+
+
+    def jammers_predict_args(self, logP, version=1):
         '''
         jammers_predict_args: version of function with calling and returning arguments
         '''
@@ -320,7 +328,10 @@ class JamsGrid(Jams):
         if not self.assume_move:
             return newP
         for idx in self.itertuple(2*self.njams):
-            newP[idx] = self.jam_convolve(idx, logP)
+            if version == 2:
+                newP[idx] = self.jam_convolve2(idx, logP)
+            else:
+                newP[idx] = self.jam_convolve(idx, logP)
         return newP
 
 
