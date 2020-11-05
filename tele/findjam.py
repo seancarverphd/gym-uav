@@ -6,7 +6,7 @@ import scipy.special
 import torch
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, gridpad=0, seed=None):
+    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, seed=None):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
@@ -14,8 +14,7 @@ class Jams():
         self.slope = slope
         self.nsteps = nsteps
         self.move = move
-        self.gridpad = gridpad
-        self.gridpadintegrity()
+        self.assume_move = move if not misspecified else not move
         self.seed = seed
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -28,9 +27,6 @@ class Jams():
         self.friendly_initialize()
         self.jammer_initialize()
 
-
-    def gridpadintegrity(self):
-        assert 3*self.gridpad < self.ngrid
 
     def headquarters(self):
         '''
@@ -71,7 +67,7 @@ class Jams():
         '''
         teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
         '''
-        return tuple(np.random.uniform(low=0.0+self.gridpad, high=self.ngrid-1-self.gridpad, size=2))
+        return tuple(np.random.uniform(low=0.0, high=self.ngrid-1, size=2))
 
 
     def teleport_comms(self):
@@ -262,12 +258,16 @@ class JamsGrid(Jams):
 
 
     def list_of_neighbors(self, idx):
-        self.gridpadintegrity()
+        assert idx[0] >= 0
+        assert idx[0] <= self.ngrid - 1
         if idx[0] < 1:
-            lowest = (idx[0] % 1) + self.gridpad
+            lowest = (idx[0] % 1)
             list1 = [lowest, lowest+1]
-        elif idx[0] > self.ngrid - 2:
-            highest = (idx[0] % 1) + self.ngrid - 2 - self.gridpad
+        elif idx[0] == self.ngrid - 1:
+            highest = self.ngrid - 1
+            list1 = [highest-1, highest]
+        elif idx[0] > self.ngrid - 2:  # > 8.0 when ngrid==10
+            highest = (idx[0] % 1) + self.ngrid - 2
             list1 = [highest-1, highest]
         else:
             list1 = [idx[0]-1, idx[0], idx[0]+1]
@@ -304,11 +304,9 @@ class JamsGrid(Jams):
     #     return torch.tensor([centerweight, neighborweight]).min()
 
 
-    def jam_convolve(self, idx, logP):
-        # terms = torch.tensor([logP[neighbor] + torch.log(self.weight_of_index(neighbor, idx)) for neighbor in self.list_of_neighbors(idx)])
-        # return torch.logsumexp(terms, dim=0)
-        neighbors = self.list_of_neighbors(idx)
-        terms = torch.tensor([logP[neighbor] - torch.log(torch.tensor(len(neighbors), dtype=float)) for neighbor in neighbors])
+    def jam_convolve(self, idx1, logP):  # sum over idx0, value at idx1
+        neighbors = self.list_of_neighbors(idx1)
+        terms = torch.tensor([logP[idx0] - torch.log(torch.tensor(len(self.list_of_neighbors(idx0)), dtype=float)) for idx0 in neighbors])
         return torch.logsumexp(terms, dim=0)
 
 
@@ -316,11 +314,11 @@ class JamsGrid(Jams):
         '''
         jammers_predict_args: version of function with calling and returning arguments
         '''
-        if not self.move:
-            return logP
         newP = copy.deepcopy(logP)
-        for idx in self.itertuple(2*self.njams):
-            newP[idx] = self.jam_convolve(idx, logP)
+        if not self.assume_move:
+            return newP
+        for idx1 in self.itertuple(2*self.njams):
+            newP[idx1] = self.jam_convolve(idx1, logP)
         return newP
 
 
@@ -496,9 +494,9 @@ class JamsGrid(Jams):
         return flat.reshape(priorshape)
 
 
-    def normalize_prior(self):
+    def normalize_posterior(self):
         '''
-        normalize_prior: wrapper for normalize that normalizes prior (not used in code but might be on command line)
+        normalize_posterior: wrapper for normalize that normalizes posterior (not used in code but might be on command line)
         '''
         return self.normalize(self.logPjammers_posterior)
 
@@ -522,9 +520,18 @@ class JamsGrid(Jams):
             # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
             # self.asset_contacted = self.try_to_contact(self.asset)       # Returns True/False using veridical jammer location(s)
             # self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
+        self.logPjammers_unnormalized = copy.deepcopy(self.logPjammers_posterior)
         self.logPjammers_posterior = self.normalize(self.logPjammers_posterior)
-        self.logPjammers_prior = self.normalize(self.logPjammers_prior)
-        self.logPjammers_predict = self.normalize(self.logPjammers_predict)
+        # self.logPjammers_prior = self.normalize(self.logPjammers_prior)
+        # self.logPjammers_predict = self.normalize(self.logPjammers_predict)
+
+
+    def normalizer(self, logP):
+        return torch.logsumexp(logP.flatten(), dim=0)
+
+    def advance(self):
+        self.run()
+        self.render()
 
 
     def marginal(self, joint):
@@ -563,6 +570,21 @@ class JamsGrid(Jams):
         plt.show()
 
 
+    def connections(self):
+        for f1 in range(self.nfriendly):
+            for f2 in range(self.nfriendly):
+                x = self.friendly[f1][0]
+                y = self.friendly[f1][1]
+                dx = self.friendly[f2][0] - x
+                dy = self.friendly[f2][1] - y
+                if f1 == f2:
+                    break
+                if self.adjacency[f1,f2]:
+                    plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003)
+                else:
+                    plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003, linestyle=':', color='red')
+
+
     def render(self):
         '''
         render: plots the marginal
@@ -570,6 +592,7 @@ class JamsGrid(Jams):
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
+        self.connections()
 
 
     def render_update(self):

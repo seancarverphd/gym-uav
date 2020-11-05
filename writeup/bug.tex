@@ -1,0 +1,26 @@
+\documentclass{article}
+\title{Bug in Code}
+\author{Sean Carver @ Data Machines Corporation}
+\begin{document}
+\maketitle
+
+\section{Bayesian filtering}
+
+The object is to optimally estimate the state (jammer positions) $x_t$
+based on all measurements up to time $t$, $y_{1:t}$.  This feat is
+accomplished with a recursion, given an initial distribution for state
+$x_0$ which in this case is uniform over the grid.
+
+Predict step: (follows from definition of conditional probability and
+the Markov Property)
+
+$$P(x_{t+1}|y_{1:t}) = \sum_{x_t} P(x_{t+1}|x_t) P(x_t|y_{1:t})$$
+
+Update step: (follows from Bayes Rule and Markov Property)
+
+$$P(x_{t+1}|y_{1:t+1}) \sim P(y_{t+1}|x_{t+1}) P(x_{t+1}|y_{1:t})$$
+
+The bug is in the predict step.  The probability places equal
+probability for movement to each neighbor in the grid.
+
+\end{document}
