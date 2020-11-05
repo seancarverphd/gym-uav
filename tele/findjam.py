@@ -526,21 +526,20 @@ class JamsGrid(Jams):
         # self.logPjammers_predict = self.normalize(self.logPjammers_predict)
 
 
+    def advance(self):
+        self.run(1)
+        self.render()
+
+
     def video(self, nframes):
         for f in range(nframes):
-            self.run(1)
-            self.render()
+            self.advance()
             plt.savefig('video/frame'+str(f)+'.png')
             plt.clf()
 
 
     def normalizer(self, logP):
         return torch.logsumexp(logP.flatten(), dim=0)
-
-    def advance(self):
-        self.run()
-        self.render()
-
 
     def marginal(self, joint):
         '''
@@ -579,6 +578,7 @@ class JamsGrid(Jams):
 
 
     def connections(self):
+        return  # Not tested and does not seem to work completely and properly
         for f1 in range(self.nfriendly):
             for f2 in range(self.nfriendly):
                 x = self.friendly[f1][0]
