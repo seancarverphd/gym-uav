@@ -526,6 +526,14 @@ class JamsGrid(Jams):
         # self.logPjammers_predict = self.normalize(self.logPjammers_predict)
 
 
+    def video(self, nframes):
+        for f in range(nframes):
+            self.run(1)
+            self.render()
+            plt.savefig('video/frame'+str(f)+'.png')
+            plt.clf()
+
+
     def normalizer(self, logP):
         return torch.logsumexp(logP.flatten(), dim=0)
 
