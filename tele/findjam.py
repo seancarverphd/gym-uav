@@ -142,8 +142,8 @@ class JamsGrid(Jams):
         self.makeMj()
         self.makeMf1()
         # All distributions are represented as logs for stability
-        self.logPjammers_posterior = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
-        self.priorshape = self.logPjammers_posterior.shape
+        self.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
+        self.priorshape = self.logPjammers_unnormalized.shape
 
 
     def itertuple(self, dims):
@@ -326,7 +326,7 @@ class JamsGrid(Jams):
         '''
         jamemrs_predict: wrapper for jammers_predict_args that doesn't use arguments, takes them from self
         '''
-        self.logPjammers_posterior = self.jammers_predict_args(self.logPjammers_posterior)
+        self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized)
 
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
@@ -494,42 +494,48 @@ class JamsGrid(Jams):
         return flat.reshape(priorshape)
 
 
-    def normalize_posterior(self):
+    def normalize_unnormalized(self):
         '''
-        normalize_posterior: wrapper for normalize that normalizes posterior (not used in code but might be on command line)
+        normalize_unnormalized: wrapper for normalize that normalizes posterior (not used in code but might be on command line)
         '''
-        return self.normalize(self.logPjammers_posterior)
+        return self.normalize(self.logPjammers_unnormalized)
 
 
-        '''
-        run take steps or self.nsteps of moving comm (teleport for now) and Bayesian update of prior
-        '''
+    def run(self, steps=1, save=False):
+        for _ in range(steps):
+            if save:
+                self.friendly_pre = self.friendly
+            self.friendly_move()  # teleports comms to new locations stored in self.friendly
+            if save:
+                self.jammers_pre = self.jammers
+            self.jammers_move()
+            self.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
+            if save:
+                self.logPjammers_prior = self.logPjammers_unnormalized
+                self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
+                self.update = self.update_jammers(self.adjacency)
+                self.logPjammers_unnormalized = self.logPjammers_predict + self.update
+                self.logPjammers_posterior = self.normalize(self.logPjammers_unnormalized)
+            else:
+                self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
+            self.step += 1
+
 
     def advance(self, steps=1):
-        for _ in range(steps):
-            self.friendly_pre = self.friendly
-            self.friendly_move()  # teleports comms to new locations stored in self.friendly
-            self.jammers_pre = self.jammers
-            self.jammers_move()
-            self.logPjammers_prior = self.logPjammers_unnormalized
-            self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
-            # Next line uses random number generatation and depends on random state
-            self.adjacency = self.all_try()
-            self.update = self.update_jammers(self.adjacency)
-            self.logPjammers_unnormalized = self.logPjammers_predict + self.update
-            self.logPjammers_posterior = self.normalize(self.logPjammers_unnormalized)
-            self.step += 1
+        self.run(steps, save=True)
         self.render()
 
 
-    def run(self, steps=1):
-        for _ in range(steps):
-            self.friendly_move()
-            self.jammers_move()
-            self.adjacency = self.all_try()
-            self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_prior) + self.update_jammers(self.adjacency)
-            self.step += 1
-        self.render()
+#    def runtest(self, steps=1):
+#        '''
+#        run take steps or self.nsteps of moving comm (teleport for now) and Bayesian update of prior
+#        '''
+#        for _ in range(steps):
+#            self.friendly_move()
+#            self.jammers_move()
+#            self.adjacency = self.all_try()
+#            self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
+#            self.step += 1
 
 
     def retreat(self):
@@ -619,7 +625,7 @@ class JamsGrid(Jams):
         render: plots the marginal
         '''
         plt.clf()
-        plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.logPjammers_unnormalized).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
         self.connections()
 
@@ -666,7 +672,7 @@ class JamsGrid(Jams):
         '''
         estimates: produces the maximum aposteriori estimates of the jammer locations based on the information currently in grid
         '''
-        imax = self.logPjammers_posterior.argmax()
+        imax = self.logPjammers_unnormalized.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
 
 
@@ -693,13 +699,13 @@ class JamsGrid(Jams):
 
 
     def show_conditional(self, freeze):
-        assert len(freeze) + 2 == len(self.logPjammers_posterior.shape)
-        plt.imshow(self.conditional(self.logPjammers_posterior, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        assert len(freeze) + 2 == len(self.logPjammers_unnormalized.shape)
+        plt.imshow(self.conditional(self.logPjammers_unnormalized, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
 
     def test_independence(self):
-        logjoint = self.logPjammers_posterior
+        logjoint = self.logPjammers_unnormalized
         logmargin = self.marginal(logjoint)
         logjoint_iid = self.logjoint_iid_from_logmarginal(logmargin)
         return logjoint_iid.allclose(logjoint)
