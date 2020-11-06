@@ -501,33 +501,34 @@ class JamsGrid(Jams):
         return self.normalize(self.logPjammers_posterior)
 
 
-    def run(self, steps=None):
         '''
         run take steps or self.nsteps of moving comm (teleport for now) and Bayesian update of prior
         '''
-        if steps is None:
-            steps = self.nsteps
+
+    def advance(self, steps=1):
         for _ in range(steps):
-            self.friendly_move()  # teleports comms to new locations
+            self.friendly_pre = self.friendly
+            self.friendly_move()  # teleports comms to new locations stored in self.friendly
+            self.jammers_pre = self.jammers
             self.jammers_move()
-            self.logPjammers_prior = copy.deepcopy(self.logPjammers_posterior)
+            self.logPjammers_prior = self.logPjammers_unnormalized
             self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
+            # Next line uses random number generatation and depends on random state
             self.adjacency = self.all_try()
             self.update = self.update_jammers(self.adjacency)
-            self.logPjammers_posterior = self.logPjammers_predict + self.update
+            self.logPjammers_unnormalized = self.logPjammers_predict + self.update
+            self.logPjammers_posterior = self.normalize(self.logPjammers_unnormalized)
             self.step += 1
-            # self.hq_contacted = self.try_to_contact(self.hq)             # Returns True/False using veridical jammer location(s)
-            # self.logPjammers_prior += self.loglikelihood_obs(self.hq, self.hq_contacted)  # decomposes into sum by independence assumption
-            # self.asset_contacted = self.try_to_contact(self.asset)       # Returns True/False using veridical jammer location(s)
-            # self.logPjammers_prior += self.loglikelihood_obs(self.asset, self.asset_contacted)  # Returns ND-array over locations, asset
-        self.logPjammers_unnormalized = copy.deepcopy(self.logPjammers_posterior)
-        self.logPjammers_posterior = self.normalize(self.logPjammers_posterior)
-        # self.logPjammers_prior = self.normalize(self.logPjammers_prior)
-        # self.logPjammers_predict = self.normalize(self.logPjammers_predict)
+        self.render()
 
 
-    def advance(self):
-        self.run(1)
+    def run(self, steps=1):
+        for _ in range(steps):
+            self.friendly_move()
+            self.jammers_move()
+            self.adjacency = self.all_try()
+            self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_prior) + self.update_jammers(self.adjacency)
+            self.step += 1
         self.render()
 
 
