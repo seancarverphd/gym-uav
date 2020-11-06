@@ -531,6 +531,26 @@ class JamsGrid(Jams):
         self.render()
 
 
+    def retreat(self):
+        pass
+
+
+    def saveon(self):
+        pass
+
+
+    def saveoff(self):
+        pass
+
+
+    def savelow(self):
+        pass
+
+
+    def clearstack(self):
+        pass
+
+
     def video(self, nframes):
         for f in range(nframes):
             self.advance()
