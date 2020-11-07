@@ -506,54 +506,61 @@ class JamsGrid(Jams):
 
 
     def run(self, steps=1, record=False):
-        for _ in range(steps):
-            if record:
+        for s in range(steps):
+            if record and s==steps-1:
                 self.friendly_pre = self.friendly
                 self.jammers_pre = self.jammers
-                self.torchstate = torch.get_rng_state()
-                self.numpystate = np.random.get_state()
+            self.step += 1
             self.friendly_move()  # teleports comms to new locations stored in self.friendly
             self.jammers_move()
             self.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
-            if record:
+            if record and s==steps-1:
                 self.logPjammers_prior = self.logPjammers_unnormalized
                 self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
                 self.update = self.update_jammers(self.adjacency)
                 self.logPjammers_unnormalized = self.logPjammers_predict + self.update
                 self.logPjammers_posterior = self.normalize(self.logPjammers_unnormalized)
-                self.current = (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency,
+                self.torchstate = torch.get_rng_state()
+                self.numpystate = np.random.get_state()
+                self.current = (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency, 
                     self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior)
+                self.current_on_stack = False
+                self.current_recorded = True
             else:
                 self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
                 self.current = None
-            self.step += 1
+                self.current_on_stack = False
+                self.current_recorded = False
 
 
     def pushstack(self):
         if self.current is not None:
             self.stack.append(self.current)
-
+            self.current_on_stack = True
 
     def popstack(self):
         self.current = self.stack.pop()
-        (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency,
-            self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior) = self.current
+        self.current_on_stack = False
+        (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency, 
+                    self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior) = self.current
         torch.set_rng_state(self.torchstate)
         np.random.set_state(self.numpystate)
 
 
     def advance(self, steps=1):
+        self.run(steps, record=True)
         if self.push:
             self.pushstack()
-        self.run(steps, record=True)
         self.render()
 
 
-    def retreat(self, steps=1):
-        for _ in range(steps):
+    def retreat(self, stacksteps=1):
+        for _ in range(stacksteps):
             if len(self.stack) == 0:
                 print("Bottom of stack reached!")
                 return
+            if self.current_on_stack:
+                self.popstack()
             self.popstack()
         self.render()
 
@@ -634,7 +641,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal of the posterior
         '''
-        assert self.distribcurrent is True
+        assert self.current_recorded is True
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
@@ -645,7 +652,7 @@ class JamsGrid(Jams):
         '''
         render_update: draws I don't know what; update is not a distribution so marginal might not mean anything for njams>1
         '''
-        assert self.distribcurrent is True
+        assert self.current_recorded is True
         plt.clf()
         plt.imshow(self.marginal(self.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
@@ -654,7 +661,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.distribcurrent is True
+        assert self.current_recorded is True
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prediction Before: ")
@@ -664,7 +671,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.distribcurrent is True
+        assert self.current_recorded is True
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prior Before: ")
