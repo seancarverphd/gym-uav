@@ -558,18 +558,6 @@ class JamsGrid(Jams):
         self.render()
 
 
-#    def runtest(self, steps=1):
-#        '''
-#        run take steps or self.nsteps of moving comm (teleport for now) and Bayesian update of prior
-#        '''
-#        for _ in range(steps):
-#            self.friendly_move()
-#            self.jammers_move()
-#            self.adjacency = self.all_try()
-#            self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
-#            self.step += 1
-
-
     def video(self, nframes):
         for f in range(nframes):
             self.advance()
