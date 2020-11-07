@@ -27,7 +27,9 @@ class Jams():
         self.assign_assets(self.assets0)
         self.friendly_initialize()
         self.jammer_initialize()
-        self.clearstack()
+        self.stack = []
+        self.pushcurrent = False
+        self.current = None
 
 
     def headquarters(self):
@@ -125,10 +127,6 @@ class Jams():
         jammers_initialize: initialize jammers
         '''
         self.teleport_jammers()
-
-
-    def clearstack(self):
-        self.stack = []
 
 
 class JamsPoint(Jams):
@@ -507,9 +505,9 @@ class JamsGrid(Jams):
         return self.normalize(self.logPjammers_unnormalized)
 
 
-    def run(self, steps=1, save=False):
+    def run(self, steps=1, record=False):
         for _ in range(steps):
-            if save:
+            if record:
                 self.friendly_pre = self.friendly
                 self.jammers_pre = self.jammers
                 self.torchstate = torch.get_rng_state()
@@ -517,62 +515,46 @@ class JamsGrid(Jams):
             self.friendly_move()  # teleports comms to new locations stored in self.friendly
             self.jammers_move()
             self.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
-            if save:
+            if record:
                 self.logPjammers_prior = self.logPjammers_unnormalized
                 self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
                 self.update = self.update_jammers(self.adjacency)
                 self.logPjammers_unnormalized = self.logPjammers_predict + self.update
                 self.logPjammers_posterior = self.normalize(self.logPjammers_unnormalized)
-                self.distribcurrent = True
+                self.current = (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency,
+                    self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior)
             else:
                 self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
-                self.distribcurrent = False
+                self.current = None
             self.step += 1
-            self.stackcurrent = False
 
 
     def pushstack(self):
-        assert self.distribcurrent is True
-        self.stack.append((self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, 
-            self.torchstate, self.numpystate, self.adjacency,
-            self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior))
-        self.stackcurrent = True
+        if self.current is not None:
+            self.stack.append(self.current)
 
 
     def popstack(self):
-        (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers,
-            self.torchstate, self.numpystate, self.adjacency,
-            self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior) = self.stack.pop()
-        self.stackcurrent = False
-        self.distribcurrent = True
+        self.current = self.stack.pop()
+        (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency,
+            self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior) = self.current
+        torch.set_rng_state(self.torchstate)
+        np.random.set_state(self.numpystate)
 
 
-    def advance(self, steps=1, push=None):
-        if push is None:
-            push = self.push
-        self.run(steps, save=True)
-        if push:
+    def advance(self, steps=1):
+        if self.push:
             self.pushstack()
-        else:
-            self.stackcurrent = False
+        self.run(steps, record=True)
         self.render()
 
 
-    def retreat(self, steps=None):
-        if steps is None and self.stackcurrent is True:
-            steps = 2
-        elif steps is None and self.stackcurrent is False:
-            steps = 1
-        else:
-            assert steps is not None
+    def retreat(self, steps=1):
         for _ in range(steps):
             if len(self.stack) == 0:
                 print("Bottom of stack reached!")
                 return
             self.popstack()
-            torch.set_rng_state(self.torchstate)
-            np.random.set_state(self.numpystate)
-        self.stackcurrent = False
         self.render()
 
 
