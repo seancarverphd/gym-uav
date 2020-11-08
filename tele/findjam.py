@@ -5,6 +5,25 @@ import numpy as np
 import scipy.special
 import torch
 
+
+class JamData():
+    def __init__(self):
+        self.step = None
+        self.friendly_pre = None
+        self.friendly = None
+        self.comms = None
+        self.jammers_pre = None
+        self.jammers = None
+        self.torchstate = None
+        self.numpystate = None
+        self.adjacency = None
+        self.logPjammers_prior = None
+        self.logPjammers_predict = None
+        self.update = None
+        self.logPjammers_unnormalized = None
+        self.logPjammers_posterior = None
+
+
 class Jams():
     def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, seed=None, push=True):
         self.ngrid = ngrid  # grid points on map in 1D
@@ -17,6 +36,7 @@ class Jams():
         self.assume_move = move if not misspecified else not move
         self.seed = seed
         self.push = push
+        self.current = JamData()
         if self.seed is not None:
             np.random.seed(self.seed)
             torch.manual_seed(self.seed+1)
@@ -28,7 +48,6 @@ class Jams():
         self.friendly_initialize()
         self.jammer_initialize()
         self.stack = []
-        self.current = None
         self.currect_on_stack = False
 
 
@@ -100,8 +119,8 @@ class Jams():
         '''
         friendly_move: right now a wrapper for teleport_comm but will be generalized
         '''
-        self.comms = self.teleport_comms()
-        self.friendly = self.friendly_flatten(self.hq, self.comms, self.assets)
+        self.current.comms = self.teleport_comms()
+        self.current.friendly = self.friendly_flatten(self.hq, self.current.comms, self.assets)
 
     
     def friendly_initialize(self):
@@ -137,7 +156,8 @@ class JamsPoint(Jams):
 class JamsGrid(Jams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.step = 0  # initialize counter for number of steps
+        self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
+        self.current.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
         self.Jx1, self.Jy1 = self.makeJxy1()
         self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
@@ -146,8 +166,7 @@ class JamsGrid(Jams):
         self.makeMj()
         self.makeMf1()
         # All distributions are represented as logs for stability
-        self.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
-        self.priorshape = self.logPjammers_unnormalized.shape
+        self.priorshape = self.current.logPjammers_unnormalized.shape
 
 
     def itertuple(self, dims):
@@ -258,7 +277,7 @@ class JamsGrid(Jams):
         old = self.tuple_of_all_jammers()
         neighbors = self.list_of_neighbors(old)
         new = np.random.choice(len(neighbors))
-        self.jammers = self.list_of_tuples_for_each_jammer(neighbors[new])
+        self.current.jammers = self.list_of_tuples_for_each_jammer(neighbors[new])
 
 
     def list_of_neighbors(self, idx):
@@ -330,7 +349,7 @@ class JamsGrid(Jams):
         '''
         jamemrs_predict: wrapper for jammers_predict_args that doesn't use arguments, takes them from self
         '''
-        self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized)
+        self.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized)
 
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
@@ -341,15 +360,16 @@ class JamsGrid(Jams):
                      kc^th comm
         Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         '''
-        fx = torch.tensor(self.friendly[kf][0], dtype=float)
-        fy = torch.tensor(self.friendly[kf][1], dtype=float)
+        fx = torch.tensor(self.current.friendly[kf][0], dtype=float)
+        fy = torch.tensor(self.current.friendly[kf][1], dtype=float)
         return torch.sqrt((jx - fx)**2 + (jy - fy)**2)
 
 
     def power_friendly_at_friendly(self):
         return torch.tensor([[# 0 if f1 == f2 else 
                 (#self.Mf1[f1]
-                    1/self.dist_jxy_to_friendly(self.friendly[f1][0], self.friendly[f1][1], f2)**2) for f1 in range(self.nfriendly)] for f2 in range(self.nfriendly)])
+                    1/self.dist_jxy_to_friendly(self.current.friendly[f1][0], 
+                        self.current.friendly[f1][1], f2)**2) for f1 in range(self.nfriendly)] for f2 in range(self.nfriendly)])
     
 
     def power_jammers_at_friendly_grid(self):
@@ -502,48 +522,48 @@ class JamsGrid(Jams):
         '''
         normalize_unnormalized: wrapper for normalize that normalizes posterior (not used in code but might be on command line)
         '''
-        return self.normalize(self.logPjammers_unnormalized)
+        return self.normalize(self.current.logPjammers_unnormalized)
 
 
     def run(self, steps=1, record=False):
         for s in range(steps):
+            if not record:
+                self.current = JamData()
             if record and s==steps-1:
-                self.friendly_pre = self.friendly
-                self.jammers_pre = self.jammers
-            self.step += 1
+                self.current.friendly_pre = copy.deepcopy(self.current.friendly)
+                self.current.jammers_pre = copy.deepcopy(self.current.jammers)
+            self.current.step += 1
             self.friendly_move()  # teleports comms to new locations stored in self.friendly
             self.jammers_move()
-            self.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
+            self.current.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
             if record and s==steps-1:
-                self.logPjammers_prior = self.logPjammers_unnormalized
-                self.logPjammers_predict = self.jammers_predict_args(self.logPjammers_prior)
-                self.update = self.update_jammers(self.adjacency)
-                self.logPjammers_unnormalized = self.logPjammers_predict + self.update
-                self.logPjammers_posterior = self.normalize(self.logPjammers_unnormalized)
-                self.torchstate = torch.get_rng_state()
-                self.numpystate = np.random.get_state()
-                self.current = (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency, 
-                    self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior)
+                self.current.logPjammers_prior = self.current.logPjammers_unnormalized
+                self.current.logPjammers_predict = self.jammers_predict_args(self.current.logPjammers_prior)
+                self.current.update = self.update_jammers(self.current.adjacency)
+                self.current.logPjammers_unnormalized = self.current.logPjammers_predict + self.current.update
+                self.current.logPjammers_posterior = self.normalize(self.current.logPjammers_unnormalized)
+                self.current.torchstate = torch.get_rng_state()
+                self.current.numpystate = np.random.get_state()
             else:
-                self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
-                self.current = None
+                self.current.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized) + self.current.update_jammers(self.adjacency)
             self.current_on_stack = False
 
 
     def pushstack(self):
-        if self.current is not None:
-            self.stack.append(self.current)
+        if self.current.step is not None:
+            self.stack.append(copy.deepcopy(self.current))
             self.current_on_stack = True
 
     def popstack(self):
         if self.current_on_stack:
             self.stack.pop()
+        if len(self.stack) == 0:
+            print("Bottom of stack reached!")
+            return
         self.current = self.stack[-1]
         self.current_on_stack = True
-        (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency, 
-                    self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior) = self.current
-        torch.set_rng_state(self.torchstate)
-        np.random.set_state(self.numpystate)
+        torch.set_rng_state(self.current.torchstate)
+        np.random.set_state(self.current.numpystate)
 
 
     def advance(self, steps=1):
@@ -555,9 +575,6 @@ class JamsGrid(Jams):
 
     def retreat(self, stacksteps=1):
         for _ in range(stacksteps):
-            if len(self.stack) == 0:
-                print("Bottom of stack reached!")
-                return
             self.popstack()
         self.render()
 
@@ -591,20 +608,20 @@ class JamsGrid(Jams):
         '''
         annotations: add annotations to plot
         '''
-        col = 'lightblue' if self.step == 0 else 'black'
+        col = 'lightblue' if self.current.step == 0 else 'black'
         for kf in range(self.nfriendly):
             if kf==0:  # headquarters
-                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Headquarters", color=col)
+                plt.text(self.current.friendly[kf][0], self.current.friendly[kf][1], "Headquarters", color=col)
             elif kf in self.comms_set:  # comms
-                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Comm", color=col)
+                plt.text(self.current.friendly[kf][0], self.current.friendly[kf][1], "Comm", color=col)
             else:  # assets
-                plt.text(self.friendly[kf][0], self.friendly[kf][1], "Asset", color=col)
+                plt.text(self.current.friendly[kf][0], self.current.friendly[kf][1], "Asset", color=col)
         for kj in range(self.njams):
-            plt.text(self.jammers[kj][0], self.jammers[kj][1],"Jammer", color=col)
+            plt.text(self.current.jammers[kj][0], self.current.jammers[kj][1],"Jammer", color=col)
         estimates = [e.item() for e in self.estimates()]
         for ej in self.list_of_tuples_for_each_jammer(estimates):
             plt.text(ej[0], ej[1],"Estimate", color=col)
-        plt.title(titleprefix + "Steps = " + str(self.step))
+        plt.title(titleprefix + "Steps = " + str(self.current.step))
         plt.show()
 
 
@@ -612,13 +629,13 @@ class JamsGrid(Jams):
         return  # Not tested and does not seem to work completely and properly
         for f1 in range(self.nfriendly):
             for f2 in range(self.nfriendly):
-                x = self.friendly[f1][0]
-                y = self.friendly[f1][1]
-                dx = self.friendly[f2][0] - x
-                dy = self.friendly[f2][1] - y
+                x = self.current.friendly[f1][0]
+                y = self.current.friendly[f1][1]
+                dx = self.current.friendly[f2][0] - x
+                dy = self.current.friendly[f2][1] - y
                 if f1 == f2:
                     break
-                if self.adjacency[f1,f2]:
+                if self.current.adjacency[f1,f2]:
                     plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003)
                 else:
                     plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003, linestyle=':', color='red')
@@ -629,7 +646,7 @@ class JamsGrid(Jams):
         render: plots the marginal of the unnormalized posterior
         '''
         plt.clf()
-        plt.imshow(self.marginal(self.logPjammers_unnormalized).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.current.logPjammers_unnormalized).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
         self.connections()
 
@@ -638,9 +655,8 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal of the posterior
         '''
-        assert self.current is not None
         plt.clf()
-        plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.current.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
         self.connections()
 
@@ -649,18 +665,16 @@ class JamsGrid(Jams):
         '''
         render_update: draws I don't know what; update is not a distribution so marginal might not mean anything for njams>1
         '''
-        assert self.current is not None
         plt.clf()
-        plt.imshow(self.marginal(self.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.curent.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
 
     def render_prediction(self):
         '''
         render: plots the marginal
         '''
-        assert self.current is not None
         plt.clf()
-        plt.imshow(self.marginal(self.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.current.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prediction Before: ")
 
 
@@ -668,9 +682,9 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.current is not None
+        assert self.current.step is not None
         plt.clf()
-        plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.current.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prior Before: ")
 
 
@@ -690,7 +704,7 @@ class JamsGrid(Jams):
         '''
         estimates: produces the maximum aposteriori estimates of the jammer locations based on the information currently in grid
         '''
-        imax = self.logPjammers_unnormalized.argmax()
+        imax = self.current.logPjammers_unnormalized.argmax()
         return self.unravel_index(imax, tuple([self.ngrid]*(2*self.njams)))
 
 
@@ -717,13 +731,13 @@ class JamsGrid(Jams):
 
 
     def show_conditional(self, freeze):
-        assert len(freeze) + 2 == len(self.logPjammers_unnormalized.shape)
-        plt.imshow(self.conditional(self.logPjammers_unnormalized, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        assert len(freeze) + 2 == len(self.current.logPjammers_unnormalized.shape)
+        plt.imshow(self.conditional(self.current.logPjammers_unnormalized, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
 
     def test_independence(self):
-        logjoint = self.logPjammers_unnormalized
+        logjoint = self.current.logPjammers_unnormalized
         logmargin = self.marginal(logjoint)
         logjoint_iid = self.logjoint_iid_from_logmarginal(logmargin)
         return logjoint_iid.allclose(logjoint)
