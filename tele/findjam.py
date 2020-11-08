@@ -28,8 +28,8 @@ class Jams():
         self.friendly_initialize()
         self.jammer_initialize()
         self.stack = []
-        self.pushcurrent = False
         self.current = None
+        self.currect_on_stack = False
 
 
     def headquarters(self):
@@ -524,13 +524,10 @@ class JamsGrid(Jams):
                 self.numpystate = np.random.get_state()
                 self.current = (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency, 
                     self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior)
-                self.current_on_stack = False
-                self.current_recorded = True
             else:
                 self.logPjammers_unnormalized = self.jammers_predict_args(self.logPjammers_unnormalized) + self.update_jammers(self.adjacency)
                 self.current = None
-                self.current_on_stack = False
-                self.current_recorded = False
+            self.current_on_stack = False
 
 
     def pushstack(self):
@@ -539,8 +536,10 @@ class JamsGrid(Jams):
             self.current_on_stack = True
 
     def popstack(self):
-        self.current = self.stack.pop()
-        self.current_on_stack = False
+        if self.current_on_stack:
+            self.stack.pop()
+        self.current = self.stack[-1]
+        self.current_on_stack = True
         (self.step, self.friendly_pre, self.friendly, self.jammers_pre, self.jammers, self.torchstate, self.numpystate, self.adjacency, 
                     self.logPjammers_prior, self.logPjammers_predict, self.update, self.logPjammers_unnormalized, self.logPjammers_posterior) = self.current
         torch.set_rng_state(self.torchstate)
@@ -559,8 +558,6 @@ class JamsGrid(Jams):
             if len(self.stack) == 0:
                 print("Bottom of stack reached!")
                 return
-            if self.current_on_stack:
-                self.popstack()
             self.popstack()
         self.render()
 
@@ -641,7 +638,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal of the posterior
         '''
-        assert self.current_recorded is True
+        assert self.current is not None
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
@@ -652,7 +649,7 @@ class JamsGrid(Jams):
         '''
         render_update: draws I don't know what; update is not a distribution so marginal might not mean anything for njams>1
         '''
-        assert self.current_recorded is True
+        assert self.current is not None
         plt.clf()
         plt.imshow(self.marginal(self.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
@@ -661,7 +658,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.current_recorded is True
+        assert self.current is not None
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prediction Before: ")
@@ -671,7 +668,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.current_recorded is True
+        assert self.current is not None
         plt.clf()
         plt.imshow(self.marginal(self.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prior Before: ")
