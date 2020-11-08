@@ -56,7 +56,6 @@ class Jams():
         if self.delta is None:
             self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
         else:
-            print(self.delta)
             assert len(self.delta) == 2*self.njams
             self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-np.inf)
             self.current.logPjammers_unnormalized[self.delta] = 0
