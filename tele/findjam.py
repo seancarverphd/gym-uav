@@ -675,7 +675,7 @@ class JamsGrid(Jams):
         '''
         assert self.current.alldata is not None
         plt.clf()
-        plt.imshow(self.marginal(self.curent.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        plt.imshow(self.marginal(self.current.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
 
     def render_prediction(self):
