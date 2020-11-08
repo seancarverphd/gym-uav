@@ -347,9 +347,9 @@ class JamsGrid(Jams):
 
     def jammers_predict(self):
         '''
-        jamemrs_predict: wrapper for jammers_predict_args that doesn't use arguments, takes them from self
+        jammers_predict: wrapper for jammers_predict_args that doesn't use arguments, takes them from self
         '''
-        self.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized)
+        self.current.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized)
 
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
