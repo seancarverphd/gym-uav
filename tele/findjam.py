@@ -25,7 +25,7 @@ class JamData():
 
 
 class Jams():
-    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, seed=None, push=True):
+    def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, delta=None, seed=None, push=True):
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
@@ -34,6 +34,7 @@ class Jams():
         self.nsteps = nsteps
         self.move = move
         self.assume_move = move if not misspecified else not move
+        self.delta = None
         self.seed = seed
         self.push = push
         self.current = JamData()
@@ -49,7 +50,12 @@ class Jams():
         self.jammer_initialize()
         self.stack = []
         self.currect_on_stack = False
-
+        if delta is None:
+            self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
+        else:
+            assert len(delta) == 2*self.njams
+            self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-np.inf)
+            self.current.logPjammers_unnormalized[delta] = 0
 
     def headquarters(self):
         '''
@@ -156,7 +162,6 @@ class JamsPoint(Jams):
 class JamsGrid(Jams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
         self.current.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
         self.Jx1, self.Jy1 = self.makeJxy1()
