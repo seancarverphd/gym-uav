@@ -557,7 +557,7 @@ class JamsGrid(Jams):
 
 
     def pushstack(self):
-        if self.current.alldata is not None:
+        if self.current.alldata is not False:
             self.stack.append(copy.deepcopy(self.current))
             self.current_on_stack = True
 
