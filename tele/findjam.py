@@ -567,7 +567,7 @@ class JamsGrid(Jams):
         if len(self.stack) == 0:
             print("Bottom of stack reached!")
             return
-        self.current = self.stack[-1]
+        self.current = copy.deepcopy(self.stack[-1])
         self.current_on_stack = True
         torch.set_rng_state(self.current.torchstate)
         np.random.set_state(self.current.numpystate)
