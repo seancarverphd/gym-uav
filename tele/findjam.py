@@ -35,7 +35,7 @@ class Jams():
         self.nsteps = nsteps
         self.move = move
         self.assume_move = move if not misspecified else not move
-        self.delta = None
+        self.delta = delta
         self.seed = seed
         self.push = push
         self.current = JamData()
@@ -51,12 +51,15 @@ class Jams():
         self.jammer_initialize()
         self.stack = []
         self.currect_on_stack = False
-        if delta is None:
+        if self.delta == 'known':
+            self.delta = tuple(int(round(k)) for k in self.tuple_of_all_jammers())
+        if self.delta is None:
             self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-2*self.njams)*np.log(self.ngrid)  # logProb(jammers@loc); init to discrete-uniform on grid
         else:
-            assert len(delta) == 2*self.njams
+            print(self.delta)
+            assert len(self.delta) == 2*self.njams
             self.current.logPjammers_unnormalized = torch.ones([self.ngrid]*2*self.njams)*(-np.inf)
-            self.current.logPjammers_unnormalized[delta] = 0
+            self.current.logPjammers_unnormalized[self.delta] = 0
 
     def headquarters(self):
         '''
@@ -143,9 +146,9 @@ class Jams():
         teleport_jammers: select random locations on grid for jammers
                           done once on class initialization
         '''
-        self.jammers = []
+        self.current.jammers = []
         for _ in range(self.njams):
-            self.jammers.append(self.teleport_offgrid_pad())
+            self.current.jammers.append(self.teleport_offgrid_pad())
 
 
     def jammer_initialize(self):
@@ -163,7 +166,7 @@ class JamsPoint(Jams):
 class JamsGrid(Jams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.current.step = 0  # initialize counter for number of steps
+        self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
         self.Jx1, self.Jy1 = self.makeJxy1()
         self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
@@ -242,8 +245,8 @@ class JamsGrid(Jams):
         makeJrxy1 creates and returns 2 tensors Jrx1, and Jry1.  Each of these has shape [self.njams] -- 1D-tensor
            The jth component of Jrx1 is the veridical x-value of the jth jammer
         '''
-        Jrx1 = torch.tensor([self.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # each component single float, veridical x-location 
-        Jry1 = torch.tensor([self.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # each component single float, veridical y-location
+        Jrx1 = torch.tensor([self.current.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # each component single float, veridical x-location 
+        Jry1 = torch.tensor([self.current.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # each component single float, veridical y-location
         return Jrx1, Jry1
 
 
@@ -259,7 +262,7 @@ class JamsGrid(Jams):
     def tuple_of_all_jammers(self):
         idx = []  # idx is an index when indicates position on grid---but doesn't have to, and usually doesn't
         for kj in range(self.njams):
-            idx.extend(list(self.jammers[kj]))
+            idx.extend(list(self.current.jammers[kj]))
         return tuple(idx)
 
 
@@ -538,7 +541,8 @@ class JamsGrid(Jams):
             if record and s==steps-1:
                 self.current.friendly_pre = copy.deepcopy(self.current.friendly)
                 self.current.jammers_pre = copy.deepcopy(self.current.jammers)
-            self.current.step += 1
+            self.step += 1
+            self.current.step = self.step
             self.friendly_move()  # teleports comms to new locations stored in self.friendly
             self.jammers_move()
             self.current.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
@@ -560,6 +564,7 @@ class JamsGrid(Jams):
         if self.current.alldata is not False:
             self.stack.append(copy.deepcopy(self.current))
             self.current_on_stack = True
+
 
     def popstack(self):
         if self.current_on_stack:
@@ -595,6 +600,7 @@ class JamsGrid(Jams):
 
     def normalizer(self, logP):
         return torch.logsumexp(logP.flatten(), dim=0)
+
 
     def marginal(self, joint):
         '''
@@ -677,6 +683,7 @@ class JamsGrid(Jams):
         plt.clf()
         plt.imshow(self.marginal(self.current.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
+
 
     def render_prediction(self):
         '''
