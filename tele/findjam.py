@@ -8,6 +8,7 @@ import torch
 
 class JamData():
     def __init__(self):
+        self.alldata = False
         self.step = None
         self.friendly_pre = None
         self.friendly = None
@@ -533,7 +534,7 @@ class JamsGrid(Jams):
     def run(self, steps=1, record=False):
         for s in range(steps):
             if not record:
-                self.current = JamData()
+                self.current = JamData()  # Replace self.current with an empty JamData object
             if record and s==steps-1:
                 self.current.friendly_pre = copy.deepcopy(self.current.friendly)
                 self.current.jammers_pre = copy.deepcopy(self.current.jammers)
@@ -549,13 +550,14 @@ class JamsGrid(Jams):
                 self.current.logPjammers_posterior = self.normalize(self.current.logPjammers_unnormalized)
                 self.current.torchstate = torch.get_rng_state()
                 self.current.numpystate = np.random.get_state()
+                self.current.alldata = True
             else:
                 self.current.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized) + self.current.update_jammers(self.adjacency)
             self.current_on_stack = False
 
 
     def pushstack(self):
-        if self.current.step is not None:
+        if self.current.alldata is not None:
             self.stack.append(copy.deepcopy(self.current))
             self.current_on_stack = True
 
@@ -660,6 +662,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal of the posterior
         '''
+        assert self.current.alldata is not None
         plt.clf()
         plt.imshow(self.marginal(self.current.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
@@ -670,6 +673,7 @@ class JamsGrid(Jams):
         '''
         render_update: draws I don't know what; update is not a distribution so marginal might not mean anything for njams>1
         '''
+        assert self.current.alldata is not None
         plt.clf()
         plt.imshow(self.marginal(self.curent.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
@@ -678,6 +682,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
+        assert self.current.alldata is not None
         plt.clf()
         plt.imshow(self.marginal(self.current.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prediction Before: ")
@@ -687,7 +692,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.current.step is not None
+        assert self.current.alldata is not None
         plt.clf()
         plt.imshow(self.marginal(self.current.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prior Before: ")
