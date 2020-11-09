@@ -95,7 +95,7 @@ class Jams():
         return tuple(np.random.uniform(low=0.0, high=self.ngrid-1, size=2))
 
     
-    def teleport_offgrid_pad(self):
+    def teleport_offgrid(self):
         '''
         teleport_offgrid: select a random location within the bounds of the grid, but with probability 1, not on a gridpoint
         '''
@@ -129,7 +129,8 @@ class Jams():
         friendly_move: right now a wrapper for teleport_comm but will be generalized
         '''
         self.current.comms = self.teleport_comms()
-        self.current.friendly = self.friendly_flatten(self.hq, self.current.comms, self.assets)
+        return self.friendly_flatten(self.hq, self.current.comms, self.assets)
+        # self.current.friendly = 
 
     
     def friendly_initialize(self):
@@ -137,7 +138,7 @@ class Jams():
         friendly_initialize: Initialize the friendly's
         '''
         self.comms_set = {(i + 1) for i in range(self.ncomms)}
-        self.friendly_move()
+        self.current.friendly = self.friendly_move()
 
 
     def teleport_jammers(self):
@@ -147,7 +148,7 @@ class Jams():
         '''
         self.current.jammers = []
         for _ in range(self.njams):
-            self.current.jammers.append(self.teleport_offgrid_pad())
+            self.current.jammers.append(self.teleport_offgrid())
 
 
     def jammer_initialize(self):
@@ -281,11 +282,12 @@ class JamsGrid(Jams):
         #     newy = self.adjacent_grid_coord(self.jammers[kj][1])
         #     self.jammers[kj] = (newx, newy)
         if not self.move:
-            return
+            return self.current.jammers
         old = self.tuple_of_all_jammers()
         neighbors = self.list_of_neighbors(old)
         new = np.random.choice(len(neighbors))
-        self.current.jammers = self.list_of_tuples_for_each_jammer(neighbors[new])
+        return self.list_of_tuples_for_each_jammer(neighbors[new])
+        # self.current.jammers = 
 
 
     def list_of_neighbors(self, idx):
@@ -540,8 +542,8 @@ class JamsGrid(Jams):
                 self.current.jammers_pre = copy.deepcopy(self.current.jammers)
             self.step += 1
             self.current.step = self.step
-            self.friendly_move()  # teleports comms to new locations stored in self.friendly
-            self.jammers_move()
+            self.current.friendly = self.friendly_move()  # teleports comms to new locations stored in self.friendly
+            self.current.jammers = self.jammers_move()
             self.current.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
             if record and s==steps-1:
                 self.current.logPjammers_prior = self.current.logPjammers_unnormalized
