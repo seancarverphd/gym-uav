@@ -44,7 +44,7 @@ class Jams():
             torch.manual_seed(self.seed+1)
         self.hq = self.headquarters()
         self.nfriendly = len(self.hq) + self.ncomms + self.nassets  # 1 for headquarters
-        self.adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
+        self.current.adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
         self.assets0 = ((self.ngrid-1.1,self.ngrid-1.1),)
         self.assign_assets(self.assets0)
         self.friendly_initialize()
@@ -555,7 +555,7 @@ class JamsGrid(Jams):
                 self.current.numpystate = np.random.get_state()
                 self.current.alldata = True
             else:
-                self.current.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized) + self.current.update_jammers(self.adjacency)
+                self.current.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized) + self.update_jammers(self.current.adjacency)
             self.current_on_stack = False
 
 
