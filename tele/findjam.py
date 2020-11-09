@@ -536,6 +536,8 @@ class JamsGrid(Jams):
 
 
     def run(self, steps=1, record=False):
+        self.alldata = False
+        self.current_on_stack = False
         for s in range(steps):
             if record and s==steps-1:
                 self.current.friendly_pre = copy.deepcopy(self.current.friendly)
@@ -556,11 +558,10 @@ class JamsGrid(Jams):
                 self.current.alldata = True
             else:
                 self.current.logPjammers_unnormalized = self.jammers_predict_args(self.current.logPjammers_unnormalized) + self.update_jammers(self.current.adjacency)
-            self.current_on_stack = False
 
 
     def pushstack(self):
-        if self.current.alldata is not False:
+        if self.current.alldata is True:
             self.stack.append(copy.deepcopy(self.current))
             self.current_on_stack = True
 
@@ -667,7 +668,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal of the posterior
         '''
-        assert self.current.alldata is not None
+        assert self.current.alldata is True
         plt.clf()
         plt.imshow(self.marginal(self.current.logPjammers_posterior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
@@ -678,7 +679,7 @@ class JamsGrid(Jams):
         '''
         render_update: draws I don't know what; update is not a distribution so marginal might not mean anything for njams>1
         '''
-        assert self.current.alldata is not None
+        assert self.current.alldata is True
         plt.clf()
         plt.imshow(self.marginal(self.current.update).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Update Before: ")
@@ -688,7 +689,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.current.alldata is not None
+        assert self.current.alldata is True
         plt.clf()
         plt.imshow(self.marginal(self.current.logPjammers_predict).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prediction Before: ")
@@ -698,7 +699,7 @@ class JamsGrid(Jams):
         '''
         render: plots the marginal
         '''
-        assert self.current.alldata is not None
+        assert self.current.alldata is True
         plt.clf()
         plt.imshow(self.marginal(self.current.logPjammers_prior).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations("Prior Before: ")
