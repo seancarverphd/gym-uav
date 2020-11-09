@@ -543,7 +543,7 @@ class JamsGrid(Jams):
                 self.current.friendly_pre = copy.deepcopy(self.current.friendly)
                 self.current.jammers_pre = copy.deepcopy(self.current.jammers)
             self.step += 1
-            self.current.step = self.step
+            self.current.step = copy.deepcopy(self.step)
             self.current.friendly = self.friendly_move()  # teleports comms to new locations stored in self.friendly
             self.current.jammers = self.jammers_move()
             self.current.adjacency = self.all_try()  # Next line uses random number generatation and depends on random state
@@ -573,6 +573,8 @@ class JamsGrid(Jams):
             print("Bottom of stack reached!")
             return
         self.current = copy.deepcopy(self.stack[-1])
+        self.step = copy.deepcopy(self.current.step)
+        self.alldata = True
         self.current_on_stack = True
         torch.set_rng_state(self.current.torchstate)
         np.random.set_state(self.current.numpystate)
