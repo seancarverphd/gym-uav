@@ -535,8 +535,6 @@ class JamsGrid(Jams):
 
     def run(self, steps=1, record=False):
         for s in range(steps):
-            if not record:
-                self.current = JamData()  # Replace self.current with an empty JamData object
             if record and s==steps-1:
                 self.current.friendly_pre = copy.deepcopy(self.current.friendly)
                 self.current.jammers_pre = copy.deepcopy(self.current.jammers)
