@@ -641,19 +641,28 @@ class JamsGrid(Jams):
 
 
     def connections(self):
-        return  # Not tested and does not seem to work completely and properly
-        for f1 in range(self.nfriendly):
-            for f2 in range(self.nfriendly):
+        # return  # Not tested and does not seem to work completely and properly
+        ax = plt.gca()
+        for f2 in range(self.nfriendly):
+            for f1 in range(f2):
                 x = self.current.friendly[f1][0]
                 y = self.current.friendly[f1][1]
                 dx = self.current.friendly[f2][0] - x
                 dy = self.current.friendly[f2][1] - y
-                if f1 == f2:
-                    break
-                if self.current.adjacency[f1,f2]:
-                    plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003)
+                assert f1 < f2
+                if self.current.adjacency[f1,f2] and not self.current.adjacency[f2, f1]:
+                    style = '->'
+                elif self.current.adjacency[f2,f1] and not self.current.adjacency[f1, f2]:
+                    style = '<-'
+                elif self.current.adjacency[f1,f2] and self.current.adjacency[f2, f1]:
+                    style = '<->'
                 else:
-                    plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003, linestyle=':', color='red')
+                    continue
+                ax.annotate("", xy=(x+dx,y+dy), xytext=(x, y), arrowprops=dict(arrowstyle=style, color='lightgreen'))
+                    # plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003)
+                # else:
+                    # pass
+                    #plt.arrow(x,y,dx,dy, width=0.002, head_width=0.006, head_length=0.003, linestyle=':', color='red')
 
 
     def render(self):
