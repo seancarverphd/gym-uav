@@ -168,7 +168,6 @@ class JamsGrid(Jams):
         super().__init__(**kwargs)
         self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
-        self.Jx1, self.Jy1 = self.makeJxy1()
         self.ddiff = torch.tensor([self.njams] + [self.ngrid, self.ngrid]*self.njams, dtype=float)
         self.ddiff1 = torch.zeros(self.njams)
         self.ambient_noise_power = 0
@@ -245,9 +244,9 @@ class JamsGrid(Jams):
         makeJrxy1 creates and returns 2 tensors Jrx1, and Jry1.  Each of these has shape [self.njams] -- 1D-tensor
            The jth component of Jrx1 is the veridical x-value of the jth jammer
         '''
-        Jrx1 = torch.tensor([self.current.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # each component single float, veridical x-location 
-        Jry1 = torch.tensor([self.current.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # each component single float, veridical y-location
-        return Jrx1, Jry1
+        Jx1 = torch.tensor([self.current.jammers[kj][0] for kj in range(self.njams)], dtype=float)  # each component single float, veridical x-location 
+        Jy1 = torch.tensor([self.current.jammers[kj][1] for kj in range(self.njams)], dtype=float)  # each component single float, veridical y-location
+        return Jx1, Jy1
 
 
     # def adjacent_grid_coord(self, old_coord):
@@ -364,12 +363,13 @@ class JamsGrid(Jams):
 
     def dist_jxy_to_friendly(self, jx, jy, kf=0):
         '''
-        dist_to_comm computes the Euclidean distance from (cx, cy) (the comm) to (jx, jy) in the Cartesian plane
-                     jx, jy could be grid tensors (shape: [njams] + Grid.shape) for jammers or 
+        dist_jxy_to_friendly computes the Euclidean distance from jammer(s) (jx, jy) to a specified friendly (fx, fy) in the Cartesian plane
+                     jx, jy could be grid tensors (shape: [njams] + [GRIDSHAPE]) for grid of jammers or 
                                                   (shape: [njams]) for 1D veridical jammer locations in x and y
-                     kc^th comm
+                     kf specifies kf^th comm
         Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         '''
+        #TODO see if you can let kf be a tensor to do all friendlies at once, faster
         fx = torch.tensor(self.current.friendly[kf][0], dtype=float)
         fy = torch.tensor(self.current.friendly[kf][1], dtype=float)
         return torch.sqrt((jx - fx)**2 + (jy - fy)**2)
@@ -387,7 +387,8 @@ class JamsGrid(Jams):
 
 
     def power_jammers_at_friendly_veridical(self):
-        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx1, self.Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1)  # Mj
+        Jx1, Jy1 = self.makeJxy1()
+        return torch.stack([(1./(self.dist_jxy_to_friendly(Jx1, Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1)  # Mj
 
 
     def power_ambient(self):
