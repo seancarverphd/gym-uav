@@ -259,6 +259,10 @@ class JamsGrid(Jams):
 
 
     def tuple_of_all_jammers(self):
+        '''
+        tuple_of_all_jammers(): takes veridical jammer locations and produces a tuple of all jammers suitable for an idx for list_of_neighbors
+                                and other functions
+        '''
         idx = []  # idx is an index when indicates position on grid---but doesn't have to, and usually doesn't
         for kj in range(self.njams):
             idx.extend(list(self.current.jammers[kj]))
@@ -266,6 +270,10 @@ class JamsGrid(Jams):
 
 
     def list_of_tuples_for_each_jammer(self, idx):
+        '''
+        list_of_tuples_for_each_jammer: given an index into joint space, break tuple into list of tuples one for each jammer (x, y)
+                                        inverts: list_of_tuples_for_each_jammer(tuple_of_all_jammers) = self.current.jammers
+        '''
         listofjammers = []
         for kj in range(self.njams):
             listofjammers.append((idx[2*kj], idx[2*kj+1]))
@@ -274,7 +282,7 @@ class JamsGrid(Jams):
 
     def jammers_move(self):
         '''
-        jammers_move:
+        jammers_move: returns new position of jammers, randomly selected from neighbors with equal weight
         '''
         # for kj in range(self.njams):
         #     newx = self.adjacent_grid_coord(self.jammers[kj][0])
@@ -286,10 +294,13 @@ class JamsGrid(Jams):
         neighbors = self.list_of_neighbors(old)
         new = np.random.choice(len(neighbors))
         return self.list_of_tuples_for_each_jammer(neighbors[new])
-        # self.current.jammers = 
 
 
     def list_of_neighbors(self, idx):
+        '''
+        list_of_neighbors: given an index idx (real valued) into joint space, returns list of neighbors in the space; 
+                           involves edge effexts, neighbors are one or none different from idx in each dimension
+        '''
         assert idx[0] >= 0
         assert idx[0] <= self.ngrid - 1
         if idx[0] < 1:
@@ -376,6 +387,9 @@ class JamsGrid(Jams):
 
 
     def power_friendly_at_friendly(self):
+        '''
+        power_friendly_at_friendly(): returns a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power at friendly f2 of friendly f1
+        '''
         return torch.tensor([[# 0 if f1 == f2 else 
                 (#self.Mf1[f1]
                     1/self.dist_jxy_to_friendly(self.current.friendly[f1][0], 
@@ -383,15 +397,23 @@ class JamsGrid(Jams):
     
 
     def power_jammers_at_friendly_grid(self):
+        '''
+        power_jammers_at_friendly_grid():
+        '''
+        #TODO Add docstring
         return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1) # Mj  # friendly at 0th position
 
 
     def power_jammers_at_friendly_veridical(self):
+        #TODO Add docstring
         Jx1, Jy1 = self.makeJxy1()
         return torch.stack([(1./(self.dist_jxy_to_friendly(Jx1, Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1)  # Mj
 
 
     def power_ambient(self):
+        '''
+        power_ambient(): Returns 0 for now
+        '''
         return self.ambient_noise_power
 
 
