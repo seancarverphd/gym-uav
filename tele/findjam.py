@@ -405,9 +405,18 @@ class JamsGrid(Jams):
 
 
     def power_jammers_at_friendly_veridical(self):
+        '''
+        power_jammers_at_friendly_veridical(): returns a 1D tensor of length self.nfriendly
+                                               component kf is power at friendly kf
+        '''
         #TODO Add docstring
         Jx1, Jy1 = self.makeJxy1()
         return torch.stack([(1./(self.dist_jxy_to_friendly(Jx1, Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1)  # Mj
+
+
+    def power_jammers_at_point_veridical(self, Jx1, Jy1i, xy):
+        pass
+        # Not right yet: return (1./(self.dist_jxy_to_point(Jx1, Jy1, xy)**2))
 
 
     def power_ambient(self):
