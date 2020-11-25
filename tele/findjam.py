@@ -380,7 +380,7 @@ class JamsGrid(Jams):
                      kf specifies kf^th comm
         Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
         '''
-        #TODO see if you can let kf be a tensor to do all friendlies at once, faster
+        #TODO see if you can let friendlies be a tensor to do all friendlies at once, faster
         fx = torch.tensor(self.current.friendly[kf][0], dtype=float)
         fy = torch.tensor(self.current.friendly[kf][1], dtype=float)
         return torch.sqrt((jx - fx)**2 + (jy - fy)**2)
@@ -396,25 +396,25 @@ class JamsGrid(Jams):
                         self.current.friendly[f1][1], f2)**2) for f1 in range(self.nfriendly)] for f2 in range(self.nfriendly)])
     
 
-    def power_jammers_at_friendly_grid(self):
+    def power_jammer_at_friendly_grid(self):
         '''
-        power_jammers_at_friendly_grid():
+        power_jammer_at_friendly_grid(): returns an ND tensor of shape [self.nfriendly, self.njams]+GRID_SHAPE
+                                         component (kf,kj,kg1...kg2j) is power at friendly kf of jammer kj when the jammers are located at kg1...kg2j
         '''
-        #TODO Add docstring
-        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1) # Mj  # friendly at 0th position
+        #TODO There seems to be some redundant calulations here.  Need just a one dimensional grid not 2J-dims.
+        return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0) # Mj  # friendly at 0th position
 
 
-    def power_jammers_at_friendly_veridical(self):
+    def power_jammer_at_friendly_veridical(self):
         '''
-        power_jammers_at_friendly_veridical(): returns a 1D tensor of length self.nfriendly
-                                               component kf is power at friendly kf
+        power_jammer_at_friendly_veridical(): returns a 2D tensor of shape [self.nfriendly, self.njams]
+                                               component (kf,kj) is power at friendly kf of jammer kj
         '''
-        #TODO Add docstring
         Jx1, Jy1 = self.makeJxy1()
-        return torch.stack([(1./(self.dist_jxy_to_friendly(Jx1, Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0).sum(dim=1)  # Mj
+        return torch.stack([(1./(self.dist_jxy_to_friendly(Jx1, Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0)  # Mj
 
 
-    def power_jammers_at_point_veridical(self, Jx1, Jy1i, xy):
+    def power_jammer_at_point_veridical(self, Jx1, Jy1i, xy):
         pass
         # Not right yet: return (1./(self.dist_jxy_to_point(Jx1, Jy1, xy)**2))
 
@@ -427,11 +427,11 @@ class JamsGrid(Jams):
 
 
     def power_background_at_friendly_veridical(self):
-        return self.power_jammers_at_friendly_veridical() + self.power_ambient()
+        return self.power_jammer_at_friendly_veridical().sum(dim=1) + self.power_ambient()
 
 
     def power_background_at_friendly_grid(self):
-        return self.power_jammers_at_friendly_grid() + self.power_ambient()
+        return self.power_jammer_at_friendly_grid().sum(dim=1) + self.power_ambient()
 
 
     def sjr_db_veridical(self):
