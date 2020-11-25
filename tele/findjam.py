@@ -386,6 +386,16 @@ class JamsGrid(Jams):
         return torch.sqrt((jx - fx)**2 + (jy - fy)**2)
 
 
+    def dist_jxy_to_point(self, jx, jy, xy):
+        '''
+        dist_jxy_to_point computes the Euclidean distance from jammer(s) (jx, jy) to a specified point (px, py) in the Cartesian plane
+        Might generalize Euclidean distance to distance on globe, but that probably isn't necessary
+        '''
+        px = torch.tensor(xy[0], dtype=float)
+        py = torch.tensor(xy[1], dtype=float)
+        return torch.sqrt((jx - px)**2 + (jy - py)**2)
+
+
     def power_friendly_at_friendly(self):
         '''
         power_friendly_at_friendly(): returns a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power at friendly f2 of friendly f1
@@ -398,25 +408,31 @@ class JamsGrid(Jams):
 
     def power_jammer_at_friendly_grid(self):
         '''
-        power_jammer_at_friendly_grid(): returns an ND tensor of shape [self.nfriendly, self.njams]+GRID_SHAPE
-                                         component (kf,kj,kg1...kg2j) is power at friendly kf of jammer kj when the jammers are located at kg1...kg2j
+        power_jammer_at_friendly_grid(): returns an ND-tensor of shape [self.nfriendly, self.njams]+GRID_SHAPE
+                                         component (kf,kj,grid1...grid2j) is power at friendly kf of jammer kj when the jammers are located at grid1...grid2j
         '''
-        #TODO There seems to be some redundant calulations here.  Need just a one dimensional grid not 2J-dims.
+        #TODO There seems to be some redundant calulations here.  Need just a two-dimensional grid not 2J-dims.
         return torch.stack([(1./(self.dist_jxy_to_friendly(self.Jx, self.Jy, kf)**2)) for kf in range(self.nfriendly)], dim=0) # Mj  # friendly at 0th position
 
 
     def power_jammer_at_friendly_veridical(self):
         '''
-        power_jammer_at_friendly_veridical(): returns a 2D tensor of shape [self.nfriendly, self.njams]
+        power_jammer_at_friendly_veridical(): returns a 2D-tensor of shape [self.nfriendly, self.njams]
                                                component (kf,kj) is power at friendly kf of jammer kj
         '''
         Jx1, Jy1 = self.makeJxy1()
+        #TODO May be running above function an unnecesary number of times
         return torch.stack([(1./(self.dist_jxy_to_friendly(Jx1, Jy1, kf)**2)) for kf in range(self.nfriendly)], dim=0)  # Mj
 
 
-    def power_jammer_at_point_veridical(self, Jx1, Jy1i, xy):
-        pass
-        # Not right yet: return (1./(self.dist_jxy_to_point(Jx1, Jy1, xy)**2))
+    def power_jammer_at_point_veridical(self, xy):
+        '''
+        power_jammer_at_point_veridical(xy): returns a 1D-tensor of shape [self.njams]
+                                             component kj is power of jammer kj at point with coordinates xy (real-valued 2-tuple)
+        '''
+        Jx1, Jy1 = self.makeJxy1()
+        #TODO May be running above function an unnecesary number of times
+        return (1./(self.dist_jxy_to_point(Jx1, Jy1, xy)**2))
 
 
     def power_ambient(self):
