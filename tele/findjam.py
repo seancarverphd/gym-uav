@@ -450,6 +450,10 @@ class JamsGrid(Jams):
         return self.power_jammer_at_friendly_grid().sum(dim=1) + self.power_ambient()
 
 
+    def power_background_at_point_veridical(self, xy):
+        return self.power_jammer_at_point_veridical(xy).sum(dim=0) + self.power_ambient()
+
+
     def sjr_db_veridical(self):
         return 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
 
