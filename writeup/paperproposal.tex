@@ -1,0 +1,62 @@
+\documentclass{article}
+\title{Proposal for a paper}
+\author{Sean et al.}
+\begin{document}
+\maketitle
+
+\section{Overview}
+
+The paper will concern an adversarial communications game
+(i.e.\ electronic warfare) between a blue side, with one immobile
+headquarters, $n_a$ immobile assets, $n_c$ mobile comms units (UAVs),
+and a red side, with $n_j$ mobile jammers (also UAVs).
+
+At each time step, each blue unit determines whether it can detect a
+radio signal from each of the other blue units, or, alternatively,
+whether any of these signals fails to get through (because it is
+either jammed or out of range).  Using this set of $(n_c + n_a +
+1)(n_c + n_a)$ binary results (for each time step), I have shown that
+blue can infer the locations of the red jammers quite accurately,
+assuming each blue unit has knowledge of its own position and of the
+positions of all other blue units.
+
+In addition to attempting to receive signals from all other blue
+units, each blue unit attempts to send a signal to each other blue
+unit, so that all can perform the same tests.  These signals broadcast
+(hidden or ``encrypted'' from red units) any information that another
+blue unit could conceivably make use of (e.g.\ the sender's position,
+or its successes or failures to communicate with other blue units).
+Note that the ability to communicate is not always bidirectional even
+when initial signal strengths are equal.  This asymmetry is due to the
+asymmetrical placement of jammers.
+
+After blue infers the positions of the red jammers it then moves its
+comms to counter the jamming so that as many units as
+possible---especially the assets---stay in communication with the
+headquarters.  Specifically, the goal of the blue side is to maximize
+cumulative reward, where the reward on a given time step is 10 times
+the number of assets in (direct or indirect) communication with the
+headquarters, plus one times the number of comms in (direct or
+indirect) communication with the headquarters.  Indirect communication
+with headquarters is assessed by analyzing the connected
+component---containing headquarters---of the graph of the
+communication links between units.
+
+As mentioned above, I have coded a proof-of-concept for the blue side,
+where, on each time step, each red jammer moves one or zero grid units
+in each xy-component direction and comms teleport to a new random
+location on the grid.  The model for red transition is known
+accurately to the blue side.  I have found that inference of positions
+of red side jammers works quite well, with delay upon jammer moves.
+
+I haven't thought through the problem of moving red side jammers to
+optimally block the blue side.  How will they collect information on
+the locations of their enemy?  How will they infer enemy positions?
+What reward function will they use?  The problem of finding blue units
+is very similar to the problem of finding the red jammers but it does
+not seem completely symmetric.  Still, I need to articulate in what
+ways is it different.  One difference is that jammers jam on a whole
+swath of the frequency band whereas comms attempt to communicate at
+just one particular narrow frequency.  This makes jammers easy to find
+and comms hard to find.
+\end{document}
