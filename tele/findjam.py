@@ -727,6 +727,20 @@ class JamsGrid(Jams):
         self.connections()
 
 
+    def render_background(self):
+        '''
+        render_background: plots the power at background
+        '''
+        BG = torch.zeros((self.ngrid, self.ngrid), dtype=float)
+        for g1 in range(self.ngrid):
+            for g2 in range(self.ngrid):
+                BG[g1, g2] = self.power_background_at_point_veridical((g1, g2))
+        plt.clf()
+        plt.imshow(BG.T, cmap='hot', interpolation='nearest')
+        self.annotations()
+        self.connections()
+
+
     def render_posterior(self):
         '''
         render: plots the marginal of the posterior
