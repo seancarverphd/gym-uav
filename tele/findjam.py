@@ -663,15 +663,20 @@ class JamsGrid(Jams):
         included = self.logcumsumexp(the_sort.values, dim=0) < np.log(C)
         idx = np.where(np.diff(included))[0][0]
         inside = the_sort.indices[:idx]
-        #boundary = the_sort.indices[idx+1]
+        # boundary = the_sort.indices[idx+1]
         credible_set = torch.zeros(included.shape)
         credible_set[inside] = True
         credible_set = credible_set.reshape(logP.shape)
-        # return credible_set
+        return credible_set
+
+
+    def credible_2D(self, logP, C=0.95):
+        credible_set = self.credible(logP, C)
         return self.marginal(credible_set, logs=False)
 
 
     def video(self, nframes):
+
         for f in range(nframes):
             self.advance()
             plt.savefig('video/frame'+str(f)+'.png')
