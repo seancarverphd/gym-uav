@@ -667,7 +667,8 @@ class JamsGrid(Jams):
         credible_set = torch.zeros(included.shape)
         credible_set[inside] = True
         credible_set = credible_set.reshape(logP.shape)
-        return credible_set
+        # return credible_set
+        return self.marginal(credible_set, logs=False)
 
 
     def video(self, nframes):
@@ -681,7 +682,8 @@ class JamsGrid(Jams):
         return torch.logsumexp(logP.flatten(), dim=0)
 
 
-    def marginal(self, joint):
+    def marginal(self, joint, logs=True):
+
         '''
         marginal: needed for plotting in 2D if joint density has greater than 2 dimensions
                   adds probabilities for each x_njams and y_njams on 2D grid
@@ -693,7 +695,10 @@ class JamsGrid(Jams):
         terms_rearranged_for_sum = torch.zeros((nterms, self.ngrid, self.ngrid))  # coordinates are (term, x, y)
         for term_number, term_multiindex in enumerate(self.itertuple(dims_summing_across)):  # enumerate all term_multiindecies in a tensor with two less coordinates
             terms_rearranged_for_sum[term_number] = joint[term_multiindex]  # each side of this assignment is a 2D tensor in x and y
-        return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
+        if logs:
+            return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
+        else:
+            return torch.sum(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
 
 
     def annotations(self, titleprefix=''):
