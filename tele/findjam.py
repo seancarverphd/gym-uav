@@ -670,13 +670,23 @@ class JamsGrid(Jams):
         return credible_set
 
 
+    def estimate_tuple_in_credible_set(self, C=0.95):
+        credible_set = self.credible(self.current.logPjammers_unnormalized, C)
+        estimate = self.estimates()
+        return (credible_set[estimate] == 1.).item()  # Returns True or False
+
+
+    def credible_set_cardinality(self, C=0.95):
+        credible_set = self.credible(self.current.logPjammers_unnormalized, C)
+        return int(torch.sum(credible_set, dim=list(range(2*self.njams))).item())
+
+
     def credible_2D(self, logP, C=0.95):
         credible_set = self.credible(logP, C)
         return self.marginal(credible_set, logs=False)
 
 
     def video(self, nframes):
-
         for f in range(nframes):
             self.advance()
             plt.savefig('video/frame'+str(f)+'.png')
@@ -870,6 +880,17 @@ class JamsGrid(Jams):
         logmargin = self.marginal(logjoint)
         logjoint_iid = self.logjoint_iid_from_logmarginal(logmargin)
         return logjoint_iid.allclose(logjoint)
+
+
+def evaluate_credible_coverage(n, C=0.95):
+    results = []
+    card = []
+    for case in range(n):
+        J = JamsGrid(ngrid=8, ncomms=2, njams=2, move=True, seed=case)
+        J.run(2)
+        results.append(J.estimate_tuple_in_credible_set(C))
+        card.append(J.credible_set_cardinality(C))
+    return results, card
 
 
 class test1D():
