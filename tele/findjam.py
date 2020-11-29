@@ -645,6 +645,31 @@ class JamsGrid(Jams):
         self.render()
 
 
+    def logcumsumexp(self, x, dim):
+        # slow implementation (taken from web), but ok for now
+        if (dim != -1) or (dim != x.ndimension() - 1):
+            x = x.transpose(dim, -1)
+        out = []
+        for i in range(1, x.size(-1) + 1):
+            out.append(torch.logsumexp(x[..., :i], dim=-1, keepdim=True))
+        out = torch.cat(out, dim=-1)
+        if (dim != -1) or (dim != x.ndimension() - 1):
+            out = out.transpose(-1, dim)
+        return out
+
+
+    def credible(self, logP, C=0.95):
+        the_sort = self.normalize(logP).flatten().sort(descending=True)
+        included = self.logcumsumexp(the_sort.values, dim=0) < np.log(C)
+        idx = np.where(np.diff(included))[0][0]
+        inside = the_sort.indices[:idx]
+        #boundary = the_sort.indices[idx+1]
+        credible_set = torch.zeros(included.shape)
+        credible_set[inside] = True
+        credible_set = credible_set.reshape(logP.shape)
+        return credible_set
+
+
     def video(self, nframes):
         for f in range(nframes):
             self.advance()
