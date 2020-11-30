@@ -19,7 +19,7 @@ def test_estimate_jam1():
 
 def test_estimate_jam2():
     global J2
-    assert J2.estimates() == (1, 4, 1, 1)
+    assert J2.estimates() == (1, 1, 1, 4) or J2.estimates() == (1, 4, 1, 1)
 
 
 def test_likelihood_shape1():
