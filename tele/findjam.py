@@ -269,6 +269,11 @@ class JamsGrid(Jams):
         return tuple(idx)
 
 
+    def tuple_of_closest_grid_to_jammers(self):
+        floatjammers = self.tuple_of_all_jammers()
+        return tuple((int(round(f)) for f in floatjammers))
+
+
     def list_of_tuples_for_each_jammer(self, idx):
         '''
         list_of_tuples_for_each_jammer: given an index into joint space, break tuple into list of tuples one for each jammer (x, y)
@@ -670,10 +675,10 @@ class JamsGrid(Jams):
         return credible_set
 
 
-    def estimate_tuple_in_credible_set(self, C=0.95):
+    def jammer_tuple_in_credible_set(self, C=0.95):
         credible_set = self.credible(self.current.logPjammers_unnormalized, C)
-        estimate = self.estimates()
-        return (credible_set[estimate] == 1.).item()  # Returns True or False
+        jammer = self.tuple_of_closest_grid_to_jammers()
+        return (credible_set[jammer] == 1.).item()  # Returns True or False
 
 
     def credible_set_cardinality(self, C=0.95):
@@ -888,7 +893,7 @@ def evaluate_credible_coverage(n, C=0.95):
     for case in range(n):
         J = JamsGrid(ngrid=8, ncomms=2, njams=2, move=True, seed=case)
         J.run(2)
-        results.append(J.estimate_tuple_in_credible_set(C))
+        results.append(J.jammer_tuple_in_credible_set(C))
         card.append(J.credible_set_cardinality(C))
     return results, card
 
