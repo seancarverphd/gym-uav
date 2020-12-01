@@ -3,6 +3,7 @@ import itertools
 import matplotlib.pylab as plt
 import numpy as np
 import scipy.special
+import time
 import torch
 
 
@@ -890,11 +891,15 @@ class JamsGrid(Jams):
 def evaluate_credible_coverage(n, C=0.95):
     results = []
     card = []
-    for case in range(n):
-        J = JamsGrid(ngrid=8, ncomms=2, njams=2, move=True, seed=case)
+    for sample in range(n):
+        start = time.time()
+        J = JamsGrid(ngrid=8, ncomms=2, njams=2, move=True, seed=sample)
         J.run(2)
         results.append(J.jammer_tuple_in_credible_set(C))
         card.append(J.credible_set_cardinality(C))
+        elapsed = time.time() - start
+        print('sample', sample, 'of', n, ':', results[-1], 'Time', elapsed, 'eta', elapsed*(n-sample),
+             np.array(results).sum(), 'successes in', len(results), 'trials; set cardinality mean', np.mean(np.array(card)), 'sd', np.std(np.array(card)))
     return results, card
 
 
