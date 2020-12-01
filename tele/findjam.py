@@ -404,7 +404,7 @@ class JamsGrid(Jams):
 
     def power_friendly_at_friendly(self):
         '''
-        power_friendly_at_friendly(): returns a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power at friendly f2 of friendly f1
+        power_friendly_at_friendly(): returns a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power of sender-friendly f1 at receiver-friendly f2
         '''
         return torch.tensor([[# 0 if f1 == f2 else 
                 (#self.Mf1[f1]
@@ -449,6 +449,10 @@ class JamsGrid(Jams):
 
 
     def power_background_at_friendly_veridical(self):
+        '''
+        power_background_at_friendly_veridical(): Computes a 1D tensor or length nfriendly by
+                                                  computing (Power at friendly, from veridical jammer).sum(over jammers) + power_ambient
+        '''
         return self.power_jammer_at_friendly_veridical().sum(dim=1) + self.power_ambient()
 
 
@@ -461,6 +465,14 @@ class JamsGrid(Jams):
 
 
     def sjr_db_veridical(self):
+        '''
+        sjr_db_veridical(): Computes a tensor of shape [nfriendly, nfriendly] specifically (sender-friendly, receiver-friendly)
+                            using power_friendly_at_friendly(), a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power of sender-friendly f1 at receiver-friendly f2
+                                  power_background_at_friendly_veridical(), a 1D tensor of shape [nfriendly] (all-background-power(all-jammers+ambient)-at-receiver-friendly)
+                                                                            here broadcast into 2D [nfriendly, nfriendly]
+                            returns 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
+                            Broadcasting hint: (F/B)_i,k = F_i,k/B_k as desired, so that k in both cases refers to receiver-friendly
+        '''
         return 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
 
 
