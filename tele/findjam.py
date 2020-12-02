@@ -545,34 +545,46 @@ class JamsGrid(Jams):
     #    return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
 
-    #TODO Fix docstrings for next 3 methods
     def loglikelihood_grid(self):
         '''
-        loglikelihood_grid: wrapper for loglikelihood passing object's whole grid for possible jammer locations
+        loglikelihood_grid: Computes tensor of shape [nfriendly, nfriendly]+GRID_SHAPE.
+                            loglikelihood = Log-Probability(Data|State) where Data are all successful (all True) connections between friendlies;
+                                                                              State is jammer locations (each gridpoint)
+                            Unlike for loglikelihood_veridical() there will be many location, not just one (all gridpoints instead of veridical jammer locations).
+                            Index into tensor is a tuple that specifies all j-jammer locations on battlefield, a (2*njams)-tuple (x1, y1, x2, y2, ..., xj, yj)
         '''
         return self.logsig(self.sjr_db_grid())
 
 
     def loglikelihood_veridical(self):
         '''
-        loglikelihood_veridical: log-probabilities of successful connections given veridical jammer locations: tensor shape [nfriendly, nfriendly] (sender, receiver) CHECK!
+        loglikelihood_veridical: log-probabilities of successful connections given veridical jammer locations: tensor shape [nfriendly, nfriendly] (sender, receiver)
+                                 Here there is just one location (veridical jammer locations, not many locations, one for each grid-point, like above for loglikelihood_grid())
+                                 returns T, a tensor of shape [nfriendly, nfriendly]
+                                 where T[f_sender, f_reciever] is the log probability of a successful connection: sender --> receiver with veridical jammer locations
+                                 loglikelihood = Log-Probability(Data|State) where Data is True for all onnections between friendlies, and
+                                                                                   State is veridical jammer locations
         '''
         return self.logsig(self.sjr_db_veridical())
 
 
     def loglikelihood_obs(self, adjacency):
         '''
-        loglikelihood_obs: loglikelihood_grid of actual communication between comm and target
-                           pass obs=True for likelihood of success communication
-                           pass obs=False for likelihood of unsuccessful communication
-                           where obs is an element of the adjacency matrix / 2D Tensor, adjacency.shape = [nfriendly, nfriendly]
-                           returns tensor shaped [nfriendly, nfriendly] + GRID_SHAPE
+        loglikelihood_obs(adjacency): like loglikelihood_grid() but pass in actual communication (True/False) between sender-friendly and receiver-friendly (not just all True)
+                           (True or False for each tuple of friendlies), specified in the method's arguement: adjacency
+                           pass component as True for likelihood of successful communication, probability: (p)---taken_from loglikelihood_grid()
+                           pass component as False for likelihood of unsuccessful communication probability: (1-p)---also computed_from loglikelihood_grid()
+                           The True/False's are the elements of the adjacency matrix / 2D Tensor, adjacency.shape = [nfriendly, nfriendly]
+                           returns tensor shaped [nfriendly, nfriendly]+GRID_SHAPE
+                           loglikelihood = Log-Probability(Data|State) where Data is True or False for connections between friendlies---specified in adjacency
+                                                                             State is jammer locations (grid)
+                           depends on self.loglikelihood_grid() which computes for Data=True for all friendly connections instead of varying according to adjacency.
         '''
         log_p_success = self.loglikelihood_grid()
         log_p_obs = torch.zeros(log_p_success.shape)
         for f1 in range(self.nfriendly):
             for f2 in range(self.nfriendly):
-                log_p_obs[f1,f2] = log_p_success[f1,f2] if adjacency[f1,f2] else torch.log(1 - torch.exp(log_p_success[f1,f2]))
+                log_p_obs[f1,f2] = log_p_success[f1,f2] if adjacency[f1,f2] else torch.log(1 - torch.exp(log_p_success[f1,f2]))  # Computes for f1, f2, and whole grid
         return log_p_obs
 
 
