@@ -404,7 +404,8 @@ class JamsGrid(Jams):
 
     def power_friendly_at_friendly(self):
         '''
-        power_friendly_at_friendly(): returns a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power of sender-friendly f1 at receiver-friendly f2
+        power_friendly_at_friendly(): returns S, a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power of sender-friendly f1 at receiver-friendly f2
+                                      S ia infinite on its diagonal (because power of a signal is infinite at its own point source)
         '''
         return torch.tensor([[# 0 if f1 == f2 else 
                 (#self.Mf1[f1]
@@ -460,20 +461,25 @@ class JamsGrid(Jams):
     def power_background_at_friendly_grid(self):
         '''
         power_background_at_friendly_grid(): Computes a tensor of shape [nfriendly]+GRID_SHAPE with component (kf,x1,y1,x2,y2,...,xj,yj) equal to
-                                             the background power at friendly kf assuming the j jammers are in positions (x1,y1,x2,y2,...,xj,yj)
-                                             computes (Power at friendly from veridical jammer).sum(over jammers) + power_ambient
+                                             the background power at friendly kf assuming the j (aka self.njams) jammers are in positions (x1,y1,x2,y2,...,xj,yj)
+                                             computes T[kf,GRIDPOINT] = (Power at friendly kf from J_JAMMERS_IN_2J_GRIDPOINT).sum(over_J_jammers) + power_ambient
         '''
         return self.power_jammer_at_friendly_grid().sum(dim=1) + self.power_ambient()
 
 
     def power_background_at_point_veridical(self, xy):
+        '''
+        power_background_at_point_veridical(xy): Returns power of background (positive real number) at point (xy) (real-tuple (x,y) coordinates in battlefield)
+                                                 with ambient noise and jammers at their veridical locations
+        '''
         return self.power_jammer_at_point_veridical(xy).sum(dim=0) + self.power_ambient()
 
 
     def sjr_db_veridical(self):
         '''
         sjr_db_veridical(): Computes a tensor of shape [nfriendly, nfriendly] specifically (sender-friendly, receiver-friendly)
-                            using power_friendly_at_friendly(), a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power of sender-friendly f1 at receiver-friendly f2
+                            using S=power_friendly_at_friendly(), a tensor of shape [nfriendly, nfreindly] showing at [f1,f2] power of sender-friendly f1 at receiver-friendly f2
+                            S is infinite on its diagonal (because power of a signal is infinite at its own point source)
                                   power_background_at_friendly_veridical(), a 1D tensor of shape [nfriendly] (all-background-power(all-jammers+ambient)-at-receiver-friendly)
                                                                             here broadcast into 2D [nfriendly, nfriendly]
                             returns 10*torch.log10(self.power_friendly_at_friendly()/self.power_background_at_friendly_veridical())
@@ -495,6 +501,10 @@ class JamsGrid(Jams):
 
 
     def prepare_db(self, db):
+        '''
+        prepare_db(db): permute the 2*j and 2*(j+1) dimensions of tensor db to the first two dimensions where j=self.njams
+                        used for grid calculation of db=S/B where for broadcasting reasons the dimensions are in a temporary condition.
+        '''
         j = self.njams
         perm = [2*j, 2*j+1]
         perm.extend([k for k in range(2*j)])
@@ -504,11 +514,17 @@ class JamsGrid(Jams):
     def sjr_db_grid(self):
         '''
         sjr_db_grid(): Signal_to_Jamming_Ratio_Decibels
-                       returns: (in decibels) S/B
-                       S (Signal) equals power_friendly_at_friendly(): tensor.shape=[nfriendly, nfriendly]
-                       Infinite on diagonal (because power is infinite at point source)
-                       B (Background): equals prepare_background()
-                       which calls power_background_at_friendly_grid() then permutes dimensions for broadcasting in
+                       returns: (in decibels) R=S/B; R.shape=[nfriendly,nfriendly]+GRID_SHAPE
+                       S (Signal) equals power_friendly_at_friendly(): S.shape=[nfriendly, nfriendly]
+                       S is infinite on its diagonal (because power of a signal is infinite at its own point source)
+                       that means that R[sender,receiver,x1,y1,x2,y2,...,xj,yj] = Infinity whenever sender=receiver
+                                                                       but this is right and it still seems to work.
+                       B (Background): equals prepare_background() with B.shape=GRID_SHAPE+[1,nfriendly]
+                       prepare_background() calls power_background_at_friendly_grid() to get a tensor with same elements but different shape 
+                       (original shape=[nfriendly]+GRID_SIZE) which prepare_background() permutes and adds a singleton dimension 
+                       accordingly for broadcasting in the efficient computation of db=S/B (converted to decibels).
+                          After the computation db.shape=GRID_SHAPE+[nfriendly,nfriendly] which is returned permuted to shape=[nfriendly,nfriendly]+GRID_SHAPE
+                          by the method prepare_db(db)
         '''
         S = self.power_friendly_at_friendly()
         B = self.prepare_background()
