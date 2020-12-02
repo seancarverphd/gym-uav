@@ -443,20 +443,26 @@ class JamsGrid(Jams):
 
     def power_ambient(self):
         '''
-        power_ambient(): Returns 0 for now
+        power_ambient(): Returns power in the atmosphere without any particular signal (constant, self.ambient_noise_power, set for class, 0 by default, for now)
         '''
         return self.ambient_noise_power
 
 
     def power_background_at_friendly_veridical(self):
         '''
-        power_background_at_friendly_veridical(): Computes a 1D tensor or length nfriendly by
-                                                  computing (Power at friendly, from veridical jammer).sum(over jammers) + power_ambient
+        power_background_at_friendly_veridical(): Computes a tensor of shape [nfriendly] with component kf equal to the background power at friendly kf
+                                                  background power equals power of all jammers at friendly kf plus ambient_noise_power
+                                                  computed as Power (kf, kj)---(at friendly kf, from veridical jammer kj).sum(over_jammers_kj) + power_ambient
         '''
         return self.power_jammer_at_friendly_veridical().sum(dim=1) + self.power_ambient()
 
 
     def power_background_at_friendly_grid(self):
+        '''
+        power_background_at_friendly_grid(): Computes a tensor of shape [nfriendly]+GRID_SHAPE with component (kf,x1,y1,x2,y2,...,xj,yj) equal to
+                                             the background power at friendly kf assuming the j jammers are in positions (x1,y1,x2,y2,...,xj,yj)
+                                             computes (Power at friendly from veridical jammer).sum(over jammers) + power_ambient
+        '''
         return self.power_jammer_at_friendly_grid().sum(dim=1) + self.power_ambient()
 
 
@@ -477,6 +483,11 @@ class JamsGrid(Jams):
 
 
     def prepare_background(self):
+        '''
+        prepare_background(): Prepares the tensor returned by power_background_at_friendly_grid() for broadcasting in the computation of signal-to-noise ratio S/B
+                              returns a tensor of shape: GRID_SHAPE+[1, nfriendly])
+
+        '''
         j = self.njams
         perm = [k+1 for k in range(2*j)]
         perm.append(0)
@@ -491,6 +502,14 @@ class JamsGrid(Jams):
 
 
     def sjr_db_grid(self):
+        '''
+        sjr_db_grid(): Signal_to_Jamming_Ratio_Decibels
+                       returns: (in decibels) S/B
+                       S (Signal) equals power_friendly_at_friendly(): tensor.shape=[nfriendly, nfriendly]
+                       Infinite on diagonal (because power is infinite at point source)
+                       B (Background): equals prepare_background()
+                       which calls power_background_at_friendly_grid() then permutes dimensions for broadcasting in
+        '''
         S = self.power_friendly_at_friendly()
         B = self.prepare_background()
         db = 10*torch.log10(S/B)
@@ -590,9 +609,13 @@ class JamsGrid(Jams):
 
     def update_jammers(self, adjacency):
         '''
-        update_jammers(adjacency): returns a tensor with SHAPE_OF_GRID to add to prior for Bayesian update
+        update_jammers(adjacency): returns a tensor T with T.shape=SHAPE_OF_GRID
+                                   T[idx]=T[x1,y1,x2,y2,...,xj,yj] is logP[DATA_specified_as_adjacency|jammer_STATE_given_by_idx]
+                                   At each grid points adds all (nfriendly*nfriendly) loglikelihoods for that grid point.
+                                          (equilivalent to multiplying assumed-independent probabilities) of all sender-->receiver connection probabilities
+                                   This result will add to last-posterior/this-prior to accomplish Bayesian update
         '''
-        # Does account for missing information from out of reach friendlys
+        # Does account for missing information from out of reach friendlies
         return self.loglikelihood_obs(adjacency).sum(dim=0).sum(dim=0)  # First two slots are for to from friendly; add them up as independent
 
 
