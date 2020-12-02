@@ -518,6 +518,10 @@ class JamsGrid(Jams):
     #     return dist_c2j - dist_c2t
 
 
+    #TODO Fix docstrings for next 5 methods
+    def sig(self, x):
+        return scipy.special.expit(2*self.slope*x/self.ngrid)
+
     def logsig(self, x):
         '''
         logsig returns the log of the sigmoid function (expit) of its argument x
@@ -526,7 +530,8 @@ class JamsGrid(Jams):
                self.slope was slope of sigmoid (before log) specifed at x=0 where there is 
                equal distance between comm-jammer and comm-target, where value of sigmoid (before log) is expit=1/2
         '''
-        return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
+        # return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
+        return torch.log(self.sig(x))
 
 
     # def loglikelihood_ddiff(self, target, jx, jy, kc=0):
@@ -547,7 +552,7 @@ class JamsGrid(Jams):
 
     def loglikelihood_veridical(self):
         '''
-        loglikelihood_veridical: wrapper for loglikelihood passing veridical jammer locations instead of whole grid for possible jammer locations
+        loglikelihood_veridical: log-probabilities of successful connections given veridical jammer locations: tensor shape [nfriendly, nfriendly] (sender, receiver) CHECK!
         '''
         return self.logsig(self.sjr_db_veridical())
 
