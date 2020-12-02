@@ -518,17 +518,19 @@ class JamsGrid(Jams):
     #     return dist_c2j - dist_c2t
 
 
-    #TODO Fix docstrings for next 5 methods
     def sig(self, x):
+        '''
+        logsig returns sigmoid function (expit) of its argument x
+               scaled so that result is independent of grid size assuming the same self.slope
+        before adjusting for grid size: returned "scipy.special.expit(2*self.slope*x)" in this case
+               self.slope was slope of sigmoid (before log) specifed at x=0 where there is 
+               equal distance between comm-jammer and comm-target, where value of sigmoid (before log) is expit=1/2
+        '''
         return scipy.special.expit(2*self.slope*x/self.ngrid)
 
     def logsig(self, x):
         '''
-        logsig returns the log of the sigmoid function (expit) of its argument x
-               scaled so that result is independent of grid size assuming the same self.slope
-        before adjusting for grid size: returned "torch.log(scipy.special.expit(2*self.slope*x))" in this case
-               self.slope was slope of sigmoid (before log) specifed at x=0 where there is 
-               equal distance between comm-jammer and comm-target, where value of sigmoid (before log) is expit=1/2
+        logsig(x): returns the log of the sigmoid function
         '''
         # return torch.log(scipy.special.expit(2*self.slope*x/self.ngrid))
         return torch.log(self.sig(x))
@@ -543,6 +545,7 @@ class JamsGrid(Jams):
     #    return self.logsig(ddiff).sum(axis=0)  # axis=0 is jammer num, add logs because jamming from different jammers independent
 
 
+    #TODO Fix docstrings for next 3 methods
     def loglikelihood_grid(self):
         '''
         loglikelihood_grid: wrapper for loglikelihood passing object's whole grid for possible jammer locations
