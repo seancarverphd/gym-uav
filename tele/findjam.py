@@ -575,6 +575,9 @@ class JamsGrid(Jams):
 
 
     def update_jammers(self, adjacency):
+        '''
+        update_jammers(adjacency): returns a tensor with SHAPE_OF_GRID to add to prior for Bayesian update
+        '''
         # Does account for missing information from out of reach friendlys
         return self.loglikelihood_obs(adjacency).sum(dim=0).sum(dim=0)  # First two slots are for to from friendly; add them up as independent
 
