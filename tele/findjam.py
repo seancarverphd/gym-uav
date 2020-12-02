@@ -565,6 +565,8 @@ class JamsGrid(Jams):
         loglikelihood_obs: loglikelihood_grid of actual communication between comm and target
                            pass obs=True for likelihood of success communication
                            pass obs=False for likelihood of unsuccessful communication
+                           where obs is an element of the adjacency matrix / 2D Tensor, adjacency.shape = [nfriendly, nfriendly]
+                           returns tensor shaped [nfriendly, nfriendly] + GRID_SHAPE
         '''
         log_p_success = self.loglikelihood_grid()
         log_p_obs = torch.zeros(log_p_success.shape)
