@@ -271,6 +271,9 @@ class JamsGrid(Jams):
 
 
     def tuple_of_closest_grid_to_jammers(self):
+        '''
+        tuple_of_closest_grid_to_jammers(): same as tuple_of_all_jammers except rounds values to nearest grid point.
+        '''
         floatjammers = self.tuple_of_all_jammers()
         return tuple((int(round(f)) for f in floatjammers))
 
@@ -354,6 +357,11 @@ class JamsGrid(Jams):
 
 
     def jam_convolve(self, idx1, logP):  # sum over idx0, value at idx1
+        '''
+        jam_convolve(idx1, logP): takes neighbor of idx1: list_of_neighbors(idx1)
+                                  computes terms to sum from distribution logP
+                                  each term: log(P[neighbor]/number_of_neighbors)
+        '''
         neighbors = self.list_of_neighbors(idx1)
         terms = torch.tensor([logP[idx0] - torch.log(torch.tensor(len(self.list_of_neighbors(idx0)), dtype=float)) for idx0 in neighbors])
         return torch.logsumexp(terms, dim=0)
@@ -533,10 +541,16 @@ class JamsGrid(Jams):
 
 
     def makeMj(self):
+        '''
+        makeMj(): Make tensor of constants for free propagation model M/r^2 for power of jammers at distance
+        '''
         self.Mj = torch.ones((self.njams))  # Will make this more general later
 
 
     def makeMf1(self):
+        '''
+        makeMj(): Make tensor of constants for free propagation model M/r^2 for power of friendlies at distance
+        '''
         self.Mf1 = torch.ones((self.nfriendly))  # Will make this more general later
 
 
@@ -637,13 +651,16 @@ class JamsGrid(Jams):
 
     def try_to_contact(self, sender, receiver):
         '''
-        try_to_contact flips a "coin" (usually unfair) to simulate success or failure to communicate based on likelihood derived from veridical jammer locations
+        try_to_contact(sender, receiver) flips a "coin" (usually unfair) to simulate success or failure to communicate based on likelihood derived from veridical jammer locations
         '''
         p = torch.exp(self.loglikelihood_veridical())
         return torch.tensor(np.random.choice([True, False],p=(p[sender, receiver], 1.-p[sender, receiver])))
 
 
     def all_try(self):
+        '''
+        all_try() flips coins (usually unfair) to simulate success or failure to communicate for all pairs of friendlies: calls try_to_contact nfriendly**2 times 
+        '''
         adjacency = torch.zeros((self.nfriendly, self.nfriendly), dtype=bool)
         for sender in range(self.nfriendly):
             for receiver in range(self.nfriendly):
@@ -670,6 +687,9 @@ class JamsGrid(Jams):
 
 
     def run(self, steps=1, record=False):
+        '''
+        run(steps, record) runs model (without plotting for steps number of step and record data on last step if this flag is set
+        '''
         self.alldata = False
         self.current_on_stack = False
         for s in range(steps):
@@ -695,12 +715,18 @@ class JamsGrid(Jams):
 
 
     def pushstack(self):
+        '''
+        pushstack(): push recorded data onto stack
+        '''
         if self.current.alldata is True:
             self.stack.append(copy.deepcopy(self.current))
             self.current_on_stack = True
 
 
     def popstack(self):
+        '''
+        popstack(): pop recorded data from stack
+        '''
         if self.current_on_stack:
             self.stack.pop()
         if len(self.stack) == 0:
@@ -715,6 +741,9 @@ class JamsGrid(Jams):
 
 
     def advance(self, steps=1):
+        '''
+        advance(steps) run with record on, push last step's data to stack, and plot result
+        '''
         self.run(steps, record=True)
         if self.push:
             self.pushstack()
@@ -722,6 +751,9 @@ class JamsGrid(Jams):
 
 
     def retreat(self, stacksteps=1):
+        '''
+        retreat(stacksteps): pop stacksteps from stack and plot last popped data
+        '''
         for _ in range(stacksteps):
             self.popstack()
         self.render()
@@ -741,6 +773,7 @@ class JamsGrid(Jams):
 
 
     def credible(self, logP, C=0.95):
+        #TODO add default for logP
         the_sort = self.normalize(logP).flatten().sort(descending=True)
         included = self.logcumsumexp(the_sort.values, dim=0) < np.log(C)
         idx = np.where(np.diff(included))[0][0]
