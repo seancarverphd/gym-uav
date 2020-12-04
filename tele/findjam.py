@@ -997,6 +997,16 @@ class JamsGrid(Jams):
         return logjoint_iid.allclose(logjoint)
 
 
+    def save(self, fname):  # A class method, see load below
+        with open(fname, 'wb') as f:
+            torch.save(self, f)
+
+
+def load(fname):  # Not a class method, see save above
+    with open(fname, 'rb') as f:
+        return torch.load(f)
+
+
 def evaluate_credible_coverage(n, C=0.95):
     results = []
     card = []
