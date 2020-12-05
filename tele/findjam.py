@@ -793,12 +793,19 @@ class JamsGrid(Jams):
         return (credible_set[jammer] == 1.).item()  # Returns True or False
 
 
-    def credible_set_cardinality(self, C=0.95):
-        credible_set = self.credible(self.current.logPjammers_unnormalized, C)
-        return int(torch.sum(credible_set, dim=list(range(2*self.njams))).item())
+    def credible_set_cardinality(self, logP=None, C=0.95):
+        '''
+        credible_set_cardinality(logP, C) number of points inside the credible set
+        '''
+        credible_set = self.credible(logP, C)
+        return int(torch.sum(credible_set, dim=list(range(2*self.njams))).item())  # Sum over all dimensions
 
 
     def credible_2D(self, logP=None, C=0.95):
+        '''
+        credible_2D(logP, C) produce a projection of the credible set
+                    numbers in the projection indicate numbers of points that project there.
+        '''
         credible_set = self.credible(logP, C)
         return self.marginal(credible_set, logs=False)
 
