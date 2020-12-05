@@ -636,6 +636,14 @@ class JamsGrid(Jams):
         return self.logsig(self.sjr_db_veridical())
 
 
+    def weights(self):
+        '''
+        weights(): returns the veridical probabilities of the nfriendly*nfriendly radio connects (weights of graph of connections)
+                   same as loglikelihood_veridical but doesn't take log
+        '''
+        return self.sig(self.sjr_db_veridical())
+
+
     def loglikelihood_obs(self, adjacency):
         '''
         loglikelihood_obs(adjacency): like loglikelihood_grid() but pass in actual communication (True/False) between sender-friendly and receiver-friendly (not just all True)
@@ -672,7 +680,7 @@ class JamsGrid(Jams):
         '''
         try_to_contact(sender, receiver) flips a "coin" (usually unfair) to simulate success or failure to communicate based on likelihood derived from veridical jammer locations
         '''
-        p = torch.exp(self.loglikelihood_veridical())
+        p = self.weights()
         return torch.tensor(np.random.choice([True, False],p=(p[sender, receiver], 1.-p[sender, receiver])))
 
 
