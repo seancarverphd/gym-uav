@@ -577,6 +577,7 @@ class JamsGrid(Jams):
         '''
         return scipy.special.expit(2*self.slope*x/self.ngrid)
 
+
     def logsig(self, x):
         '''
         logsig(x): returns the log of the sigmoid function
@@ -772,8 +773,9 @@ class JamsGrid(Jams):
         return out
 
 
-    def credible(self, logP, C=0.95):
-        #TODO add default for logP
+    def credible(self, logP=None, C=0.95):
+        if logP is None:
+            logP = self.current.logPjammers_unnormalized
         the_sort = self.normalize(logP).flatten().sort(descending=True)
         included = self.logcumsumexp(the_sort.values, dim=0) < np.log(C)
         idx = np.where(np.diff(included))[0][0]
@@ -796,7 +798,7 @@ class JamsGrid(Jams):
         return int(torch.sum(credible_set, dim=list(range(2*self.njams))).item())
 
 
-    def credible_2D(self, logP, C=0.95):
+    def credible_2D(self, logP=None, C=0.95):
         credible_set = self.credible(logP, C)
         return self.marginal(credible_set, logs=False)
 
