@@ -8,7 +8,13 @@ import torch
 
 
 class JamData():
+    '''
+    JamData(): Class to hold current Jam Data in an object
+    '''
     def __init__(self):
+        '''
+        __init__(): initialize JamData class
+        '''
         self.alldata = False
         self.step = None
         self.friendly_pre = None
@@ -27,7 +33,13 @@ class JamData():
 
 
 class Jams():
+    '''
+    Jams() superclass which JamsGrid inherits from
+    '''
     def __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, delta=None, seed=None, push=True):
+        '''
+        __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, delta=None, seed=None, push=True): initialization routine for class Jams
+        '''
         self.ngrid = ngrid  # grid points on map in 1D
         self.ncomms = ncomms
         self.nassets = nassets
@@ -165,7 +177,13 @@ class JamsPoint(Jams):
 
 
 class JamsGrid(Jams):
+    '''
+    JamsGrid(): Main class for Jamming from 2D-Grid
+    '''
     def __init__(self, **kwargs):
+        '''
+        __init__(self, ngrid=5, ncomms=1, nassets=1, njams=1, slope=10., nsteps=1, move=True, misspecified=False, delta=None, seed=None, push=True): initialization routine for class JamsGrid
+        '''
         super().__init__(**kwargs)
         self.step = 0  # initialize counter for number of steps
         self.Jx, self.Jy = self.makeJxy()
@@ -761,6 +779,9 @@ class JamsGrid(Jams):
 
 
     def logcumsumexp(self, x, dim):
+        '''
+        logcumsumexp(x, dim): like logsumexp() except cumulative
+        '''
         # slow implementation (taken from web), but ok for now
         if (dim != -1) or (dim != x.ndimension() - 1):
             x = x.transpose(dim, -1)
@@ -774,6 +795,14 @@ class JamsGrid(Jams):
 
 
     def credible(self, logP=None, C=0.95):
+        '''
+        credible(logP, C):  Computes a C-level credible set by ordering the probabilities of each grid point,
+                            and taking the largest that add up to (as close as possible) but below C.
+                            default value of logP is self.current.logPjammers
+                            default value for C is 0.95 (95% credible)
+                            Credible sets are like confidence intervals but Bayesian and discrete
+                            Normalizes the distribution first.
+        '''
         if logP is None:
             logP = self.current.logPjammers_unnormalized
         the_sort = self.normalize(logP).flatten().sort(descending=True)
@@ -787,8 +816,11 @@ class JamsGrid(Jams):
         return credible_set
 
 
-    def jammer_tuple_in_credible_set(self, C=0.95):
-        credible_set = self.credible(self.current.logPjammers_unnormalized, C)
+    def jammer_tuple_in_credible_set(self, logP=None, C=0.95):
+        '''
+        jammer_tuple_in_credible_set(logP, C): tests and returns True or False whether the closest grid point to jammers is in credible set
+        '''
+        credible_set = self.credible(logP, C)  # logP defaults to self.logPjammers_unnormalized
         jammer = self.tuple_of_closest_grid_to_jammers()
         return (credible_set[jammer] == 1.).item()  # Returns True or False
 
@@ -797,7 +829,7 @@ class JamsGrid(Jams):
         '''
         credible_set_cardinality(logP, C) number of points inside the credible set
         '''
-        credible_set = self.credible(logP, C)
+        credible_set = self.credible(logP, C)  # logP defaults to self.logPjammers_unnormalized
         return int(torch.sum(credible_set, dim=list(range(2*self.njams))).item())  # Sum over all dimensions
 
 
@@ -806,11 +838,14 @@ class JamsGrid(Jams):
         credible_2D(logP, C) produce a projection of the credible set
                     numbers in the projection indicate numbers of points that project there.
         '''
-        credible_set = self.credible(logP, C)
+        credible_set = self.credible(logP, C)  # logP defaults to self.logPjammers_unnormalized
         return self.marginal(credible_set, logs=False)
 
 
     def video(self, nframes):
+        '''
+        video(nframes): create and save frames for video in file ./video/frame##.png
+        '''
         for f in range(nframes):
             self.advance()
             plt.savefig('video/frame'+str(f)+'.png')
@@ -818,11 +853,13 @@ class JamsGrid(Jams):
 
 
     def normalizer(self, logP):
+        '''
+        normalizer(logP): compute and return the contant that normalizes distribution logP
+        '''
         return torch.logsumexp(logP.flatten(), dim=0)
 
 
     def marginal(self, joint, logs=True):
-
         '''
         marginal: needed for plotting in 2D if joint density has greater than 2 dimensions
                   adds probabilities for each x_njams and y_njams on 2D grid
@@ -862,7 +899,9 @@ class JamsGrid(Jams):
 
 
     def connections(self):
-        # return  # Not tested and does not seem to work completely and properly
+        '''
+        connections(): Displays arrows between friendlies on graph assuming there is a radio connection between them as determined by self.current.adjacency
+        '''
         ax = plt.gca()
         for f2 in range(self.nfriendly):
             for f1 in range(f2):
@@ -994,12 +1033,18 @@ class JamsGrid(Jams):
 
 
     def show_conditional(self, freeze):
+        '''
+        show_conditional(freeze): shows conditional distribution by freezing freeze (all but 2 dimensions)
+        '''
         assert len(freeze) + 2 == len(self.current.logPjammers_unnormalized.shape)
         plt.imshow(self.conditional(self.current.logPjammers_unnormalized, freeze).T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         self.annotations()
 
 
     def test_independence(self):
+        '''
+        test_independence(): Test to see if joint probability factors as a product of its marginals (it doesn't)
+        '''
         logjoint = self.current.logPjammers_unnormalized
         logmargin = self.marginal(logjoint)
         logjoint_iid = self.logjoint_iid_from_logmarginal(logmargin)
@@ -1007,16 +1052,25 @@ class JamsGrid(Jams):
 
 
     def save(self, fname):  # A class method, see load below
+        '''
+        save(fname): save object with filename fname
+        '''
         with open(fname, 'wb') as f:
             torch.save(self, f)
 
 
 def load(fname):  # Not a class method, see save above
+    '''
+    load(fname): load an object saved with method above
+    '''
     with open(fname, 'rb') as f:
         return torch.load(f)
 
 
 def evaluate_credible_coverage(n, C=0.95):
+    '''
+    evaluate_credible_coverage(n, C): Sample n times and print results to see if coverage is close to the credible level, C
+    '''
     results = []
     card = []
     for sample in range(n):
