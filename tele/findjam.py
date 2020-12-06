@@ -847,7 +847,7 @@ class JamsGrid(Jams):
                     numbers in the projection indicate numbers of points that project there.
         '''
         credible_set = self.credible(logP, C)  # logP defaults to self.logPjammers_unnormalized
-        return self.marginal(credible_set, logs=False)
+        return self.marginal(credible_set, logs=False).T
 
 
     def video(self, nframes):
@@ -879,10 +879,9 @@ class JamsGrid(Jams):
         terms_rearranged_for_sum = torch.zeros((nterms, self.ngrid, self.ngrid))  # coordinates are (term, x, y)
         for term_number, term_multiindex in enumerate(self.itertuple(dims_summing_across)):  # enumerate all term_multiindecies in a tensor with two less coordinates
             terms_rearranged_for_sum[term_number] = joint[term_multiindex]  # each side of this assignment is a 2D tensor in x and y
-        if logs:
-            return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
-        else:
-            return torch.sum(terms_rearranged_for_sum, dim=0)  # convert to probabilities, add across term, then retake log
+        if not logs:
+            return torch.sum(terms_rearranged_for_sum, dim=0)
+        return torch.logsumexp(terms_rearranged_for_sum, dim=0)  # equivalent to: convert to probabilities, add across terms, then retake log
 
 
     def annotations(self, titleprefix=''):
