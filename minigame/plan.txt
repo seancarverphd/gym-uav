@@ -7,7 +7,10 @@ AssetSet
 
 Units (jammers, comms)
 .n
-.xy_xy
+.xy_xy_  # Saved values NaN if changed since last compute
+.xyxy_
+.xxyy_
+.xy_xy  # Functions that return saved values if up to date or compute and return if not
 .xyxy
 .xxyy
 .move()
@@ -17,6 +20,8 @@ Units (jammers, comms)
 
 
 Unit
+.faction
+.type
 .x
 .y
 .sender_const
@@ -29,5 +34,5 @@ Grid
 .dims
 .shape
 .data
-
+.uniform
 
