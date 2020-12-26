@@ -1,0 +1,33 @@
+JammerSet
+CommSet
+FriendlySet
+HQ
+AssetSet
+
+
+Units (jammers, comms)
+.n
+.xy_xy
+.xyxy
+.xxyy
+.move()
+.init()
+.units []
+.sync
+
+
+Unit
+.x
+.y
+.sender_const
+.receiver_slope
+.move()
+
+
+Grid
+.ngrid
+.dims
+.shape
+.data
+
+
