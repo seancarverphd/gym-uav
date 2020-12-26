@@ -33,4 +33,4 @@ def test_likelihood_shape2():
 
 def test_credible():
     global J
-    assert (J.credible_2D(J.current.logPjammers_unnormalized)[2,3:6] == torch.tensor([11., 25., 33.])).all()
+    assert (J.credible_2D(J.current.logPjammers_unnormalized).T[2,3:6] == torch.tensor([11., 25., 33.])).all()
