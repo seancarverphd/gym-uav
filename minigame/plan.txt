@@ -17,10 +17,10 @@ Faction (jammers, comms)
 .xxyy()
 .invalidate
 .validate
-.init()
+.?init()
 .units=[]
 .add_unit()
-.sync
+.?sync
 
 
 Unit
