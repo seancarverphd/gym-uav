@@ -5,12 +5,12 @@ HQ
 AssetSet
 
 
-Units (jammers, comms)
+Faction (jammers, comms)
 .n
 .xy_xy_  # Saved values NaN if changed since last compute
 .xyxy_
 .xxyy_
-.xy_xy  # Functions that return saved values if up to date or compute and return if not
+.xy_xy  # Functions that return saved values if up to date or compute and return if not; loop over logical, generator
 .xyxy
 .xxyy
 .move()
@@ -20,14 +20,28 @@ Units (jammers, comms)
 
 
 Unit
-.faction
-.type
+.faction (parent object)
+.communication (True or False)
+.receiver (object)
+.transmitter (object)
+.jamming (True or False)
+.airborne (True or False)
+.ground_mobile (True or False)
+.building (True or False)
+.headquarters (True or False)
+.asset (True or False)
+.shoots_drones
 .x
 .y
-.sender_const
-.receiver_slope
 .move()
 
+
+Reciever
+.probability_reception_slope
+
+
+Transmitter
+.point_source_const
 
 Grid
 .ngrid
