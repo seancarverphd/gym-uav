@@ -6,33 +6,40 @@ AssetSet
 
 
 Faction (jammers, comms)
-.n
-.xy_xy_  # Saved values NaN if changed since last compute
-.xyxy_
-.xxyy_
-.xy_xy  # Functions that return saved values if up to date or compute and return if not; loop over logical, generator
-.xyxy
-.xxyy
-.move()
+.name ('RED' or 'BLUE')
+.xy_xy_=[] Saved values None if changed since last compute
+.xyxy_=
+.xx_yy_=[,]
+.xxyy_=
+.xy_xy()  # Functions that return saved values if up to date or compute and return if not; loop over logical, generator
+.xyxy()
+.xx_yy()
+.xxyy()
+.invalidate
+.validate
 .init()
-.units []
+.units=[]
+.add_unit()
 .sync
 
 
 Unit
 .faction (parent object)
-.communication (True or False)
+.communicates (True or False)
 .receiver (object)
 .transmitter (object)
 .jamming (True or False)
 .airborne (True or False)
 .ground_mobile (True or False)
-.building (True or False)
+building (True or False)
 .headquarters (True or False)
 .asset (True or False)
-.shoots_drones
-.x
-.y
+.shoots_drones (True or False)
+.x_
+.y_
+.x()
+.y()
+.xy()
 .move()
 
 
