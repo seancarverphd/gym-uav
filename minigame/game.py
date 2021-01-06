@@ -45,6 +45,12 @@ roaming_troops_can = Capabilities()
 roaming_troops_can.add_capability('shoot')
 roaming_troops_can.add_capability('traverse_roads')
 
+headquarters_mission_demands = copy.deepcopy(headquarters_can)
+occupying_troops_mission_demands = copy.deepcopy(occupying_troops_can)
+comms_mission_demands = copy.deepcopy(comms_can)
+jammers_mission_demands = copy.deepcopy(jammers_can)
+roaming_troops_mission_demands = copy.deepcopy(roaming_troops_can)
+
 
 class Orders():
     def __init__(self):
