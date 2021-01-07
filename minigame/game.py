@@ -6,30 +6,21 @@ class Orders():
         self.unit = None
         self.destination_x = None
         self.destination_y = None
-        self.acceptable_delta = 0.
+        self.occupy_roof = False
+        self.random_perturbation = 0.
         self.asset_value = 0.
         self.move_commands = None
         self.after_timestep_commands = None
         self.ceoi = None
 
-    def set_destination(self):
-        self.
+    def set_destination(self, d):
+        self.destination_x = d[0]
+        self.destination_y = d[1]
+        self.occupy_roof = d[3]
+        self.random_perturbation = d[4]
 
-class HeadquarterOrder(Orders):
-    def __init__(self, unit):
-        super(HeadquarterOrder, self).__init__()
-        self.unit = unit
-        self.move_commands = [unit.stay]
-        self.after_timestep_commands = [unit.shoot_enemy_drones]
-        self.ceoi = None
-
-class OccupyingTroopOrder(Orders):
-    def __init__(self, unit):
-        super(OccupyingTroopOrder, self).__init__()
-        self.unit = unit
-        self.move_commands = [unit.stay]
-        self.after_timestep_commands = [unit.shoot_enemy_drones]
-        self.ceoi = None
+    def set_asseet_value(self, d):
+        self.asset_value = d
 
 class CommsOrder(Orders):
     def __init__(self, unit):
@@ -37,7 +28,7 @@ class CommsOrder(Orders):
         self.unit = unit
         self.move_commands = [unit.fly]
         self.after_timestep_commands = [unit.stay]
-        self.ceoi = None
+        self.ceoi = None  #TODO Add CEOI
 
 class JammersOrder(Orders):
     def __init__(self, unit):
@@ -45,19 +36,34 @@ class JammersOrder(Orders):
         self.unit = unit
         self.move_commands = [unit.fly]
         self.after_timestep_commands = [unit.stay]
-        self.ceoi = None
+        self.ceoi = None  #TODO Add CEOI
+
+class OccupyingTroopOrder(Orders):
+    def __init__(self, unit):
+        super(OccupyingTroopOrder, self).__init__()
+        self.unit = unit
+        self.move_commands = [unit.stay]
+        self.after_timestep_commands = [unit.shoot_enemy_drones]
+        self.ceoi = None  #TODO Add CEOI
 
 class RoamingTroopsOrder(Orders):
     def __init__(self, unit):
         super(RoamingTroopsOrder, self).__init__()
         self.unit = unit
-        move_commands = [unit.traverse_roads_to_random_spot]
-        after_timestep_commands = [unit.shoot_enemy_drones]
+        self.move_commands = [unit.traverse_roads_to_random_spot]
+        self.after_timestep_commands = [unit.shoot_enemy_drones]
+        # CEOI: Red Roaming Units don't communicate self.ceoi=None
+
 
 class Faction():
     def __init__(self, name):
         self.name = name
         self.units = []
+        self.headquarters = None
+
+    def add_headquarters(self, unit):
+        self.add_unit(unit)
+        self.headquarters = unit
 
     def add_unit(self, unit):
         self.units.append(unit)
@@ -79,8 +85,6 @@ class Unit():
         self.name = name
         self.receiver = None
         self.transmitter = None
-        # self.can_do = Capabilities()
-        self.headquarters = False
         self.x_ = init_x
         self.y_ = init_y
         self.on_roof = False
@@ -95,9 +99,6 @@ class Unit():
         return (x_, y_)
 
     def stay(self):
-        pass
-
-    def after(self):
         pass
 
 # Individual Units
