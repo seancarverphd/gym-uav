@@ -23,6 +23,7 @@ class Capabilities():
     def assert_capable(self, order)
         assert self.capable(order)
 
+# Create Capability objects for each type of unit
 headquarters_can = Capabilities()
 headquarters_can.add_capability('communicate')
 headquarters_can.add_capability('shoot')
@@ -45,23 +46,69 @@ roaming_troops_can = Capabilities()
 roaming_troops_can.add_capability('shoot')
 roaming_troops_can.add_capability('traverse_roads')
 
+# Create mission demands (same as Capabilities for each unit type)
 headquarters_mission_demands = copy.deepcopy(headquarters_can)
 occupying_troops_mission_demands = copy.deepcopy(occupying_troops_can)
 comms_mission_demands = copy.deepcopy(comms_can)
 jammers_mission_demands = copy.deepcopy(jammers_can)
 roaming_troops_mission_demands = copy.deepcopy(roaming_troops_can)
 
+###########################################################
+###############   DELETE CODE ABOVE?    ###################
+###########################################################
 
 class Orders():
     def __init__(self):
-        destination_x = None
-        destination_y = None
-        acceptable_delta = 0.
-        occupy_roof = False
-        shoot_enemy_drones = False
-        asset_value = 0.
-        demands = Capabilities()
+        self.unit = None
+        self.destination_x = None
+        self.destination_y = None
+        self.acceptable_delta = 0.
+        self.asset_value = 0.
+        self.move_commands = None
+        self.after_timestep_commands = None
+        self.ceoi = None
 
+    def set_destination(self):
+        self.
+
+class HeadquarterOrder(Orders):
+    def __init__(self, unit):
+        super(HeadquarterOrder, self).__init__()
+        self.unit = unit
+        self.move_commands = []
+        self.after_timestep_commands = [unit.verify_position, unit.shoot_enemy_drones]
+        self.ceoi = None
+
+class OccupyingTroopOrder(Orders):
+    def __init__(self, unit):
+        super(OccupyingTroopOrder, self).__init__()
+        self.unit = unit
+        self.move_commands = []
+        self.after_timestep_commands = [unit.verify_position, unit.shoot_enemy_drones]
+        self.ceoi = None
+
+class CommsOrder(Orders):
+    def __init__(self, unit):
+        super(CommsOrder, self).__init__()
+        self.unit = unit
+        self.move_commands = [unit.fly]
+        self.after_timestep_commands = [unit.verify_position]
+        self.ceoi = None
+
+class JammersOrder(Orders):
+    def __init__(self, unit):
+        super(JammersOrder, self).__init__()
+        self.unit = unit
+        self.move_commands = [unit.fly]
+        self.after_timestep_commands = [unit.verify_position]
+        self.ceoi = None
+
+class RoamingTroopsOrder(Orders):
+    def __init__(self, unit):
+        super(RoamingTroopsOrder, self).__init__()
+        self.unit = unit
+        move_commands = [unit.traverse_roads]
+        after_timestep_commands = [unit.shoot_enemy_drones]
 
 class Faction():
     def __init__(self, name):
@@ -71,6 +118,10 @@ class Faction():
     def add_unit(self, unit):
         self.units.append(unit)
         self.units[-1].faction = self
+
+    def pop_unit(self):
+        unit = self.units.pop()
+        unit.faction = None
 
     def clear_units(self):
         for u in self.units:
@@ -84,11 +135,11 @@ class Unit():
         self.name = name
         self.receiver = None
         self.transmitter = None
-        self.can_do = Capabilities()
-        self.on_roof = False
+        # self.can_do = Capabilities()
         self.headquarters = False
         self.x_ = init_x
         self.y_ = init_y
+        self.on_roof = False
 
     def x(self):
         return x_
@@ -100,6 +151,9 @@ class Unit():
         return (x_, y_)
 
     def move(self):
+        pass
+
+    def after(self):
         pass
 
 # Individual Units
@@ -116,8 +170,12 @@ class Drone(Unit):  # UAV
         self.vy = 0.
 
     def move(): # overload this method
-        pass  #TODO Add this method
-
+        over = np.sqrt(self.vx**2 + self.vy**2) / self.max_speed
+        if over > 1:
+            self.vx /= over
+            self.vy /= over
+        self.x_ = self.x_ + self.vx * time_step
+        self.y_ = self.y_ + self.vy * time_step
 
 class Jammer(UAV):
     def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER', max_speed=1., jamming_antenna=None):
