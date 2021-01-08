@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 
+TIME_STEP = 1
+DEFAULT_FLY_SPEED = 2
+
 class Orders():
     def __init__(self):
         self.unit = None
@@ -26,7 +29,7 @@ class CommsOrder(Orders):
     def __init__(self, unit):
         super(CommsOrder, self).__init__()
         self.unit = unit
-        self.move_commands = [unit.fly]
+        self.move_commands = [unit.plan, unit.fly]
         self.after_timestep_commands = [unit.stay]
         self.ceoi = None  #TODO Add CEOI
 
@@ -34,7 +37,7 @@ class JammersOrder(Orders):
     def __init__(self, unit):
         super(JammersOrder, self).__init__()
         self.unit = unit
-        self.move_commands = [unit.fly]
+        self.move_commands = [unit.plan, unit.fly]
         self.after_timestep_commands = [unit.stay]
         self.ceoi = None  #TODO Add CEOI
 
@@ -80,78 +83,72 @@ class Faction():
 
 
 class Unit():
-    def __init__(self, init_x=0.1, init_y=0.1, name='GHOST'):
+    def __init__(self, init_x=0.1, init_y=0.1, name='GHOST_X'):
         self.faction = None
         self.name = name
         self.receiver = None
         self.transmitter = None
-        self.x_ = init_x
-        self.y_ = init_y
+        self.initialize_xy(init_x, init_y)
         self.on_roof = False
 
+    def initialize_xy(self, init_x, init_y):
+        self.x_ = init_x
+        self.y_ = init_y
+
     def x(self):
-        return x_
+        return self.x_
 
     def y(self):
-        return y_
+        return self.y_
 
     def xy(self):
-        return (x_, y_)
+        return (self.x_, self.y_)
 
     def stay(self):
         pass
 
-# Individual Units
+# Individual Units Inherit From Units
 # Drone's child objects are COMMS and JAMMERS; first communicates, second jams, defined by children
 # receiver, sender defined by children
 
 # faction added later
 
 class Drone(Unit):  # UAV
-    def __init__(self, init_x=0.1, init_y=0.1, name='DRONE', max_speed=1.):
+    def __init__(self, init_x=0.1, init_y=0.1, name='DRONE_X'):
         super(Drone, self).__init__(init_x, init_y, name)
-        self.max_speed = max_speed
+        self.max_speed = DEFAULT_FLY_SPEED 
         self.vx = 0.
         self.vy = 0.
 
-    def fly(self, time_step=1): # overload this method
+    def plan(self):
+        delta_x = self.order.destination_x - self.x_
+        delta_y = self.order.destination_y - self.y_
+        self.vx = delta_x/TIME_STEP
+        self.vy = delta_y/TIME_STEP
         over = np.sqrt(self.vx**2 + self.vy**2) / self.max_speed
         if over > 1:
             self.vx /= over
             self.vy /= over
-        self.x_ = self.x_ + self.vx * time_step
-        self.y_ = self.y_ + self.vy * time_step
+
+    def fly(self): # overload this method
+        self.x_ = self.x_ + self.vx * TIME_STEP
+        self.y_ = self.y_ + self.vy * TIME_STEP
 
 class Jammer(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER', max_speed=1., jamming_antenna=None):
-        super(Jammer, self).__init__(init_x, init_y, name, max_speed)
+    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER_X', max_speed=1., jamming_antenna=None):
+        super(Jammer, self).__init__(init_x, init_y, name)
 
 
-class Comm(UAV):
-    pass
+class Comm(Drone):
+    def __init__(self, init_x=0.1, init_y=0.1), name='COMM_X', max_speed=1., jamming_antenna=None):
+        super(Comm, self).__init__(init_x, init_y, name)
 
 
 class OccupyingTroop(Unit):
-    def at_destination(self):
-        assert self.x() == self.order.destination_x
-        assert self.y() == self.order.destination_y
+    pass
 
 
 class RoamingTroop(Unit):
-    def at_destination(self):
-        assert self.x() == self.order.destination_x
-        assert self.y() == self.order.destination_y
-
-
-class Headquarters(Unit):
-    def __init__(self, init_x=0.1, init_y=0.1, name='HEADQUARTERS'):
-        super(Headquarters, self).__init__(init_x, init_y, name)
-        self.receiver = None  #TODO
-        self.sender = None  #TODO
-        self.order = None
-
-# class Building(): pass # For now, buildings at every location
-
-
+    pass
 
 
