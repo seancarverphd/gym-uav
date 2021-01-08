@@ -5,15 +5,15 @@ TIME_STEP = 1
 DEFAULT_FLY_SPEED = 2
 
 class Orders():
-    def __init__(self):
-        self.unit = None
+    def __init__(self, unit):
+        self.unit = unit
         self.destination_x = None
         self.destination_y = None
         self.occupy_roof = False
         self.random_perturbation = 0.
         self.asset_value = 0.
         self.move_commands = None
-        self.after_timestep_commands = None
+        self.post_timestep_commands = None
         self.ceoi = None
 
     def set_destination(self, d):
@@ -27,42 +27,44 @@ class Orders():
 
 class CommsOrder(Orders):
     def __init__(self, unit):
-        super(CommsOrder, self).__init__()
-        self.unit = unit
+        super(CommsOrder, self).__init__(unit)
+        self.initial_commands = [unit.stay]
+        self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.plan, unit.fly]
-        self.after_timestep_commands = [unit.stay]
-        self.ceoi = None  #TODO Add CEOI
+        self.post_timestep_commands = [unit.stay]
 
 class JammersOrder(Orders):
     def __init__(self, unit):
-        super(JammersOrder, self).__init__()
-        self.unit = unit
+        super(JammersOrder, self).__init__(unit)
+        self.initial_commands = [unit.stay]
+        self.ceoi = [unit.add_self_to_jamming_network]
         self.move_commands = [unit.plan, unit.fly]
-        self.after_timestep_commands = [unit.stay]
-        self.ceoi = None  #TODO Add CEOI
+        self.post_timestep_commands = [unit.stay]
 
 class OccupyingTroopOrder(Orders):
     def __init__(self, unit):
-        super(OccupyingTroopOrder, self).__init__()
-        self.unit = unit
+        super(OccupyingTroopOrder, self).__init__(unit)
+        self.initial_commands = [unit.on_target]
+        self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.stay]
-        self.after_timestep_commands = [unit.shoot_enemy_drones]
-        self.ceoi = None  #TODO Add CEOI
+        self.post_timestep_commands = [unit.shoot_enemy_drones]
 
 class RoamingTroopsOrder(Orders):
     def __init__(self, unit):
-        super(RoamingTroopsOrder, self).__init__()
-        self.unit = unit
+        super(RoamingTroopsOrder, self).__init__(unit)
+        self.initial_commands = [unit.stay]
+        self.ceoi = [unit.stay]  # Roaming Units dont communicate
         self.move_commands = [unit.traverse_roads_to_random_spot]
-        self.after_timestep_commands = [unit.shoot_enemy_drones]
-        # CEOI: Red Roaming Units don't communicate self.ceoi=None
+        self.post_timestep_commands = [unit.shoot_enemy_drones]
 
 
-class Faction():
+class Faction():  # BLUE OR RED
     def __init__(self, name):
         self.name = name
         self.units = []
         self.headquarters = None
+        self.communication_network = []
+        self.jamming_network = []
 
     def add_headquarters(self, unit):
         self.add_unit(unit)
@@ -95,6 +97,22 @@ class Unit():
         self.x_ = init_x
         self.y_ = init_y
 
+    def execute_initial_commands(self):
+        for command in self.order.initial_commands:
+            command()
+
+    def implement_ceoi(self):
+        for command in self.order.ceoi:
+            command()
+
+    def execute_move_commands(self):
+        for command in self.order.move_commands:
+            command()
+
+    def execute_post_timestep_commands(self):
+        for command in self.order.post_time_step_commands:
+            command()
+
     def x(self):
         return self.x_
 
@@ -107,7 +125,7 @@ class Unit():
     def stay(self):
         pass
 
-# Individual Units Inherit From Units
+# Drone, OccupyingTroop, RoamingTroop Inherit From Unit
 # Drone's child objects are COMMS and JAMMERS; first communicates, second jams, defined by children
 # receiver, sender defined by children
 
@@ -121,6 +139,9 @@ class Drone(Unit):  # UAV
         self.vy = 0.
 
     def plan(self):
+        '''
+        plan(): defines vx and vy in direction of destination but magnitude not greater than self.max_speed
+        '''
         delta_x = self.order.destination_x - self.x_
         delta_y = self.order.destination_y - self.y_
         self.vx = delta_x/TIME_STEP
@@ -131,24 +152,54 @@ class Drone(Unit):  # UAV
             self.vy /= over
 
     def fly(self): # overload this method
-        self.x_ = self.x_ + self.vx * TIME_STEP
-        self.y_ = self.y_ + self.vy * TIME_STEP
+        self.x_ = self.x_ + self.vx * TIME_STEP  # TIME_STEP is a global constant
+        self.y_ = self.y_ + self.vy * TIME_STEP  # TIME_STEP is a global constant
 
 class Jammer(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER_X', max_speed=1., jamming_antenna=None):
+    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER_X'):
         super(Jammer, self).__init__(init_x, init_y, name)
+        self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
+        for command in self.ceoi:
+            command()  # self.add_self_to_jamming_network()
+
+    # inherits plan()
+    # inherits fly()
+    def add_self_to_jamming_network(self):
+        self.faction.add_unit_to_jamming_network(self)
 
 
 class Comm(Drone):
     def __init__(self, init_x=0.1, init_y=0.1), name='COMM_X', max_speed=1., jamming_antenna=None):
         super(Comm, self).__init__(init_x, init_y, name)
+        self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
+        self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
+        for command in self.ceoi:
+            command()  # self.add_self_to_communication_network()
+
+    # inherits plan()
+    # inherits fly()
+    def add_self_to_communication_network(self):
+        self.faction.add_unit_to_communication_network(self)
 
 
 class OccupyingTroop(Unit):
-    pass
+    def __init__(self, init_x=0.1, init_y=0.1), name='OCCUPYING_TROOP_X', max_speed=1., jamming_antenna=None):
+        super(OccupyingTroop, self).__init__(init_x, init_y, name)
+        self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
+        self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
+        for command in self.ceoi:
+            command()  # self.add_to_communication_network()
+        self.on_target()
 
+    def on_target(self)
+        assert self.x_ == order.destination_x
+        assert self.y_ == order.destination_y
+
+    def add_self_to_communication_network(self):
+        self.faction.add_unit_to_communication_network(self)
 
 class RoamingTroop(Unit):
-    pass
+    def __init__(self, init_x=0.1, init_y=0.1), name='ROAMING_TROOP_X', max_speed=1., jamming_antenna=None):
+        super(OccupyingTroop, self).__init__(init_x, init_y, name)
 
 
