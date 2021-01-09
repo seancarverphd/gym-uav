@@ -85,7 +85,7 @@ class Faction():  # BLUE OR RED
 
 
 class Unit():
-    def __init__(self, init_x=0.1, init_y=0.1, name='GHOST_X'):
+    def __init__(self, init_x=0.1, init_y=0.1, name='GHOST'):
         self.faction = None
         self.name = name
         self.receiver = None
@@ -132,7 +132,7 @@ class Unit():
 # faction added later
 
 class Drone(Unit):  # UAV
-    def __init__(self, init_x=0.1, init_y=0.1, name='DRONE_X'):
+    def __init__(self, init_x=0.1, init_y=0.1, name='DRONE'):
         super(Drone, self).__init__(init_x, init_y, name)
         self.max_speed = DEFAULT_FLY_SPEED 
         self.vx = 0.
@@ -156,25 +156,23 @@ class Drone(Unit):  # UAV
         self.y_ = self.y_ + self.vy * TIME_STEP  # TIME_STEP is a global constant
 
 class Jammer(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER_X'):
+    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER'):
         super(Jammer, self).__init__(init_x, init_y, name)
         self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
-        for command in self.ceoi:
-            command()  # self.add_self_to_jamming_network()
+        self.implement_ceoi()
 
-    # inherits plan()
-    # inherits fly()
+    # inherits plan() from Drone
+    # inherits fly() from Drone
     def add_self_to_jamming_network(self):
         self.faction.add_unit_to_jamming_network(self)
 
 
 class Comm(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1), name='COMM_X', max_speed=1., jamming_antenna=None):
+    def __init__(self, init_x=0.1, init_y=0.1), name='COMM', max_speed=1., jamming_antenna=None):
         super(Comm, self).__init__(init_x, init_y, name)
         self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
-        for command in self.ceoi:
-            command()  # self.add_self_to_communication_network()
+        self.implement_ceoi()
 
     # inherits plan()
     # inherits fly()
@@ -183,7 +181,7 @@ class Comm(Drone):
 
 
 class OccupyingTroop(Unit):
-    def __init__(self, init_x=0.1, init_y=0.1), name='OCCUPYING_TROOP_X', max_speed=1., jamming_antenna=None):
+    def __init__(self, init_x=0.1, init_y=0.1), name='OCCUPYING_TROOP', max_speed=1., jamming_antenna=None):
         super(OccupyingTroop, self).__init__(init_x, init_y, name)
         self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
@@ -199,7 +197,7 @@ class OccupyingTroop(Unit):
         self.faction.add_unit_to_communication_network(self)
 
 class RoamingTroop(Unit):
-    def __init__(self, init_x=0.1, init_y=0.1), name='ROAMING_TROOP_X', max_speed=1., jamming_antenna=None):
-        super(OccupyingTroop, self).__init__(init_x, init_y, name)
+    def __init__(self, init_x=0.1, init_y=0.1), name='ROAMING_TROOP', max_speed=1., jamming_antenna=None):
+        super(RoamingTroop, self).__init__(init_x, init_y, name)
 
 
