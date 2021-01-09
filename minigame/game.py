@@ -99,7 +99,7 @@ class Unit():
         self.x_ = init_x
         self.y_ = init_y
 
-    def place_on_target(self)
+    def place_on_target(self):
         self.x_ = order.destination_x
         self.y_ = order.destination_y
 
@@ -186,7 +186,7 @@ class Comm(Drone):
         self.faction.add_unit_to_communication_network(self)
 
 
-class GroundTroup(Unit):
+class GroundTroop(Unit):
     def __init__(self, init_x=0.1, init_y=0.1, name='GROUND_TROOP'):
         super(GroundTroop, self).__init__(init_x, init_y, name)
 
@@ -202,11 +202,11 @@ class OccupyingTroop(GroundTroop):
     def add_self_to_communication_network(self):
         self.faction.add_unit_to_communication_network(self)
 
-    def no_init_xy_passed(self)
+    def no_init_xy_passed(self):
         assert self.init_x is None  # instead xy defined by orders
         assert self.init_y is None  # instead xy defined by orders
 
 class RoamingTroop(GroundTroop):
-    def __init__(self, init_x=0.1, init_y=0.1), name='ROAMING_TROOP', max_speed=1., jamming_antenna=None):
+    def __init__(self, init_x=0.1, init_y=0.1, name='ROAMING_TROOP'):
         super(RoamingTroop, self).__init__(init_x, init_y, name)
 
