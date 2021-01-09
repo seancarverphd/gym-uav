@@ -44,7 +44,7 @@ class JammersOrder(Orders):
 class OccupyingTroopOrder(Orders):
     def __init__(self, unit):
         super(OccupyingTroopOrder, self).__init__(unit)
-        self.initial_commands = [unit.on_target]
+        self.initial_commands = [unit.place_on_target]
         self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.stay]
         self.post_timestep_commands = [unit.shoot_enemy_drones]
@@ -87,17 +87,23 @@ class Faction():  # BLUE OR RED
 class Unit():
     def __init__(self, init_x=0.1, init_y=0.1, name='GHOST'):
         self.faction = None
+        self.init_x = init_x
+        self.init_y = init_y
         self.name = name
         self.receiver = None
         self.transmitter = None
-        self.initialize_xy(init_x, init_y)
+        self.reset_xy(self.init_x, self.init_y)
         self.on_roof = False
 
-    def initialize_xy(self, init_x, init_y):
+    def reset_xy(self, init_x, init_y):
         self.x_ = init_x
         self.y_ = init_y
 
-    def execute_initial_commands(self):
+    def place_on_target(self)
+        self.x_ = order.destination_x
+        self.y_ = order.destination_y
+
+    def initialize(self):
         for command in self.order.initial_commands:
             command()
 
@@ -105,13 +111,16 @@ class Unit():
         for command in self.order.ceoi:
             command()
 
-    def execute_move_commands(self):
+    def move(self):
         for command in self.order.move_commands:
             command()
 
-    def execute_post_timestep_commands(self):
+    def post_timestep(self):
         for command in self.order.post_time_step_commands:
             command()
+
+    def stay(self):
+        pass
 
     def x(self):
         return self.x_
@@ -121,9 +130,6 @@ class Unit():
 
     def xy(self):
         return (self.x_, self.y_)
-
-    def stay(self):
-        pass
 
 # Drone, OccupyingTroop, RoamingTroop Inherit From Unit
 # Drone's child objects are COMMS and JAMMERS; first communicates, second jams, defined by children
@@ -156,7 +162,7 @@ class Drone(Unit):  # UAV
         self.y_ = self.y_ + self.vy * TIME_STEP  # TIME_STEP is a global constant
 
 class Jammer(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1), name='JAMMER'):
+    def __init__(self, init_x=0.1, init_y=0.1, name='JAMMER'):
         super(Jammer, self).__init__(init_x, init_y, name)
         self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
         self.implement_ceoi()
@@ -168,7 +174,7 @@ class Jammer(Drone):
 
 
 class Comm(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1), name='COMM', max_speed=1., jamming_antenna=None):
+    def __init__(self, init_x=0.1, init_y=0.1, name='COMM'):
         super(Comm, self).__init__(init_x, init_y, name)
         self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
@@ -180,24 +186,27 @@ class Comm(Drone):
         self.faction.add_unit_to_communication_network(self)
 
 
-class OccupyingTroop(Unit):
-    def __init__(self, init_x=0.1, init_y=0.1), name='OCCUPYING_TROOP', max_speed=1., jamming_antenna=None):
+class GroundTroup(Unit):
+    def __init__(self, init_x=0.1, init_y=0.1, name='GROUND_TROOP'):
+        super(GroundTroop, self).__init__(init_x, init_y, name)
+
+
+class OccupyingTroop(GroundTroop):
+    def __init__(self, init_x=None, init_y=None, name='OCCUPYING_TROOP'):
         super(OccupyingTroop, self).__init__(init_x, init_y, name)
         self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
-        for command in self.ceoi:
-            command()  # self.add_to_communication_network()
-        self.on_target()
-
-    def on_target(self)
-        assert self.x_ == order.destination_x
-        assert self.y_ == order.destination_y
+        self.no_init_xy_passed()
+        self.implement_ceoi()
 
     def add_self_to_communication_network(self):
         self.faction.add_unit_to_communication_network(self)
 
-class RoamingTroop(Unit):
+    def no_init_xy_passed(self)
+        assert self.init_x is None  # instead xy defined by orders
+        assert self.init_y is None  # instead xy defined by orders
+
+class RoamingTroop(GroundTroop):
     def __init__(self, init_x=0.1, init_y=0.1), name='ROAMING_TROOP', max_speed=1., jamming_antenna=None):
         super(RoamingTroop, self).__init__(init_x, init_y, name)
-
 
