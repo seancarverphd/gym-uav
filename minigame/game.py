@@ -8,16 +8,15 @@ DEFAULT_POINT_SOURCE_CONSTANT = 1
 DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
 
-class BlankOrder():
-    def __init__(self, unit, dest_x=None, dest_y=None):
-        self.unit = unit
-        self.destination_x = dest_x
-        self.destination_y = dest_y
-        self.asset_value = 0.
+class BlankOrder():  # Default values for orders
+    def __init__(self):
+        self.destination_x = None
+        self.destination_y = None
         self.initial_commands = [unit.stay]
         self.ceoi = [unit.stay]
         self.move_commands = [unit.stay]
-        self.post_timestep_commands =  [unit.stay]
+        self.post_timestep_commands = [unit.stay]
+        self.asset_value = 0.
 
     def set_destination(self, dest_x, dest_y):
         self.destination_x = dest_x
@@ -26,25 +25,23 @@ class BlankOrder():
 
 
 class CommsOrder(BlankOrder):
-    def __init__(self, unit, dest_x, dest_y):
-        super(CommsOrder, self).__init__(unit, dest_x, dest_y)
-        self.initial_commands = [unit.stay]
+    def __init__(self, unit):
+        super(CommsOrder, self).__init__()
         self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.plan, unit.fly]
-        self.post_timestep_commands = [unit.stay]
         self.asset_value = 1.
 
 
 class JammersOrder(BlankOrder):
-    def __init__(self, unit, dest_x, dest_y):
-        super(JammersOrder, self).__init__(unit, dest_x, dest_y)
+    def __init__(self):
+        super(JammersOrder, self).__init__()
         self.ceoi = [unit.add_self_to_jamming_network]
         self.move_commands = [unit.plan, unit.fly]
 
 
 class OccupyingTroopOrder(BlankOrder):
-    def __init__(self, unit, dest_x, dest_y):
-        super(OccupyingTroopOrder, self).__init__(unit, dest_x, dest_y)
+    def __init__(self):
+        super(OccupyingTroopOrder, self).__init__()
         self.initial_commands = [unit.place_on_target]
         self.ceoi = [unit.add_self_to_communication_network]
         self.post_timestep_commands = [unit.shoot_enemy_drones]
@@ -53,8 +50,8 @@ class OccupyingTroopOrder(BlankOrder):
 
 
 class RoamingTroopsOrder(BlankOrder):
-    def __init__(self, unit, dest_x, dest_y):
-        super(RoamingTroopsOrder, self).__init__(unit, dest_x, dest_y)
+    def __init__(self):
+        super(RoamingTroopsOrder, self).__init__()
         self.move_commands = [unit.traverse_roads_to_random_spot]
         self.post_timestep_commands = [unit.shoot_enemy_drones]
         self.random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION 
@@ -88,16 +85,25 @@ class Faction():  # BLUE OR RED
 
 
 class Unit():
-    def __init__(self, init_x=0.1, init_y=0.1, name='GHOST'):
+    def __init__(self):
         self.faction = None
-        self.init_x = init_x
-        self.init_y = init_y
-        self.name = name
-        self.order = None
+        self.name = 'GHOST'
+        self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         self.reset_xy(self.init_x, self.init_y)
         self.on_roof = False
 
-    def give_order(self, order=None):
+    def set_name(self, name):
+        self.name = name
+
+    def set_initial(self, init_x, init_y):
+        self.init_x = init_x
+        self.init_y = init_y
+
+    def give_order(self, order):
+        self.order = order
+
+    def set_destination(self, dest_x, dest_y):
+        self.order.set_destination(dest_x, dest_y)
 
     def reset_xy(self, init_x, init_y):
         self.x_ = init_x
@@ -142,8 +148,9 @@ class Unit():
 # faction added later
 
 class Drone(Unit):  # UAV
-    def __init__(self, init_x=0.1, init_y=0.1, name='DRONE'):
-        super(Drone, self).__init__(init_x, init_y, name)
+    def __init__(self):
+        super(Drone, self).__init__(order)
+        self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         self.max_speed = DEFAULT_FLY_SPEED 
         self.vx = 0.
         self.vy = 0.
@@ -166,8 +173,9 @@ class Drone(Unit):  # UAV
         self.y_ = self.y_ + self.vy * TIME_STEP  # TIME_STEP is a global constant
 
 class Jammer(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1, name='JAMMER'):
-        super(Jammer, self).__init__(init_x, init_y, name)
+    def __init__(self, order):
+        super(Jammer, self).__init__(order)
+        self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.implement_ceoi()
 
@@ -178,8 +186,9 @@ class Jammer(Drone):
 
 
 class Comm(Drone):
-    def __init__(self, init_x=0.1, init_y=0.1, name='COMM'):
-        super(Comm, self).__init__(init_x, init_y, name)
+    def __init__(self, order):
+        super(Comm, self).__init__(order)
+        self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
         self.implement_ceoi()
@@ -191,13 +200,14 @@ class Comm(Drone):
 
 
 class GroundTroop(Unit):
-    def __init__(self, init_x=0.1, init_y=0.1, name='GROUND_TROOP'):
+    def __init__(self, order):
         super(GroundTroop, self).__init__(init_x, init_y, name)
 
 
 class OccupyingTroop(GroundTroop):
-    def __init__(self, init_x=None, init_y=None, name='OCCUPYING_TROOP'):
-        super(OccupyingTroop, self).__init__(init_x, init_y, name)
+    def __init__(self, order):
+        super(OccupyingTroop, self).__init__(order)
+        self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
         self.no_init_xy_passed()
@@ -211,6 +221,6 @@ class OccupyingTroop(GroundTroop):
         assert self.init_y is None  # instead xy defined by orders
 
 class RoamingTroop(GroundTroop):
-    def __init__(self, init_x=0.1, init_y=0.1, name='ROAMING_TROOP'):
-        super(RoamingTroop, self).__init__(init_x, init_y, name)
-
+    def __init__(self):
+        super(RoamingTroop, self).__init__(order)
+        self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
