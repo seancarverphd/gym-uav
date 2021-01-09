@@ -3,18 +3,19 @@ import torch
 
 TIME_STEP = 1
 DEFAULT_FLY_SPEED = 2
+DEFAULT_POINT_SOURCE_CONSTANT = 1
+DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
 class Orders():
     def __init__(self, unit):
         self.unit = unit
         self.destination_x = None
         self.destination_y = None
-        self.occupy_roof = False
-        self.random_perturbation = 0.
         self.asset_value = 0.
-        self.move_commands = None
-        self.post_timestep_commands = None
-        self.ceoi = None
+        self.initial_commands = [unit.stay]
+        self.move_commands = [unit.stay]
+        self.post_timestep_commands =  [unit.stay]
+        self.ceoi = [unit.stay]
 
     def set_destination(self, d):
         self.destination_x = d[0]
@@ -25,6 +26,7 @@ class Orders():
     def set_asseet_value(self, d):
         self.asset_value = d
 
+
 class CommsOrder(Orders):
     def __init__(self, unit):
         super(CommsOrder, self).__init__(unit)
@@ -32,6 +34,7 @@ class CommsOrder(Orders):
         self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.plan, unit.fly]
         self.post_timestep_commands = [unit.stay]
+
 
 class JammersOrder(Orders):
     def __init__(self, unit):
@@ -41,17 +44,22 @@ class JammersOrder(Orders):
         self.move_commands = [unit.plan, unit.fly]
         self.post_timestep_commands = [unit.stay]
 
+
 class OccupyingTroopOrder(Orders):
     def __init__(self, unit):
         super(OccupyingTroopOrder, self).__init__(unit)
+        self.occupy_roof = True
         self.initial_commands = [unit.place_on_target]
         self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.stay]
         self.post_timestep_commands = [unit.shoot_enemy_drones]
 
+
 class RoamingTroopsOrder(Orders):
     def __init__(self, unit):
         super(RoamingTroopsOrder, self).__init__(unit)
+        self.occupy_roof = False
+        self.random_perturbation = 0.
         self.initial_commands = [unit.stay]
         self.ceoi = [unit.stay]  # Roaming Units dont communicate
         self.move_commands = [unit.traverse_roads_to_random_spot]
@@ -90,8 +98,6 @@ class Unit():
         self.init_x = init_x
         self.init_y = init_y
         self.name = name
-        self.receiver = None
-        self.transmitter = None
         self.reset_xy(self.init_x, self.init_y)
         self.on_roof = False
 
@@ -164,7 +170,7 @@ class Drone(Unit):  # UAV
 class Jammer(Drone):
     def __init__(self, init_x=0.1, init_y=0.1, name='JAMMER'):
         super(Jammer, self).__init__(init_x, init_y, name)
-        self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
+        self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.implement_ceoi()
 
     # inherits plan() from Drone
@@ -176,8 +182,8 @@ class Jammer(Drone):
 class Comm(Drone):
     def __init__(self, init_x=0.1, init_y=0.1, name='COMM'):
         super(Comm, self).__init__(init_x, init_y, name)
-        self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
-        self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
+        self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
         self.implement_ceoi()
 
     # inherits plan()
@@ -194,8 +200,8 @@ class GroundTroop(Unit):
 class OccupyingTroop(GroundTroop):
     def __init__(self, init_x=None, init_y=None, name='OCCUPYING_TROOP'):
         super(OccupyingTroop, self).__init__(init_x, init_y, name)
-        self.point_source_constant = POINT_SOURCE_CONSTANT  # POINT_SOURCE_CONSTANT is a global constant
-        self.reception_probability_slope = RECEPTION_PROBABILITY_SLOPE  # RECEPTION_PROBABILITY_SLOPE is a global constant
+        self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
         self.no_init_xy_passed()
         self.implement_ceoi()
 
