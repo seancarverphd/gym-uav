@@ -2,68 +2,63 @@ import numpy as np
 import torch
 
 TIME_STEP = 1
-DEFAULT_FLY_SPEED = 2
+DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
+DEFAULT_FLY_SPEED = 3
 DEFAULT_POINT_SOURCE_CONSTANT = 1
 DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
-class Orders():
-    def __init__(self, unit):
+
+class BlankOrder():
+    def __init__(self, unit, dest_x=None, dest_y=None):
         self.unit = unit
-        self.destination_x = None
-        self.destination_y = None
+        self.destination_x = dest_x
+        self.destination_y = dest_y
         self.asset_value = 0.
         self.initial_commands = [unit.stay]
+        self.ceoi = [unit.stay]
         self.move_commands = [unit.stay]
         self.post_timestep_commands =  [unit.stay]
-        self.ceoi = [unit.stay]
 
-    def set_destination(self, d):
-        self.destination_x = d[0]
-        self.destination_y = d[1]
-        self.occupy_roof = d[3]
-        self.random_perturbation = d[4]
-
-    def set_asseet_value(self, d):
-        self.asset_value = d
+    def set_destination(self, dest_x, dest_y):
+        self.destination_x = dest_x
+        self.destination_y = dest_y
+        
 
 
-class CommsOrder(Orders):
-    def __init__(self, unit):
-        super(CommsOrder, self).__init__(unit)
+class CommsOrder(BlankOrder):
+    def __init__(self, unit, dest_x, dest_y):
+        super(CommsOrder, self).__init__(unit, dest_x, dest_y)
         self.initial_commands = [unit.stay]
         self.ceoi = [unit.add_self_to_communication_network]
         self.move_commands = [unit.plan, unit.fly]
         self.post_timestep_commands = [unit.stay]
+        self.asset_value = 1.
 
 
-class JammersOrder(Orders):
-    def __init__(self, unit):
-        super(JammersOrder, self).__init__(unit)
-        self.initial_commands = [unit.stay]
+class JammersOrder(BlankOrder):
+    def __init__(self, unit, dest_x, dest_y):
+        super(JammersOrder, self).__init__(unit, dest_x, dest_y)
         self.ceoi = [unit.add_self_to_jamming_network]
         self.move_commands = [unit.plan, unit.fly]
-        self.post_timestep_commands = [unit.stay]
 
 
-class OccupyingTroopOrder(Orders):
-    def __init__(self, unit):
-        super(OccupyingTroopOrder, self).__init__(unit)
-        self.occupy_roof = True
+class OccupyingTroopOrder(BlankOrder):
+    def __init__(self, unit, dest_x, dest_y):
+        super(OccupyingTroopOrder, self).__init__(unit, dest_x, dest_y)
         self.initial_commands = [unit.place_on_target]
         self.ceoi = [unit.add_self_to_communication_network]
-        self.move_commands = [unit.stay]
         self.post_timestep_commands = [unit.shoot_enemy_drones]
+        self.occupy_roof = True
+        self.asset_value = 10.
 
 
-class RoamingTroopsOrder(Orders):
-    def __init__(self, unit):
-        super(RoamingTroopsOrder, self).__init__(unit)
-        self.occupy_roof = False
-        self.random_perturbation = 0.
-        self.initial_commands = [unit.stay]
-        self.ceoi = [unit.stay]  # Roaming Units dont communicate
+class RoamingTroopsOrder(BlankOrder):
+    def __init__(self, unit, dest_x, dest_y):
+        super(RoamingTroopsOrder, self).__init__(unit, dest_x, dest_y)
         self.move_commands = [unit.traverse_roads_to_random_spot]
         self.post_timestep_commands = [unit.shoot_enemy_drones]
+        self.random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION 
+        self.occupy_roof = False
 
 
 class Faction():  # BLUE OR RED
@@ -98,8 +93,11 @@ class Unit():
         self.init_x = init_x
         self.init_y = init_y
         self.name = name
+        self.order = None
         self.reset_xy(self.init_x, self.init_y)
         self.on_roof = False
+
+    def give_order(self, order=None):
 
     def reset_xy(self, init_x, init_y):
         self.x_ = init_x
