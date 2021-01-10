@@ -17,15 +17,10 @@ def setup_module():
     RED.add_unit(ROA)
 
 
-def assert_correct_names_for_units():
+def test_correct_names_for_units():
     assert BLUE.units[0].name == 'COMM'
     assert BLUE.units[1].name == 'OCCUPYING_TROOP'
     assert RED.units[0].name == 'JAMMER'
     assert RED.units[1].name == 'ROAMING_TROOP'
 
-
-def test_that_unit_superclasses_load():
-    GHO = game.Unit()
-    DRO = game.Drone()
-    GRO = game.GroundTroop()
 

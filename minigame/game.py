@@ -112,10 +112,6 @@ class Unit():
         self.x_ = init_x
         self.y_ = init_y
 
-    def place_on_target(self):
-        self.x_ = order.destination_x
-        self.y_ = order.destination_y
-
     def initialize(self):
         for command in self.order.initial_commands:
             command()
@@ -129,19 +125,6 @@ class Unit():
             command()
 
     # Below might be defined in a Movable_Unit class but doing so would create a "diamond" problem of multiple inheritance, difficult to debug
-    def plan_timestep_motion(self):   # Used for Comm, Jammer & RoamingTroop but NOT Occupying Troop
-        '''
-        plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
-        '''
-        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Drone, l1 for RoamingTroop
-        if desired_speed > max_speed:
-            reduction = max_speed/desired_speed
-        else:
-            reduction = 1
-        self.delta_x = reduction*(self.order.destination_x - self.x_)
-        self.delta_y = reduction*(self.order.destination_y - self.y_)
-        self.vx = delta_x / TIMESTEP # TIME_STEP is a global constant
-        self.vy = delta_y / TIMESTEP  # TIME_STEP is a global constant
 
     def post_timestep(self):
         for command in self.order.post_time_step_commands:
@@ -159,17 +142,24 @@ class Unit():
     def xy(self):
         return (self.x_, self.y_)
 
-# Drone, OccupyingTroop, RoamingTroop Inherit From Unit
-# Drone's child objects are COMMS and JAMMERS; first communicates, second jams, defined by children
-# receiver, sender defined by children
 
-# faction added later
+class Moving():
+    def plan_timestep_motion(self):   # Used for Comm, Jammer & RoamingTroop but NOT Occupying Troop
+        '''
+        plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
+        '''
+        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Drone, l1 for RoamingTroop
+        if desired_speed > max_speed:
+            reduction = max_speed/desired_speed
+        else:
+            reduction = 1
+        self.delta_x = reduction*(self.order.destination_x - self.x_)
+        self.delta_y = reduction*(self.order.destination_y - self.y_)
+        self.vx = delta_x / TIMESTEP # TIME_STEP is a global constant
+        self.vy = delta_y / TIMESTEP  # TIME_STEP is a global constant
 
-class Drone(Unit):  # UAV
-    def __init__(self):
-        super().__init__()
-        self.name = 'DRONE'
 
+class Flying(Moving):
     def fly(self): # overload this method
         self.x_ += self.delta_x
         self.y_ += self.delta_y
@@ -177,7 +167,30 @@ class Drone(Unit):  # UAV
     def distance_to_target(self):
         return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self_y)**2)
 
-class Comm(Drone):
+class Roaming(Moving):
+    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW
+        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
+
+class Occupying():
+    def place_on_target(self):
+        self.x_ = order.destination_x
+        self.y_ = order.destination_y
+
+
+class Communicating():
+    def add_self_to_communication_network(self):
+        self.faction.add_unit_to_communication_network(self)
+
+class Jamming():
+    def add_self_to_jamming_network(self):
+        self.faction.add_unit_to_jamming_network(self)
+
+class Shooting():
+    def shoot_enemy_drones(self):
+        pass  #TODO Add this function
+
+
+class Comm(Unit, Flying, Communicating):
     def __init__(self):
         super(Comm, self).__init__()
         self.name = 'COMM'
@@ -185,34 +198,15 @@ class Comm(Drone):
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
-    # inherits plan_time_step_motion()
-    # inherits fly()
-    def add_self_to_communication_network(self):
-        self.faction.add_unit_to_communication_network(self)
 
-
-class Jammer(Drone):
+class Jammer(Unit, Flying, Jamming):
     def __init__(self):
         super().__init__()
         self.name = 'JAMMER'
         self.order = JammerOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
 
-    # inherits plan_timestep_motion() from Drone
-    # inherits fly() from Drone
-    def add_self_to_jamming_network(self):
-        self.faction.add_unit_to_jamming_network(self)
-
-
-class GroundTroop(Unit):
-    def __init__(self):
-        super().__init__()
-        self.name = 'GROUND_TROOP'
-
-    def shoot_enemy_drones(self):
-        pass  #TODO Add this function
-
-class OccupyingTroop(GroundTroop):
+class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
     def __init__(self):
         super().__init__()
         self.name = 'OCCUPYING_TROOP'
@@ -220,11 +214,7 @@ class OccupyingTroop(GroundTroop):
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
-    def add_self_to_communication_network(self):
-        self.faction.add_unit_to_communication_network(self)
-
-
-class RoamingTroop(GroundTroop):
+class RoamingTroop(Unit, Roaming, Shooting):
     def __init__(self):
         super().__init__()
         self.name = 'ROAMING_TROOP'
@@ -235,6 +225,4 @@ class RoamingTroop(GroundTroop):
         self.y_ += self.delta_y
         #TODO Add Randomization
 
-    def distance_to_target(self):
-        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
 
