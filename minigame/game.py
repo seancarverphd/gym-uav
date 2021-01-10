@@ -7,6 +7,14 @@ DEFAULT_FLY_SPEED = 3
 DEFAULT_POINT_SOURCE_CONSTANT = 1
 DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
+########################################################################################
+#  There are classes for                                                               #
+#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
+#     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
+#     * Faction, (ie Red/Blue)                                                         #
+#     * Orders for each unit type                                                      #
+#     * Parent classes (Unit, Moving, BlankOrder)                                      #
+########################################################################################
 
 class BlankOrder():  # Default values for orders
     def __init__(self, unit):
@@ -84,6 +92,55 @@ class Faction():  # BLUE OR RED
             u.faction = None
         self.units = []
 
+class Moving():
+    def plan_timestep_motion(self):   # Used for Comm, Jammer & RoamingTroop but NOT Occupying Troop
+        '''
+        plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
+        '''
+        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Drone, l1 for RoamingTroop
+        if desired_speed > max_speed:
+            reduction = max_speed/desired_speed
+        else:
+            reduction = 1
+        self.delta_x = reduction*(self.order.destination_x - self.x_)
+        self.delta_y = reduction*(self.order.destination_y - self.y_)
+        self.vx = delta_x / TIMESTEP # TIME_STEP is a global constant
+        self.vy = delta_y / TIMESTEP  # TIME_STEP is a global constant
+
+class Flying(Moving):
+    def fly(self): # overload this method
+        self.x_ += self.delta_x
+        self.y_ += self.delta_y
+
+    def distance_to_target(self):
+        return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self_y)**2)
+
+class Roaming(Moving):
+    def traverse_roads_to_random_spot(self):
+        self.x_ += self.delta_x
+        self.y_ += self.delta_y
+        #TODO Add Randomization
+
+    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW
+        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
+
+class Occupying():
+    def place_on_target(self):
+        self.x_ = order.destination_x
+        self.y_ = order.destination_y
+
+class Communicating():
+    def add_self_to_communication_network(self):
+        self.faction.add_unit_to_communication_network(self)
+
+class Jamming():
+    def add_self_to_jamming_network(self):
+        self.faction.add_unit_to_jamming_network(self)
+
+class Shooting():
+    def shoot_enemy_drones(self):
+        pass  #TODO Add this function
+
 
 class Unit():
     def __init__(self):
@@ -91,7 +148,6 @@ class Unit():
         self.name = 'GHOST'
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         self.on_roof = False
-        # Below might be defined in a Movable_Unit class but doing so would create a "diamond" problem of multiple inheritance, difficult to debug
         self.max_speed = DEFAULT_FLY_SPEED
         self.delta_x = 0
         self.delta_y = 0
@@ -124,8 +180,6 @@ class Unit():
         for command in self.order.move_commands:
             command()
 
-    # Below might be defined in a Movable_Unit class but doing so would create a "diamond" problem of multiple inheritance, difficult to debug
-
     def post_timestep(self):
         for command in self.order.post_time_step_commands:
             command()
@@ -141,53 +195,6 @@ class Unit():
 
     def xy(self):
         return (self.x_, self.y_)
-
-
-class Moving():
-    def plan_timestep_motion(self):   # Used for Comm, Jammer & RoamingTroop but NOT Occupying Troop
-        '''
-        plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
-        '''
-        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Drone, l1 for RoamingTroop
-        if desired_speed > max_speed:
-            reduction = max_speed/desired_speed
-        else:
-            reduction = 1
-        self.delta_x = reduction*(self.order.destination_x - self.x_)
-        self.delta_y = reduction*(self.order.destination_y - self.y_)
-        self.vx = delta_x / TIMESTEP # TIME_STEP is a global constant
-        self.vy = delta_y / TIMESTEP  # TIME_STEP is a global constant
-
-
-class Flying(Moving):
-    def fly(self): # overload this method
-        self.x_ += self.delta_x
-        self.y_ += self.delta_y
-
-    def distance_to_target(self):
-        return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self_y)**2)
-
-class Roaming(Moving):
-    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW
-        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
-
-class Occupying():
-    def place_on_target(self):
-        self.x_ = order.destination_x
-        self.y_ = order.destination_y
-
-
-class Communicating():
-    def add_self_to_communication_network(self):
-        self.faction.add_unit_to_communication_network(self)
-
-class Jamming():
-    def add_self_to_jamming_network(self):
-        self.faction.add_unit_to_jamming_network(self)
-
-class Shooting():
-    def shoot_enemy_drones(self):
-        pass  #TODO Add this function
 
 
 class Comm(Unit, Flying, Communicating):
@@ -219,10 +226,5 @@ class RoamingTroop(Unit, Roaming, Shooting):
         super().__init__()
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
-
-    def traverse_roads_to_random_spot(self):
-        self.x_ += self.delta_x
-        self.y_ += self.delta_y
-        #TODO Add Randomization
 
 
