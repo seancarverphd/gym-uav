@@ -150,7 +150,7 @@ class Unit():
 class Drone(Unit):  # UAV
     def __init__(self):
         super(Drone, self).__init__()
-        self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
+        self.name = 'DRONE'
         self.max_speed = DEFAULT_FLY_SPEED 
         self.vx = 0.
         self.vy = 0.
@@ -176,6 +176,7 @@ class Drone(Unit):  # UAV
 class Comm(Drone):
     def __init__(self):
         super(Comm, self).__init__()
+        self.name = 'COMM'
         self.order = CommOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
@@ -189,6 +190,7 @@ class Comm(Drone):
 class Jammer(Drone):
     def __init__(self):
         super(Jammer, self).__init__()
+        self.name = 'JAMMER'
         self.order = JammerOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
 
@@ -201,7 +203,7 @@ class Jammer(Drone):
 class GroundTroop(Unit):
     def __init__(self):
         super(GroundTroop, self).__init__()
-        self.order = BlankOrder(self)
+        self.name = 'GROUND_TROOP'
 
     def shoot_enemy_drones(self):
         pass  #TODO Add this function
@@ -209,6 +211,7 @@ class GroundTroop(Unit):
 class OccupyingTroop(GroundTroop):
     def __init__(self):
         super(OccupyingTroop, self).__init__()
+        self.name = 'OCCUPYING_TROOP'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
@@ -220,6 +223,7 @@ class OccupyingTroop(GroundTroop):
 class RoamingTroop(GroundTroop):
     def __init__(self):
         super(RoamingTroop, self).__init__()
+        self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
     def traverse_roads_to_random_spot(self):
