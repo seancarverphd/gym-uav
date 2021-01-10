@@ -27,7 +27,7 @@ class BlankOrder():  # Default values for orders
 
 class CommOrder(BlankOrder):
     def __init__(self, unit):
-        super(CommOrder, self).__init__(unit)
+        super().__init__(unit)
         self.ceoi = [self.unit.add_self_to_communication_network]
         self.move_commands = [self.unit.plan_timestep_motion, unit.fly]
         self.asset_value = 1.
@@ -35,14 +35,14 @@ class CommOrder(BlankOrder):
 
 class JammerOrder(BlankOrder):
     def __init__(self, unit):
-        super(JammerOrder, self).__init__(unit)
+        super().__init__(unit)
         self.ceoi = [self.unit.add_self_to_jamming_network]
         self.move_commands = [self.unit.plan_timestep_motion, self.unit.fly]
 
 
 class OccupyingTroopOrder(BlankOrder):
     def __init__(self, unit):
-        super(OccupyingTroopOrder, self).__init__(unit)
+        super().__init__(unit)
         self.initial_commands = [self.unit.place_on_target]
         self.ceoi = [self.unit.add_self_to_communication_network]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
@@ -52,7 +52,7 @@ class OccupyingTroopOrder(BlankOrder):
 
 class RoamingTroopOrder(BlankOrder):
     def __init__(self, unit):
-        super(RoamingTroopOrder, self).__init__(unit)
+        super().__init__(unit)
         self.move_commands = [self.unit.plan_timestep_motion, self.unit.traverse_roads_to_random_spot]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
         self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
@@ -167,7 +167,7 @@ class Unit():
 
 class Drone(Unit):  # UAV
     def __init__(self):
-        super(Drone, self).__init__()
+        super().__init__()
         self.name = 'DRONE'
 
     def fly(self): # overload this method
@@ -193,7 +193,7 @@ class Comm(Drone):
 
 class Jammer(Drone):
     def __init__(self):
-        super(Jammer, self).__init__()
+        super().__init__()
         self.name = 'JAMMER'
         self.order = JammerOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -206,7 +206,7 @@ class Jammer(Drone):
 
 class GroundTroop(Unit):
     def __init__(self):
-        super(GroundTroop, self).__init__()
+        super().__init__()
         self.name = 'GROUND_TROOP'
 
     def shoot_enemy_drones(self):
@@ -214,7 +214,7 @@ class GroundTroop(Unit):
 
 class OccupyingTroop(GroundTroop):
     def __init__(self):
-        super(OccupyingTroop, self).__init__()
+        super().__init__()
         self.name = 'OCCUPYING_TROOP'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -226,7 +226,7 @@ class OccupyingTroop(GroundTroop):
 
 class RoamingTroop(GroundTroop):
     def __init__(self):
-        super(RoamingTroop, self).__init__()
+        super().__init__()
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
