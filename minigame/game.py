@@ -9,10 +9,10 @@ DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
 ########################################################################################
 #  There are classes for                                                               #
-#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
-#     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
-#     * Faction, (ie Red/Blue)                                                         #
 #     * Orders for each unit type                                                      #
+#     * Faction, (ie Red/Blue)                                                         #
+#     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
+#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
 #     * Parent classes (Unit, Moving, BlankOrder)                                      #
 ########################################################################################
 
