@@ -1,6 +1,10 @@
 import numpy as np
 import torch
 
+#############
+# CONSTANTS #
+#############
+
 TIME_STEP = 1
 DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
 DEFAULT_FLY_SPEED = 3
@@ -8,6 +12,7 @@ DEFAULT_POINT_SOURCE_CONSTANT = 1
 DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
 ########################################################################################
+# CLASSES:
 #  There are classes for                                                               #
 #     * Orders for each unit type                                                      #
 #     * Faction, (ie Red/Blue)                                                         #
@@ -60,10 +65,10 @@ class OccupyingTroopOrder(BlankOrder):
 class RoamingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
+        self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
         self.occupy_roof = False
         self.move_commands = [self.unit.plan_timestep_motion, self.unit.traverse_roads_to_random_spot]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
-        self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
 
 ############
 # FACTIONS #
@@ -103,14 +108,14 @@ class Moving():  # Parent class to Flying and Roaming
         '''
         plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
         '''
-        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Drone, l1 for RoamingTroop
+        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
         if desired_speed > max_speed:
             reduction = max_speed/desired_speed
         else:
             reduction = 1
         self.delta_x = reduction*(self.order.destination_x - self.x_)
         self.delta_y = reduction*(self.order.destination_y - self.y_)
-        self.vx = delta_x / TIMESTEP # TIME_STEP is a global constant
+        self.vx = delta_x / TIMESTEP  # TIME_STEP is a global constant
         self.vy = delta_y / TIMESTEP  # TIME_STEP is a global constant
 
 class Flying(Moving):
@@ -118,7 +123,7 @@ class Flying(Moving):
         self.x_ += self.delta_x
         self.y_ += self.delta_y
 
-    def distance_to_target(self):
+    def distance_to_target(self):  # l2 distance with flying, don't have both Roaming and Flying
         return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self_y)**2)
 
 class Roaming(Moving):
@@ -127,7 +132,7 @@ class Roaming(Moving):
         self.y_ += self.delta_y
         #TODO Add Randomization
 
-    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW
+    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW, don't have both Roaming and Flying
         return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
 
 class Occupying():
@@ -235,5 +240,4 @@ class RoamingTroop(Unit, Roaming, Shooting):
         super().__init__()
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
-
 
