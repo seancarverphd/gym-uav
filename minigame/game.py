@@ -99,9 +99,6 @@ class Unit():
         self.init_x = init_x
         self.init_y = init_y
 
-    def give_order(self, order):
-        self.order = order
-
     def set_destination(self, dest_x, dest_y):
         self.order.set_destination(dest_x, dest_y)
 
