@@ -55,7 +55,7 @@ class RoamingTroopOrder(BlankOrder):
         super(RoamingTroopOrder, self).__init__(unit)
         self.move_commands = [self.unit.traverse_roads_to_random_spot]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
-        self.random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION 
+        self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
         self.occupy_roof = False
 
 
