@@ -231,7 +231,9 @@ class RoamingTroop(GroundTroop):
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
     def traverse_roads_to_random_spot(self):
-        pass  #TODO Add this function
+        self.x_ += self.delta_x
+        self.y_ += self.delta_y
+        #TODO Add Randomization
 
     def distance_to_target(self):
         return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
