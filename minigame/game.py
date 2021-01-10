@@ -16,30 +16,31 @@ DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 #     * Parent classes (Unit, Moving, BlankOrder)                                      #
 ########################################################################################
 
+##########
+# ORDERS #
+##########
+
 class BlankOrder():  # Default values for orders
     def __init__(self, unit):
         self.unit = unit
         self.destination_x = None
         self.destination_y = None
+        self.asset_value = 0.
         self.initial_commands = [self.unit.stay]
-        self.ceoi = [unit.stay]
+        self.ceoi = [self.unit.stay]
         self.move_commands = [self.unit.stay]
         self.post_timestep_commands = [self.unit.stay]
-        self.asset_value = 0.
 
     def set_destination(self, dest_x, dest_y):
         self.destination_x = dest_x
         self.destination_y = dest_y
-        
-
 
 class CommOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
-        self.ceoi = [self.unit.add_self_to_communication_network]
-        self.move_commands = [self.unit.plan_timestep_motion, unit.fly]
         self.asset_value = 1.
-
+        self.ceoi = [self.unit.add_self_to_communication_network]
+        self.move_commands = [self.unit.plan_timestep_motion, self.unit.fly]
 
 class JammerOrder(BlankOrder):
     def __init__(self, unit):
@@ -47,16 +48,14 @@ class JammerOrder(BlankOrder):
         self.ceoi = [self.unit.add_self_to_jamming_network]
         self.move_commands = [self.unit.plan_timestep_motion, self.unit.fly]
 
-
 class OccupyingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
+        self.asset_value = 10.
         self.initial_commands = [self.unit.place_on_target]
         self.ceoi = [self.unit.add_self_to_communication_network]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
         self.occupy_roof = True
-        self.asset_value = 10.
-
 
 class RoamingTroopOrder(BlankOrder):
     def __init__(self, unit):
@@ -66,6 +65,9 @@ class RoamingTroopOrder(BlankOrder):
         self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
         self.occupy_roof = False
 
+############
+# FACTIONS #
+############
 
 class Faction():  # BLUE OR RED
     def __init__(self, name):
@@ -92,7 +94,11 @@ class Faction():  # BLUE OR RED
             u.faction = None
         self.units = []
 
-class Moving():
+################
+# CAPABILITIES #
+################
+
+class Moving():  # Parent class to Flying and Roaming
     def plan_timestep_motion(self):   # Used for Comm, Jammer & RoamingTroop but NOT Occupying Troop
         '''
         plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
@@ -141,8 +147,11 @@ class Shooting():
     def shoot_enemy_drones(self):
         pass  #TODO Add this function
 
+#########
+# UNITS #
+#########
 
-class Unit():
+class Unit():  # Parent class to all units
     def __init__(self):
         self.faction = None
         self.name = 'GHOST'
