@@ -52,18 +52,18 @@ class OccupyingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.asset_value = 10.
+        self.occupy_roof = True
         self.initial_commands = [self.unit.place_on_target]
         self.ceoi = [self.unit.add_self_to_communication_network]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
-        self.occupy_roof = True
 
 class RoamingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
+        self.occupy_roof = False
         self.move_commands = [self.unit.plan_timestep_motion, self.unit.traverse_roads_to_random_spot]
         self.post_timestep_commands = [self.unit.shoot_enemy_drones]
         self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
-        self.occupy_roof = False
 
 ############
 # FACTIONS #
