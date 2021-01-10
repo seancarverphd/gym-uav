@@ -170,6 +170,9 @@ class Drone(Unit):  # UAV
         self.y_ = self.y_ + self.vy * TIME_STEP  # TIME_STEP is a global constant
 
 
+    def l2_distance_to_target(self):
+        return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self_y)**2)
+
 class Comm(Drone):
     def __init__(self):
         super(Comm, self).__init__()
@@ -225,4 +228,7 @@ class RoamingTroop(GroundTroop):
 
     def traverse_roads_to_random_spot(self):
         pass  #TODO Add this function
+
+    def l1_distance_to_target(self):
+        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
 
