@@ -5,23 +5,25 @@ import torch
 
 def setup_module():
     global BLUE, RED, GAME
-    GAME = game.Game()
+    GAME = game.GAME1
     BLUE = game.Faction('BLUE', GAME)
     COM = game.Comm()
     OCC = game.OccupyingTroop()
-    BLUE.add_unit_to_faction(COM)
-    BLUE.add_unit_to_faction(OCC)
+    BLUE.add_unit(COM)
+    BLUE.add_unit(OCC)
+    assert COM.G.TIMESTEP is not None
     RED = game.Faction('RED', GAME)
     JAM = game.Jammer()
     ROA = game.RoamingTroop()
-    RED.add_unit_to_faction(JAM)
-    RED.add_unit_to_faction(ROA)
+    RED.add_unit(JAM)
+    RED.add_unit(ROA)
     COM.order.set_destination(0.9, 0.9)
     JAM.order.set_destination(0.1, 0.9)
     ROA.order.set_destination(0.9, 0.1)
 
 def test_fly_submax_requested():
     U = game.Comm()
+    U.regame(GAME1)
     assert U.x_ == .1
     assert U.y_ == .1
     U.order.set_destination(.2, .15)

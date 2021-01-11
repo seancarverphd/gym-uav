@@ -1,19 +1,31 @@
 import numpy as np
 import torch
 
-# A Game() class will hold these constants, eventually
-# Plus each faction and more.
+########################################################################################
+# CLASSES:                                                                             #
+#  There are classes for                                                               #
+#     * Games                                                                          #
+#     * Orders for each unit type                                                      #
+#     * Factions (eg Blue or Re)                                                       #
+#     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
+#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
+#     * Parent classes (Unit, Drone, Moving, BlankOrder)                               #
+########################################################################################
+
+########
+# GAME #
+########
 
 class Game():
     def __init__(self):
         self.blue = None
         self.red = None
         # CONSTANTS
-        self.TIMESTEP = .1
-        self.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
-        self.DEFAULT_FLY_SPEED = 3
-        self.DEFAULT_POINT_SOURCE_CONSTANT = 1
-        self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
+        self.TIMESTEP = None
+        self.DEFAULT_ROAMING_RANDOM_PERTURBATION = None
+        self.DEFAULT_FLY_SPEED = None
+        self.DEFAULT_POINT_SOURCE_CONSTANT = None
+        self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = None
 
     def add_factions(self, blue, red):
         assert blue is not red
@@ -21,19 +33,23 @@ class Game():
         self.red = red
         blue.game = self
         red.game = self
+        self.restore_defaults()
 
-NoGame = Game()
+    def restore_defaults(self):
+        if self.blue is not None:
+            self.blue.restore_defaults()
+        if self.red is not None:
+            self.red.restore_defaults()
 
+NoGAME = Game()
+GAME1 = Game()
+GAME1.TIMESTEP = .1
+GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
+GAME1.DEFAULT_FLY_SPEED = 3
+GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1
+GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
+GAME1.restore_defaults()
 
-########################################################################################
-# CLASSES:                                                                             #
-#  There are classes for                                                               #
-#     * Orders for each unit type                                                      #
-#     * Faction (eg Blue or Red)                                                       #
-#     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
-#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
-#     * Parent classes (Unit, Drone, Moving, BlankOrder)                               #
-########################################################################################
 
 ##########
 # ORDERS #
@@ -83,25 +99,29 @@ class Faction():  # BLUE OR RED
     def __init__(self, name, G):
         self.name = name
         self.G = G
-        self.game = None
         self.units = []
         self.headquarters = None
         self.communication_network = []
         self.jamming_network = []
 
     def add_headquarters(self, unit):
-        self.add_unit_to_faction(unit)
+        self.add_unit(unit)
         self.headquarters = unit
 
-    def add_unit_to_faction(self, unit):
+    def add_unit(self, unit):
+        unit.faction = self
+        unit.regame(self.G)
         self.units.append(unit)
-        self.units[-1].faction = self
 
     def add_unit_to_communication_network(self, unit):
         self.communication_network.append(unit)
 
     def add_unit_to_jamming_network(self, unit):
         self.jamming_network.append(unit)
+
+    def restore_defaults(self):
+        for u in self.units:
+            u.restore_defaults()
 
     def pop_unit(self):
         unit = self.units.pop()
@@ -147,6 +167,9 @@ class Moving():  # Parent class to Flying and Roaming
             self.vx = ideal_delta_x * self.max_speed/ideal_speed
             self.vy = ideal_delta_y * self.max_speed/ideal_speed
 
+    def restore_capability_defaults(self):
+        self.max_speed = self.G.DEFAULT_FLY_SPEED
+
 class Flying(Moving):
     def fly(self): # overload this method
         self.x_ += self.delta_x
@@ -188,11 +211,10 @@ class Shooting():
 class Unit():  # Parent class to all units
     def __init__(self):
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
-        self.regame(NoGame)  # defines self.G as NoGame and calls self.restore_defaults()
+        self.regame(NoGAME)  # defines self.G as NoGame and calls self.restore_defaults()
         self.faction = None
         self.name = 'GHOST'
         self.on_roof = False
-        self.max_speed = self.G.DEFAULT_FLY_SPEED
         self.x_ = 0.1
         self.y_ = 0.1
         self.delta_x = 0
@@ -217,9 +239,13 @@ class Unit():  # Parent class to all units
 
     def restore_defaults(self):
         self.restore_unit_defaults()
+        self.restore_capability_defaults()
         self.order.restore_defaults()
 
     def restore_unit_defaults(self):
+        pass
+
+    def restore_capability_defaults(self):
         pass
 
     def initialize(self):
@@ -244,7 +270,7 @@ class Unit():  # Parent class to all units
         return (self.x_, self.y_)
 
 
-class Drone(Unit, Flying):  # Parent class of Comm and Jammer
+class Drone(Flying, Unit):  # Parent class of Comm and Jammer
     def __init__(self):
         super().__init__()
         self.name = 'DRONE'
@@ -255,7 +281,7 @@ class Drone(Unit, Flying):  # Parent class of Comm and Jammer
         self.fly()
 
 
-class Comm(Drone, Communicating):
+class Comm(Communicating, Drone):
     def __init__(self):
         super().__init__()
         self.name = 'COMM'
@@ -269,7 +295,7 @@ class Comm(Drone, Communicating):
         self.add_self_to_communication_network()
 
 
-class Jammer(Unit, Flying, Jamming):
+class Jammer(Flying, Jamming, Unit):
     def __init__(self):
         super().__init__()
         self.name = 'JAMMER'
@@ -282,7 +308,7 @@ class Jammer(Unit, Flying, Jamming):
         self.add_self_to_jamming_network()
         
 
-class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
+class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
     def __init__(self):
         super().__init__()
         self.name = 'OCCUPYING_TROOP'
@@ -302,7 +328,7 @@ class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
             self.shoot_enemy_drones()
 
 
-class RoamingTroop(Unit, Roaming, Shooting):
+class RoamingTroop(Roaming, Shooting, Unit):
     def __init__(self):
         super().__init__()
         self.name = 'ROAMING_TROOP'
