@@ -5,6 +5,7 @@ import torch
 
 def setup_module():
     global BLUE, RED
+    game.TIMESTEP = 1
     BLUE = game.Faction('BLUE')
     COM = game.Comm()
     OCC = game.OccupyingTroop()                                                                                                                                                                         
@@ -18,6 +19,16 @@ def setup_module():
     COM.order.set_destination(0.9, 0.9)
     JAM.order.set_destination(0.1, 0.9)
     ROA.order.set_destination(0.9, 0.1)
+
+def test_fly_submax_requested():
+    U = game.Comm()
+    assert U.x_ == .1
+    assert U.y_ == .1
+    U.order.set_destination(.2, .15)
+    U.initialize()
+    U.move()
+    assert U.x_ == .2
+    assert U.y_ == .15
 
 def test_correct_names_for_units():
     assert BLUE.units[0].name == 'COMM'

@@ -186,9 +186,6 @@ class Unit():  # Parent class to all units
         self.x_ = init_x
         self.y_ = init_y
 
-    def set_destination(self, dest_x, dest_y):
-        self.order.set_destination(dest_x, dest_y)
-
     def reset_xy(self, init_x, init_y):
         self.x_ = init_x
         self.y_ = init_y
