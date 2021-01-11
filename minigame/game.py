@@ -1,17 +1,27 @@
 import numpy as np
 import torch
 
-#############
-# CONSTANTS #
-#############
 # A Game() class will hold these constants, eventually
 # Plus each faction and more.
 
-TIMESTEP = .1
-DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
-DEFAULT_FLY_SPEED = 3
-DEFAULT_POINT_SOURCE_CONSTANT = 1
-DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
+class Game():
+    def __init__(self, unit):
+        self.blue = None
+        self.red = None
+        # CONSTANTS
+        self.TIMESTEP = .1
+        self.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
+        self.DEFAULT_FLY_SPEED = 3
+        self.DEFAULT_POINT_SOURCE_CONSTANT = 1
+        self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
+
+    def add_factions(self, blue, red):
+        assert blue is not red
+        self.blue = blue
+        self.red = red
+        blue.game = self
+        red.game = self
+
 
 ########################################################################################
 # CLASSES:                                                                             #
@@ -28,7 +38,7 @@ DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 ##########
 
 class BlankOrder():  # Default values for orders
-    def __init__(self, unit):
+    def __init__(self, unit, G):
         self.unit = unit
         self.destination_x = None
         self.destination_y = None
@@ -39,22 +49,22 @@ class BlankOrder():  # Default values for orders
         self.destination_y = dest_y
 
 class CommOrder(BlankOrder):
-    def __init__(self, unit):
+    def __init__(self, unit, G):
         super().__init__(unit)
         self.asset_value = 1.
 
 class JammerOrder(BlankOrder):
-    def __init__(self, unit):
+    def __init__(self, unit, G):
         super().__init__(unit)
 
 class OccupyingTroopOrder(BlankOrder):
-    def __init__(self, unit):
+    def __init__(self, unit, G):
         super().__init__(unit)
         self.asset_value = 10.
         self.occupy_roof = True
 
 class RoamingTroopOrder(BlankOrder):
-    def __init__(self, unit):
+    def __init__(self, unit, G):
         super().__init__(unit)
         self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
         self.occupy_roof = False
@@ -64,8 +74,9 @@ class RoamingTroopOrder(BlankOrder):
 ############
 
 class Faction():  # BLUE OR RED
-    def __init__(self, name):
+    def __init__(self, name, G):
         self.name = name
+        self.game = None
         self.units = []
         self.headquarters = None
         self.communication_network = []
@@ -168,7 +179,7 @@ class Shooting():
 #########
 
 class Unit():  # Parent class to all units
-    def __init__(self):
+    def __init__(self, G):
         self.faction = None
         self.name = 'GHOST'
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
@@ -216,7 +227,7 @@ class Unit():  # Parent class to all units
 
 class Drone(Unit, Flying):  # Parent class of Comm and Jammer
     def __init__(self):
-        super().__init__()
+        super().__init__(G)
         self.name = 'DRONE'
         self.shot_down = False
 
@@ -227,7 +238,7 @@ class Drone(Unit, Flying):  # Parent class of Comm and Jammer
 
 class Comm(Drone, Communicating):
     def __init__(self):
-        super().__init__()
+        super().__init__(G)
         self.name = 'COMM'
         self.order = CommOrder(self)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -239,7 +250,7 @@ class Comm(Drone, Communicating):
 
 class Jammer(Unit, Flying, Jamming):
     def __init__(self):
-        super().__init__()
+        super().__init__(G)
         self.name = 'JAMMER'
         self.order = JammerOrder(self)  # self is the second arg that becomes "unit" inside JammerOrder.__init__(self, unit)
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -250,7 +261,7 @@ class Jammer(Unit, Flying, Jamming):
 
 class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
     def __init__(self):
-        super().__init__()
+        super().__init__(G)
         self.name = 'OCCUPYING_TROOP'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -268,7 +279,7 @@ class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
 
 class RoamingTroop(Unit, Roaming, Shooting):
     def __init__(self):
-        super().__init__()
+        super().__init__(G)
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
