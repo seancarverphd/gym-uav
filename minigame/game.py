@@ -5,7 +5,7 @@ import torch
 # CONSTANTS #
 #############
 
-TIME_STEP = 1
+TIMESTEP = 1
 DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
 DEFAULT_FLY_SPEED = 3
 DEFAULT_POINT_SOURCE_CONSTANT = 1
@@ -99,6 +99,22 @@ class Faction():  # BLUE OR RED
             u.faction = None
         self.units = []
 
+    def initialize(self):
+        for unit in self.units:
+            unit.initialize()
+
+    def implement_ceoi(self):
+        for unit in self.units:
+            unit.implement_ceoi()
+
+    def move(self):
+        for unit in self.units:
+            unit.move()
+
+    def post_timestep(self):
+        for unit in self.units:
+            unit.post_timestep()
+
     def add_unit_to_communication_network(self, unit):
         pass  #TODO Add this function
 
@@ -115,14 +131,14 @@ class Moving():  # Parent class to Flying and Roaming
         plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
         '''
         desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
-        if desired_speed > max_speed:
-            reduction = max_speed/desired_speed
+        if desired_speed > self.max_speed:
+            reduction = self.max_speed/desired_speed
         else:
             reduction = 1
         self.delta_x = reduction*(self.order.destination_x - self.x_)
         self.delta_y = reduction*(self.order.destination_y - self.y_)
-        self.vx = delta_x / TIMESTEP  # TIME_STEP is a global constant
-        self.vy = delta_y / TIMESTEP  # TIME_STEP is a global constant
+        self.vx = self.delta_x / TIMESTEP  # TIMESTEP is a global constant
+        self.vy = self.delta_y / TIMESTEP  # TIMESTEP is a global constant
 
 class Flying(Moving):
     def fly(self): # overload this method
@@ -130,7 +146,7 @@ class Flying(Moving):
         self.y_ += self.delta_y
 
     def distance_to_target(self):  # l2 distance with flying, don't have both Roaming and Flying
-        return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self_y)**2)
+        return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self.y_)**2)
 
 class Roaming(Moving):
     def traverse_roads_to_random_spot(self):
@@ -139,7 +155,7 @@ class Roaming(Moving):
         #TODO Add Randomization
 
     def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW, don't have both Roaming and Flying
-        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self_y)
+        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self.y_)
 
 class Occupying():
     def place_on_target(self):
@@ -169,6 +185,8 @@ class Unit():  # Parent class to all units
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         self.on_roof = False
         self.max_speed = DEFAULT_FLY_SPEED
+        self.x_ = 0.1
+        self.y_ = 0.1
         self.delta_x = 0
         self.delta_y = 0
         self.vx = 0.
@@ -178,8 +196,8 @@ class Unit():  # Parent class to all units
         self.name = name
 
     def set_initial(self, init_x, init_y):
-        self.init_x = init_x
-        self.init_y = init_y
+        self.x_ = init_x
+        self.y_ = init_y
 
     def set_destination(self, dest_x, dest_y):
         self.order.set_destination(dest_x, dest_y)
@@ -201,7 +219,7 @@ class Unit():  # Parent class to all units
             command()
 
     def post_timestep(self):
-        for command in self.order.post_time_step_commands:
+        for command in self.order.post_timestep_commands:
             command()
 
     def stay(self):
