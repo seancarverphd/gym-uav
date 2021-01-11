@@ -83,10 +83,10 @@ class Faction():  # BLUE OR RED
         self.jamming_network = []
 
     def add_headquarters(self, unit):
-        self.add_unit(unit)
+        self.add_unit_to_faction(unit)
         self.headquarters = unit
 
-    def add_unit(self, unit):
+    def add_unit_to_faction(self, unit):
         self.units.append(unit)
         self.units[-1].faction = self
 
@@ -98,6 +98,12 @@ class Faction():  # BLUE OR RED
         for u in self.units:
             u.faction = None
         self.units = []
+
+    def add_unit_to_communication_network(self, unit):
+        pass  #TODO Add this function
+
+    def add_unit_to_jamming_network(self, unit):
+        pass  #TODO Add this function
 
 ################
 # CAPABILITIES #
@@ -137,8 +143,8 @@ class Roaming(Moving):
 
 class Occupying():
     def place_on_target(self):
-        self.x_ = order.destination_x
-        self.y_ = order.destination_y
+        self.x_ = self.order.destination_x
+        self.y_ = self.order.destination_y
 
 class Communicating():
     def add_self_to_communication_network(self):
