@@ -15,10 +15,10 @@ DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 # CLASSES:
 #  There are classes for                                                               #
 #     * Orders for each unit type                                                      #
-#     * Faction, (ie Red/Blue)                                                         #
+#     * Faction (eg Blue or Red)                                                         #
 #     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
 #     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
-#     * Parent classes (Unit, Moving, BlankOrder)                                      #
+#     * Parent classes (Unit, Drone, Moving, BlankOrder)                                      #
 ########################################################################################
 
 ##########
@@ -132,7 +132,7 @@ class Flying(Moving):
         self.x_ += self.delta_x
         self.y_ += self.delta_y
 
-    def distance_to_target(self):  # l2 distance with flying, don't have both Roaming and Flying
+    def distance_to_target(self):  # l2 distance with flying, shouldn't have both Roaming and Flying capabilities
         return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self.y_)**2)
 
 class Roaming(Moving):
@@ -141,7 +141,7 @@ class Roaming(Moving):
         self.y_ += self.delta_y
         #TODO Add Randomization
 
-    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW, don't have both Roaming and Flying
+    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW, shouldn't have both Roaming and Flying capabilities
         return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self.y_)
 
 class Occupying():
