@@ -25,19 +25,13 @@ def test_correct_names_for_units():
     assert RED.units[0].name == 'JAMMER'
     assert RED.units[1].name == 'ROAMING_TROOP'
 
-def test_that_initialize_excecutes():
+def test_commands():
     BLUE.initialize()
     RED.initialize()
-
-def test_that_ceoi_executes():
     BLUE.implement_ceoi()
     RED.implement_ceoi()
-
-def test_that_move_executes():
     BLUE.move()
     RED.move()
-
-def test_that_post_timestep_executes():
     BLUE.post_timestep()
     RED.post_timestep()
 
