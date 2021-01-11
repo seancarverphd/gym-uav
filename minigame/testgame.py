@@ -7,13 +7,13 @@ def setup_module():
     global BLUE, RED, GAME
     GAME = game.Game()
     BLUE = game.Faction('BLUE', GAME)
-    COM = game.Comm(GAME)
-    OCC = game.OccupyingTroop(GAME)
+    COM = game.Comm()
+    OCC = game.OccupyingTroop()
     BLUE.add_unit_to_faction(COM)
     BLUE.add_unit_to_faction(OCC)
     RED = game.Faction('RED', GAME)
-    JAM = game.Jammer(GAME)
-    ROA = game.RoamingTroop(GAME)
+    JAM = game.Jammer()
+    ROA = game.RoamingTroop()
     RED.add_unit_to_faction(JAM)
     RED.add_unit_to_faction(ROA)
     COM.order.set_destination(0.9, 0.9)
@@ -31,10 +31,11 @@ def test_fly_submax_requested():
     assert U.y_ == .15
 
 def test_fly_submax_requested():
-    U = game.Comm(GAME)
+    U = game.Comm()
     assert U.x_ == .1
     assert U.y_ == .1
-    U.order
+    #TODO Finish this test
+
 def test_correct_names_for_units():
     assert BLUE.units[0].name == 'COMM'
     assert BLUE.units[1].name == 'OCCUPYING_TROOP'
