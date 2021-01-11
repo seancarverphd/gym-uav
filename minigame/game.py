@@ -31,10 +31,6 @@ class BlankOrder():  # Default values for orders
         self.destination_x = None
         self.destination_y = None
         self.asset_value = 0.
-        self.initial_commands = [self.unit.stay]
-        self.ceoi = [self.unit.stay]
-        self.move_commands = [self.unit.stay]
-        self.post_timestep_commands = [self.unit.stay]
 
     def set_destination(self, dest_x, dest_y):
         self.destination_x = dest_x
@@ -44,31 +40,22 @@ class CommOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.asset_value = 1.
-        self.ceoi = [self.unit.add_self_to_communication_network]
-        self.move_commands = [self.unit.plan_timestep_motion, self.unit.fly]
 
 class JammerOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
-        self.ceoi = [self.unit.add_self_to_jamming_network]
-        self.move_commands = [self.unit.plan_timestep_motion, self.unit.fly]
 
 class OccupyingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.asset_value = 10.
         self.occupy_roof = True
-        self.initial_commands = [self.unit.place_on_target]
-        self.ceoi = [self.unit.add_self_to_communication_network]
-        self.post_timestep_commands = [self.unit.shoot_enemy_drones]
 
 class RoamingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.roaming_random_perturbation = DEFAULT_ROAMING_RANDOM_PERTURBATION
         self.occupy_roof = False
-        self.move_commands = [self.unit.plan_timestep_motion, self.unit.traverse_roads_to_random_spot]
-        self.post_timestep_commands = [self.unit.shoot_enemy_drones]
 
 ############
 # FACTIONS #
@@ -207,22 +194,15 @@ class Unit():  # Parent class to all units
         self.y_ = init_y
 
     def initialize(self):
-        for command in self.order.initial_commands:
-            command()
+        pass
 
     def implement_ceoi(self):
-        for command in self.order.ceoi:
-            command()
+        pass
 
     def move(self):
-        for command in self.order.move_commands:
-            command()
+        pass
 
     def post_timestep(self):
-        for command in self.order.post_timestep_commands:
-            command()
-
-    def stay(self):
         pass
 
     def x(self):
@@ -243,6 +223,12 @@ class Comm(Unit, Flying, Communicating):
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
+    def implement_ceoi(self):
+        self.add_self_to_communication_network()
+
+    def move(self):
+        self.plan_timestep_motion()
+        self.fly()
 
 class Jammer(Unit, Flying, Jamming):
     def __init__(self):
@@ -250,6 +236,13 @@ class Jammer(Unit, Flying, Jamming):
         self.name = 'JAMMER'
         self.order = JammerOrder(self)  # self is the second arg that becomes unit inside __init__
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+
+    def implement_ceoi(self):
+        self.add_self_to_jamming_network()
+        
+    def move(self):
+        self.plan_timestep_motion()
+        self.fly()
 
 class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
     def __init__(self):
@@ -259,9 +252,24 @@ class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
+        def initialize(self):
+            self.place_on_target()
+
+        def implement_ceoi(self):
+            self.add_self_to_communication_network()
+
+        def post_timestep(self):
+            self.shoot_enemy_drones()
+
 class RoamingTroop(Unit, Roaming, Shooting):
     def __init__(self):
         super().__init__()
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
+
+        def move(self):
+            self.plan_timestep_motion, self.unit.traverse_roads_to_random_spot()
+
+        def post_timestep(self):
+            self.shoot_enemy_drones()
 

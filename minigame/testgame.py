@@ -28,32 +28,16 @@ def test_correct_names_for_units():
 def test_that_initialize_excecutes():
     BLUE.initialize()
     RED.initialize()
-    for unit in BLUE.units:
-        unit.initialize()
-    for unit in RED.units:
-        unit.initialize()
 
 def test_that_ceoi_executes():
     BLUE.implement_ceoi()
     RED.implement_ceoi()
-    for unit in BLUE.units:
-        unit.implement_ceoi()
-    for unit in RED.units:
-        unit.implement_ceoi()
 
 def test_that_move_executes():
     BLUE.move()
     RED.move()
-    for unit in RED.units:
-        unit.move()
-    for unit in BLUE.units:
-        unit.move()
 
 def test_that_post_timestep_executes():
     BLUE.post_timestep()
     RED.post_timestep()
-    for unit in RED.units:
-        unit.post_timestep()
-    for unit in BLUE.units:
-        unit.post_timestep()
 
