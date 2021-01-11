@@ -90,15 +90,15 @@ class RoamingTroopOrder(BlankOrder):
         self.occupy_roof = False
 
     def restore_defaults(self):
-        self.roaming_random_perturbation = self.unit.G.DEFAULT_ROAMING_RANDOM_PERTURBATION
+        self.roaming_random_perturbation = self.unit.GAME.DEFAULT_ROAMING_RANDOM_PERTURBATION
 ############
 # FACTIONS #
 ############
 
 class Faction():  # BLUE OR RED
-    def __init__(self, name, G):
+    def __init__(self, name, GAME):
         self.name = name
-        self.G = G
+        self.GAME = GAME
         self.units = []
         self.headquarters = None
         self.communication_network = []
@@ -110,7 +110,7 @@ class Faction():  # BLUE OR RED
 
     def add_unit(self, unit):
         unit.faction = self
-        unit.regame(self.G)
+        unit.regame(self.GAME)
         self.units.append(unit)
 
     def add_unit_to_communication_network(self, unit):
@@ -159,7 +159,7 @@ class Moving():  # Parent class to Flying and Roaming
         '''
         ideal_delta_x = self.order.destination_x - self.x_
         ideal_delta_y = self.order.destination_y - self.y_
-        ideal_speed = self.distance_to_target() / self.G.TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
+        ideal_speed = self.distance_to_target() / self.GAME.TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
         if ideal_speed <= self.max_speed:  # not too fast
             self.delta_x = ideal_delta_x
             self.delta_y = ideal_delta_y
@@ -168,7 +168,7 @@ class Moving():  # Parent class to Flying and Roaming
             self.vy = ideal_delta_y * self.max_speed/ideal_speed
 
     def restore_capability_defaults(self):
-        self.max_speed = self.G.DEFAULT_FLY_SPEED
+        self.max_speed = self.GAME.DEFAULT_FLY_SPEED
 
 class Flying(Moving):
     def fly(self): # overload this method
@@ -211,7 +211,7 @@ class Shooting():
 class Unit():  # Parent class to all units
     def __init__(self):
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
-        self.regame(NoGAME)  # defines self.G as NoGame and calls self.restore_defaults()
+        self.regame(NoGAME)  # defines self.GAME as NoGAME and calls self.restore_defaults()
         self.faction = None
         self.name = 'GHOST'
         self.on_roof = False
@@ -233,8 +233,8 @@ class Unit():  # Parent class to all units
         self.x_ = init_x
         self.y_ = init_y
 
-    def regame(self, G):
-        self.G = G
+    def regame(self, GAME):
+        self.GAME = GAME
         self.restore_defaults()
 
     def restore_defaults(self):
@@ -288,8 +288,8 @@ class Comm(Communicating, Drone):
         self.order = CommOrder(self)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
 
     def restore_unit_defaults(self):
-        self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
-        self.reception_probability_slope = self.G.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
+        self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.reception_probability_slope = self.GAME.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
@@ -302,7 +302,7 @@ class Jammer(Flying, Jamming, Unit):
         self.order = JammerOrder(self)  # self is the second arg that becomes "unit" inside JammerOrder.__init__(self, unit)
 
     def restore_unit_defaults(self):
-        self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
 
     def implement_ceoi(self):
         self.add_self_to_jamming_network()
@@ -315,8 +315,8 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
         def restore_unit_defaults(self):
-            self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
-            self.reception_probability_slope = self.G.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
+            self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+            self.reception_probability_slope = self.GAME.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
         def initialize(self):
             self.place_on_target()

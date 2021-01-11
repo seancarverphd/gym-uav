@@ -11,7 +11,6 @@ def setup_module():
     OCC = game.OccupyingTroop()
     BLUE.add_unit(COM)
     BLUE.add_unit(OCC)
-    assert COM.G.TIMESTEP is not None
     RED = game.Faction('RED', GAME)
     JAM = game.Jammer()
     ROA = game.RoamingTroop()
