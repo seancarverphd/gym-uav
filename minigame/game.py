@@ -151,11 +151,11 @@ class Occupying():
 
 class Communicating():
     def add_self_to_communication_network(self):
-        self.faction.add_unit_to_communication_network(self)
+        self.faction.add_unit_to_communication_network(self)  # self becomes "unit" inside faction
 
 class Jamming():
     def add_self_to_jamming_network(self):
-        self.faction.add_unit_to_jamming_network(self)
+        self.faction.add_unit_to_jamming_network(self)  # self becomes "unit" inside faction
 
 class Shooting():
     def shoot_enemy_drones(self):
