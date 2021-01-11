@@ -215,34 +215,39 @@ class Unit():  # Parent class to all units
         return (self.x_, self.y_)
 
 
-class Comm(Unit, Flying, Communicating):
+class Drone(Unit, Flying):  # Parent class of Comm and Jammer
     def __init__(self):
-        super(Comm, self).__init__()
+        super().__init__()
+        self.name = 'DRONE'
+        self.shot_down = False
+
+    def move(self):
+        self.plan_timestep_motion()
+        self.fly()
+
+
+class Comm(Drone, Communicating):
+    def __init__(self):
+        super().__init__()
         self.name = 'COMM'
-        self.order = CommOrder(self)  # self is the second arg that becomes unit inside __init__
+        self.order = CommOrder(self)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
 
-    def move(self):
-        self.plan_timestep_motion()
-        self.fly()
 
 class Jammer(Unit, Flying, Jamming):
     def __init__(self):
         super().__init__()
         self.name = 'JAMMER'
-        self.order = JammerOrder(self)  # self is the second arg that becomes unit inside __init__
+        self.order = JammerOrder(self)  # self is the second arg that becomes "unit" inside JammerOrder.__init__(self, unit)
         self.point_source_constant = DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
 
     def implement_ceoi(self):
         self.add_self_to_jamming_network()
         
-    def move(self):
-        self.plan_timestep_motion()
-        self.fly()
 
 class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
     def __init__(self):
@@ -260,6 +265,7 @@ class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
 
         def post_timestep(self):
             self.shoot_enemy_drones()
+
 
 class RoamingTroop(Unit, Roaming, Shooting):
     def __init__(self):
