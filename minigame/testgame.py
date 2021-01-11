@@ -30,6 +30,11 @@ def test_fly_submax_requested():
     assert U.x_ == .2
     assert U.y_ == .15
 
+def test_fly_submax_requested():
+    U = game.Comm()
+    assert U.x_ == .1
+    assert U.y_ == .1
+    U.order
 def test_correct_names_for_units():
     assert BLUE.units[0].name == 'COMM'
     assert BLUE.units[1].name == 'OCCUPYING_TROOP'

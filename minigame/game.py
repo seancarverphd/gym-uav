@@ -4,8 +4,10 @@ import torch
 #############
 # CONSTANTS #
 #############
+# A Game() class will hold these constants, eventually
+# Plus each faction and more.
 
-TIMESTEP = 1
+TIMESTEP = .1
 DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
 DEFAULT_FLY_SPEED = 3
 DEFAULT_POINT_SOURCE_CONSTANT = 1
@@ -117,15 +119,15 @@ class Moving():  # Parent class to Flying and Roaming
         '''
         plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
         '''
-        desired_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
-        if desired_speed > self.max_speed:
-            reduction = self.max_speed/desired_speed
-        else:
-            reduction = 1
-        self.delta_x = reduction*(self.order.destination_x - self.x_)
-        self.delta_y = reduction*(self.order.destination_y - self.y_)
-        self.vx = self.delta_x / TIMESTEP  # TIMESTEP is a global constant
-        self.vy = self.delta_y / TIMESTEP  # TIMESTEP is a global constant
+        ideal_delta_x = self.order.destination_x - self.x_
+        ideal_delta_y = self.order.destination_y - self.y_
+        ideal_speed = self.distance_to_target() / TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
+        if ideal_speed <= self.max_speed:  # not too fast
+            self.delta_x = ideal_delta_x
+            self.delta_y = ideal_delta_y
+        else:  # too fast
+            self.vx = ideal_delta_x * self.max_speed/ideal_speed
+            self.vy = ideal_delta_y * self.max_speed/ideal_speed
 
 class Flying(Moving):
     def fly(self): # overload this method
