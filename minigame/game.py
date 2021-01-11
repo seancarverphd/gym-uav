@@ -12,13 +12,13 @@ DEFAULT_POINT_SOURCE_CONSTANT = 1
 DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
 
 ########################################################################################
-# CLASSES:
+# CLASSES:                                                                             #
 #  There are classes for                                                               #
 #     * Orders for each unit type                                                      #
-#     * Faction (eg Blue or Red)                                                         #
+#     * Faction (eg Blue or Red)                                                       #
 #     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
 #     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
-#     * Parent classes (Unit, Drone, Moving, BlankOrder)                                      #
+#     * Parent classes (Unit, Drone, Moving, BlankOrder)                               #
 ########################################################################################
 
 ##########
@@ -77,6 +77,12 @@ class Faction():  # BLUE OR RED
         self.units.append(unit)
         self.units[-1].faction = self
 
+    def add_unit_to_communication_network(self, unit):
+        self.communication_network.append(unit)
+
+    def add_unit_to_jamming_network(self, unit):
+        self.jamming_network.append(unit)
+
     def pop_unit(self):
         unit = self.units.pop()
         unit.faction = None
@@ -101,12 +107,6 @@ class Faction():  # BLUE OR RED
     def post_timestep(self):
         for unit in self.units:
             unit.post_timestep()
-
-    def add_unit_to_communication_network(self, unit):
-        pass  #TODO Add this function
-
-    def add_unit_to_jamming_network(self, unit):
-        pass  #TODO Add this function
 
 ################
 # CAPABILITIES #
@@ -137,9 +137,9 @@ class Flying(Moving):
 
 class Roaming(Moving):
     def traverse_roads_to_random_spot(self):
+        #TODO Add Randomization
         self.x_ += self.delta_x
         self.y_ += self.delta_y
-        #TODO Add Randomization
 
     def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW, shouldn't have both Roaming and Flying capabilities
         return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self.y_)
