@@ -22,6 +22,8 @@ class Game():
         blue.game = self
         red.game = self
 
+NoGame = Game()
+
 
 ########################################################################################
 # CLASSES:                                                                             #
@@ -188,6 +190,7 @@ class Unit():  # Parent class to all units
     def __init__(self, G):
         self.G = G
         self.faction = None
+        self.regame(NoGame)  # defines self.G as NoGame and calls self.restore_defaults()
         self.name = 'GHOST'
         self.order = BlankOrder(self, G)  # self is the second arg that becomes unit inside __init__
         self.on_roof = False
@@ -209,6 +212,13 @@ class Unit():  # Parent class to all units
     def reset_xy(self, init_x, init_y):
         self.x_ = init_x
         self.y_ = init_y
+
+    def regame(self, G):
+        self.G = G
+        self.restore_defaults()
+
+    def restore_defaults(self):
+        pass
 
     def initialize(self):
         pass
@@ -235,7 +245,6 @@ class Unit():  # Parent class to all units
 class Drone(Unit, Flying):  # Parent class of Comm and Jammer
     def __init__(self, G):
         super().__init__(G)
-        self.G = G
         self.name = 'DRONE'
         self.shot_down = False
 
@@ -247,9 +256,10 @@ class Drone(Unit, Flying):  # Parent class of Comm and Jammer
 class Comm(Drone, Communicating):
     def __init__(self, G):
         super().__init__(G)
-        self.G = G
         self.name = 'COMM'
         self.order = CommOrder(self, G)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
+
+    def restore_defaults(self):
         self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = self.G.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
@@ -260,9 +270,10 @@ class Comm(Drone, Communicating):
 class Jammer(Unit, Flying, Jamming):
     def __init__(self, G):
         super().__init__(G)
-        self.G = G
         self.name = 'JAMMER'
         self.order = JammerOrder(self, G)  # self is the second arg that becomes "unit" inside JammerOrder.__init__(self, unit)
+
+    def restore_defaults(self):
         self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
 
     def implement_ceoi(self):
@@ -272,11 +283,12 @@ class Jammer(Unit, Flying, Jamming):
 class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
     def __init__(self, G):
         super().__init__(G)
-        self.G = G
         self.name = 'OCCUPYING_TROOP'
         self.order = OccupyingTroopOrder(self, G)  # self is the second arg that becomes unit inside __init__
-        self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
-        self.reception_probability_slope = self.G.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
+
+        def restore_defaults(self):
+            self.point_source_constant = self.G.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+            self.reception_probability_slope = self.G.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
         def initialize(self):
             self.place_on_target()
@@ -291,7 +303,6 @@ class OccupyingTroop(Unit, Occupying, Communicating, Shooting):
 class RoamingTroop(Unit, Roaming, Shooting):
     def __init__(self, G):
         super().__init__(G)
-        self.G = G
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self, G)  # self is the second arg that becomes unit inside __init__
 
