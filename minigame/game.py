@@ -189,8 +189,8 @@ class Flying(Moving):
         self.x_ += self.delta_x
         self.y_ += self.delta_y
 
-    def distance_to_target(self):  # l2 distance with flying, shouldn't have both Roaming and Flying capabilities
-        return np.sqrt((self.order.destination_x - self.x_)**2 + (self.order.destination_y - self.y_)**2)
+    def vector_norm_2D(self, x, y):  # l2
+        return np.sqrt(x**2 + y**2)
 
 class Roaming(Moving):
     def traverse_roads_to_random_spot(self):
@@ -198,8 +198,8 @@ class Roaming(Moving):
         self.x_ += self.delta_x
         self.y_ += self.delta_y
 
-    def distance_to_target(self):  # l1 because must traverse regular road network aligned NS/EW, shouldn't have both Roaming and Flying capabilities
-        return np.abs(self.order.destination_x - self.x_) + np.abs(self.order.destination_y - self.y_)
+    def vector_norm_2D(self, x, y):  # l1
+        return np.abs(x) + np.abs(y)
 
 class Occupying():
     def place_on_target(self):
@@ -286,6 +286,8 @@ class Unit():  # Parent class to all units
     def xy(self):
         return (self.x_, self.y_)
 
+    def distance_to_target(self):  # l2 distance with flying, shouldn't have both Roaming and Flying capabilities
+        return self.vector_norm_2D(self.order.destination_x - self.x_, self.order.destination_y - self.y_)
 
 class Drone(Flying, Unit):  # Parent class of Comm and Jammer
     def __init__(self, GAME=None):
