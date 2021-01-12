@@ -75,7 +75,6 @@ class BlankOrder():  # Default values for orders
         self.unit = unit
         self.destination_x = None
         self.destination_y = None
-        self.asset_value = 0.
 
     def set_destination(self, dest_x, dest_y):
         self.destination_x = dest_x
@@ -87,7 +86,6 @@ class BlankOrder():  # Default values for orders
 class CommOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
-        self.asset_value = 1.
 
 class JammerOrder(BlankOrder):
     def __init__(self, unit):
@@ -96,7 +94,6 @@ class JammerOrder(BlankOrder):
 class OccupyingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
-        self.asset_value = 10.
         self.occupy_roof = True
 
 class RoamingTroopOrder(BlankOrder):
@@ -247,6 +244,7 @@ class Unit():  # Parent class to all units
         self.delta_y = 0
         self.vx = 0.
         self.vy = 0.
+        self.asset_value = 0.
 
     def set_name(self, name):
         self.name = name
@@ -314,6 +312,7 @@ class Comm(Communicating, Drone):
         super().__init__(GAME)
         self.name = 'COMM'
         self.order = CommOrder(self)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
+        self.asset_value = 1.
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -341,19 +340,20 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
         super().__init__(GAME)
         self.name = 'OCCUPYING_TROOP'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
+        self.asset_value = 10.
 
-        def restore_unit_defaults(self):
-            self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
-            self.reception_probability_slope = self.GAME.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
+    def restore_unit_defaults(self):
+        self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.reception_probability_slope = self.GAME.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
 
-        def initialize(self):
-            self.place_on_target()
+    def initialize(self):
+        self.place_on_target()
 
-        def implement_ceoi(self):
-            self.add_self_to_communication_network()
+    def implement_ceoi(self):
+        self.add_self_to_communication_network()
 
-        def post_timestep(self):
-            self.shoot_enemy_drones()
+    def post_timestep(self):
+        self.shoot_enemy_drones()
 
 
 class RoamingTroop(Roaming, Shooting, Unit):
