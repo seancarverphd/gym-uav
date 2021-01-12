@@ -72,8 +72,8 @@ class BlankOrder():  # Default values for orders
     def __init__(self, unit):
         self.unit = unit
 
-    def restore_defaults(self):
-        pass
+
+class StationaryOrder(BlankOrder): pass
 
 class MovingOrder(BlankOrder):
     def __init__(self, unit):
@@ -85,30 +85,30 @@ class MovingOrder(BlankOrder):
         self.destination_x = dest_x
         self.destination_y = dest_y
 
-class CommOrder(MovingOrder):
+class MovingToGaussianDestinationOrder(MovingOrder):
     def __init__(self, unit):
         super().__init__(unit)
-        self.communicate = True
+        self.destination_varx = None
+        self.destination_vary = None
+        self.destination_covxy = None
 
-class JammerOrder(MovingOrder):
-    def __init__(self, unit):
-        super().__init__(unit)
-        self.jam = True
+    def set_covariance(self, varx, vary, covxy):
+        self.destination_varx = varx
+        self.destination_vary = vary
+        self.destination_covxy = covxy
 
-class OccupyingTroopOrder(BlankOrder):
-    def __init__(self, unit):
-        super().__init__(unit)
-        self.occupy_roof = True
-        self.shoot = True
 
-class RoamingTroopOrder(MovingOrder):
-    def __init__(self, unit):
-        super().__init__(unit)
-        self.occupy_roof = False
-        self.shoot = True
+class CommOrder(MovingOrder): pass
+class JammerOrder(MovingOrder): pass
+class OccupyingTroopOrder(StationaryOrder): pass
+class RoamingTroopOrder(MovingToGaussianDestinationOrder): pass
 
-    def restore_defaults(self):
-        self.roaming_random_perturbation = self.unit.GAME.DEFAULT_ROAMING_RANDOM_PERTURBATION
+
+# Might want to add flags to Order classes __init__, where appropriate (especially jam)
+#        self.communicate = True
+#        self.jam = True
+#        self.occupy_roof = True
+#        self.shoot = True
 
 ###########################
 # FACTIONS -- BLUE or RED #
@@ -329,7 +329,7 @@ class Comm(Communicating, Drone):
         self.add_self_to_communication_network()
 
 
-class Jammer(Flying, Jamming, Unit):
+class Jammer(Jamming, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'JAMMER'
