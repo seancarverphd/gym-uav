@@ -42,10 +42,21 @@ class TestTheGame():
         self.RED.post_timestep()
 
     def test_fly_supermax(self):
-        U = game.Comm(self.GAME)
+        U = game.Comm(game.GAME1)
         assert U.x_ == .1
         assert U.y_ == .1
-        #TODO Finish this test
+        assert U.GAME.TIMESTEP == .1
+        assert U.GAME.DEFAULT_FLY_SPEED == 5.
+        U.order.set_destination(6.1, 8.1)
+        # Ideal destination is 10. grids away
+        # Ideal speed is 10. grids per timestep
+        # Ideal speed is 10. * grids / timestep * 10 timesteps / timeunit = 100 grids / timeunit
+        # max_speed is 5. grids per timeunit (1/20 of ideal)
+        # Actual destination is .5 grids away, deltas: (.3, .4), dest:(.4, .5)
+        U.initialize()
+        U.move()
+        assert U.x_ == 0.4
+        assert U.y_ == 0.5
 
     def test_fly_submax(self):
         U = game.Comm(self.GAME)

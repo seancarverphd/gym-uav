@@ -57,10 +57,10 @@ class Game():
 NoGAME = Game()
 GAME1 = Game()
 GAME1.TIMESTEP = .1
-GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2
-GAME1.DEFAULT_FLY_SPEED = 3
-GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1
-GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10
+GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
+GAME1.DEFAULT_FLY_SPEED = 5.
+GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
+GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10.
 GAME1.restore_defaults()
 
 
@@ -177,13 +177,11 @@ class Moving():  # Parent class to Flying and Roaming
         if ideal_speed <= self.max_speed:  # not too fast
             self.delta_x = ideal_delta_x
             self.delta_y = ideal_delta_y
-            self.vx = self.delta_x / self.GAME.TIMESTEP
-            self.vy = self.delta_y / self.GAME.TIMESTEP
         else:  # too fast
-            self.vx = ideal_delta_x * self.max_speed/ideal_speed
-            self.vy = ideal_delta_y * self.max_speed/ideal_speed
-            self.delta_x = self.vx * self.GAME.TIMESTEP
-            self.delta_y = self.vy * self.GAME.TIMESTEP
+            self.delta_x = ideal_delta_x * self.max_speed/ideal_speed
+            self.delta_y = ideal_delta_y * self.max_speed/ideal_speed
+        self.vx = self.delta_x / self.GAME.TIMESTEP
+        self.vy = self.delta_y / self.GAME.TIMESTEP
 
     def restore_capability_defaults(self):
         self.max_speed = self.GAME.DEFAULT_FLY_SPEED
