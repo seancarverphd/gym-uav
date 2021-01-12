@@ -7,13 +7,12 @@ class TestTheGame():
     def setup(self):
         self.GAME = game.GAME1
         self.BLUE = game.Faction('BLUE', self.GAME)
-        self.GAME.add_blue(self.BLUE)
+        self.RED = game.Faction('RED', self.GAME)
+        self.GAME.add_blue_red(self.BLUE, self.RED)
         self.COM = game.Comm()
         self.OCC = game.OccupyingTroop()
         self.BLUE.add_unit(self.COM)
         self.BLUE.add_unit(self.OCC)
-        self.RED = game.Faction('RED', self.GAME)
-        self.GAME.add_red(self.RED)
         self.JAM = game.Jammer()
         self.ROA = game.RoamingTroop()
         self.RED.add_unit(self.JAM)

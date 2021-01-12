@@ -29,16 +29,14 @@ class Game():
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = None
 
-    def add_blue(self, blue):
-        assert blue is not self.red
+    def add_blue_red(self, blue, red):
+        assert blue is not red
         self.blue = blue
         blue.game = self
-        self.restore_defaults()
-
-    def add_red(self, red):
-        assert red is not self.blue
+        blue.enemy = red
         self.red = red
         red.game = self
+        red.enemy = blue
         self.restore_defaults()
 
     def restore_defaults(self):
@@ -113,12 +111,13 @@ class RoamingTroopOrder(MovingOrder):
         self.roaming_random_perturbation = self.unit.GAME.DEFAULT_ROAMING_RANDOM_PERTURBATION
 
 ###########################
-# FACTIONS -- BLUE OR RED #
+# FACTIONS -- BLUE or RED #
 ###########################
 
 class Faction():
     def __init__(self, name, GAME):
         self.name = name
+        self.enemy = None
         self.GAME = GAME
         self.units = []
         self.headquarters = None
