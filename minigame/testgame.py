@@ -22,23 +22,8 @@ class TestTheGame():
         self.JAM.order.set_destination(0.1, 0.9)
         self.ROA.order.set_destination(0.9, 0.1)
 
-    def test_fly_submax_requested(self):
-        assert False
-        U = game.Comm()
-        self.U.regame(GAME1)
-        assert U.x_ == .1
-        assert U.y_ == .1
-        U.order.set_destination(.2, .15)
-        U.initialize()
-        U.move()
-        assert U.x_ == .2
-        assert U.y_ == .15
-
-    def test_fly_submax_requested(self):
-        U = game.Comm()
-        assert U.x_ == .1
-        assert U.y_ == .1
-        #TODO Finish this test
+    def still_playing():
+        self.GAME.still_playing()
 
     def test_correct_names_for_units(self):
         assert self.BLUE.units[0].name == 'COMM'
@@ -55,4 +40,20 @@ class TestTheGame():
         self.RED.move()
         self.BLUE.post_timestep()
         self.RED.post_timestep()
+
+    def test_fly_supermax(self):
+        U = game.Comm(self.GAME)
+        assert U.x_ == .1
+        assert U.y_ == .1
+        #TODO Finish this test
+
+    def test_fly_submax(self):
+        U = game.Comm(self.GAME)
+        assert U.x_ == .1
+        assert U.y_ == .1
+        U.order.set_destination(.2, .15)
+        U.initialize()
+        U.move()
+        assert U.x_ == .2
+        assert U.y_ == .15
 
