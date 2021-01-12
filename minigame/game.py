@@ -79,6 +79,7 @@ class BlankOrder():  # Default values for orders
 
 class MovingOrder(BlankOrder):
     def __init__(self, unit):
+        super().__init__(unit)
         self.destination_x = None
         self.destination_y = None
 
@@ -352,9 +353,6 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.reception_probability_slope = self.GAME.DEFAULT_RECEPTION_PROBABILITY_SLOPE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
-
-    def initialize(self):
-        self.place_on_target()
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
