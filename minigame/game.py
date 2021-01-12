@@ -102,12 +102,12 @@ class MovingToGaussianDestinationOrder(MovingOrder):
         # How I derived this:
         # The covariance matrix is symmetric and positive definite so its eigen decomposition coincides with this singular decomposition
         # Write down singular values (which in this case are eigenvalues) in a diagonal matrix
-        # Write down singular/eigen vector matrices which are rotation.  Then multiply matrices.
+        # Write down singular/eigen vector matrices which are rotation in an orthogonal matrix and its transpose.  Then multiply matrices.
         self.var_major = var_major
         self.var_minor = var_minor
         self.cov_theta = cov_theta
         self.var_x = var_major*sin(cov_theta)**2 + var_minor*cos(cov_theta)**2
-        self.var_y = var_major*cos(cov_theta)**2 - var_minor*sin(cov_theta)**2
+        self.var_y = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
         self.cov_xy = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
 
 class CommOrder(MovingOrder): pass
