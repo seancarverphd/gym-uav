@@ -185,10 +185,13 @@ class Moving():  # Parent class to Flying and Roaming
         self.vx = self.delta_x / self.GAME.TIMESTEP
         self.vy = self.delta_y / self.GAME.TIMESTEP
 
-class Flying(Moving):
-    def fly(self): # overload this method
+    def step_xy(self):
         self.x_ += self.delta_x
         self.y_ += self.delta_y
+
+class Flying(Moving):
+    def fly(self): # overload this method
+        self.step_xy()
 
     def vector_norm_2D(self, x, y):  # l2
         return np.sqrt(x**2 + y**2)
@@ -198,8 +201,7 @@ class Flying(Moving):
 
 class Roaming(Moving):
     def roam(self):
-        self.x_ += self.delta_x
-        self.y_ += self.delta_y
+        self.step_xy()
         #TODO Add Randomization
 
     def vector_norm_2D(self, x, y):  # l1
