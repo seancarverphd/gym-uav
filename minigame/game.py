@@ -72,6 +72,8 @@ class BlankOrder():  # Default values for orders
     def __init__(self, unit):
         self.unit = unit
 
+    def restore_defaults(self):
+        pass
 
 class StationaryOrder(BlankOrder): pass
 
@@ -88,15 +90,25 @@ class MovingOrder(BlankOrder):
 class MovingToGaussianDestinationOrder(MovingOrder):
     def __init__(self, unit):
         super().__init__(unit)
-        self.destination_varx = None
-        self.destination_vary = None
-        self.destination_covxy = None
+        self.var_major = None
+        self.var_minor = None
+        self.cov_theta = None
+        self.var_x = None
+        self.var_y = None
+        self.cov_xy = None
 
-    def set_covariance(self, varx, vary, covxy):
-        self.destination_varx = varx
-        self.destination_vary = vary
-        self.destination_covxy = covxy
-
+    def set_covariance(self, var_major, var_minor, cov_theta):  #TODO this needs to be checked!!
+        # "major" axis is actually indicated by max(var_major, var_minor) OK if reversed       
+        # How I derived this:
+        # The covariance matrix is symmetric and positive definite so its eigen decomposition coincides with this singular decomposition
+        # Write down singular values (which in this case are eigenvalues) in a diagonal matrix
+        # Write down singular/eigen vector matrices which are rotation.  Then multiply matrices.
+        self.var_major = var_major
+        self.var_minor = var_minor
+        self.cov_theta = cov_theta
+        self.var_x = var_major*sin(cov_theta)**2 + var_minor*cos(cov_theta)**2
+        self.var_y = var_major*cos(cov_theta)**2 - var_minor*sin(cov_theta)**2
+        self.cov_xy = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
 
 class CommOrder(MovingOrder): pass
 class JammerOrder(MovingOrder): pass
