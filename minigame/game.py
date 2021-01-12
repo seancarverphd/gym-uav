@@ -25,6 +25,7 @@ class Game():
         self.TIMESTEP = None
         self.DEFAULT_ROAMING_RANDOM_PERTURBATION = None
         self.DEFAULT_FLY_SPEED = None
+        self.DEFAULT_ROAM_SPEED = None
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = None
 
@@ -59,6 +60,7 @@ GAME1 = Game()
 GAME1.TIMESTEP = .1
 GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
 GAME1.DEFAULT_FLY_SPEED = 5.
+GAME1.DEFAULT_ROAM_SPEED = 2.
 GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
 GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10.
 GAME1.restore_defaults()
@@ -183,9 +185,6 @@ class Moving():  # Parent class to Flying and Roaming
         self.vx = self.delta_x / self.GAME.TIMESTEP
         self.vy = self.delta_y / self.GAME.TIMESTEP
 
-    def restore_capability_defaults(self):
-        self.max_speed = self.GAME.DEFAULT_FLY_SPEED
-
 class Flying(Moving):
     def fly(self): # overload this method
         self.x_ += self.delta_x
@@ -194,14 +193,20 @@ class Flying(Moving):
     def vector_norm_2D(self, x, y):  # l2
         return np.sqrt(x**2 + y**2)
 
+    def restore_capability_defaults(self):
+        self.max_speed = self.GAME.DEFAULT_FLY_SPEED
+
 class Roaming(Moving):
-    def traverse_roads_to_random_spot(self):
-        #TODO Add Randomization
+    def roam(self):
         self.x_ += self.delta_x
         self.y_ += self.delta_y
+        #TODO Add Randomization
 
     def vector_norm_2D(self, x, y):  # l1
         return np.abs(x) + np.abs(y)
+
+    def restore_capability_defaults(self):
+        self.max_speed = self.GAME.DEFAULT_ROAM_SPEED
 
 class Occupying():
     def place_on_target(self):
@@ -355,9 +360,10 @@ class RoamingTroop(Roaming, Shooting, Unit):
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
-        def move(self):
-            self.plan_timestep_motion, self.unit.traverse_roads_to_random_spot()
+    def move(self):
+        self.plan_timestep_motion()
+        self.roam()
 
-        def post_timestep(self):
-            self.shoot_enemy_drones()
+    def post_timestep(self):
+        self.shoot_enemy_drones()
 

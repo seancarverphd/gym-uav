@@ -59,7 +59,7 @@ class TestTheGame():
         assert U.y_ == 0.5
 
     def test_fly_submax(self):
-        U = game.Comm(self.GAME)
+        U = game.Comm(game.GAME1)
         assert U.x_ == .1
         assert U.y_ == .1
         U.order.set_destination(.2, .15)
@@ -67,4 +67,20 @@ class TestTheGame():
         U.move()
         assert U.x_ == .2
         assert U.y_ == .15
+
+    def test_roam_supermax(self):
+        V = game.RoamingTroop(game.GAME1)
+        assert V.x_ == .1
+        assert V.y_ == .1
+
+    def test_roam_submax(self):
+        V = game.RoamingTroop(game.GAME1)
+        assert V.x_ == .1
+        assert V.y_ == .1
+        V.order.set_destination(.14, .15)
+        V.initialize()
+        V.move()
+        assert V.x_ == .14
+        assert V.y_ == .15
+
 
