@@ -27,11 +27,15 @@ class Game():
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = None
 
-    def add_factions(self, blue, red):
-        assert blue is not red
+    def add_blue(self, blue):
+        assert blue is not self.red
         self.blue = blue
-        self.red = red
         blue.game = self
+        self.restore_defaults()
+
+    def add_red(self, red):
+        assert red is not self.blue
+        self.red = red
         red.game = self
         self.restore_defaults()
 
