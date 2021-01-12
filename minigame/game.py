@@ -73,6 +73,12 @@ GAME1.restore_defaults()
 class BlankOrder():  # Default values for orders
     def __init__(self, unit):
         self.unit = unit
+
+    def restore_defaults(self):
+        pass
+
+class MovingOrder(BlankOrder):
+    def __init__(self, unit):
         self.destination_x = None
         self.destination_y = None
 
@@ -80,26 +86,27 @@ class BlankOrder():  # Default values for orders
         self.destination_x = dest_x
         self.destination_y = dest_y
 
-    def restore_defaults(self):
-        pass
-
-class CommOrder(BlankOrder):
+class CommOrder(MovingOrder):
     def __init__(self, unit):
         super().__init__(unit)
+        self.communicate = True
 
-class JammerOrder(BlankOrder):
+class JammerOrder(MovingOrder):
     def __init__(self, unit):
         super().__init__(unit)
+        self.jam = True
 
 class OccupyingTroopOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.occupy_roof = True
+        self.shoot = True
 
-class RoamingTroopOrder(BlankOrder):
+class RoamingTroopOrder(MovingOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.occupy_roof = False
+        self.shoot = True
 
     def restore_defaults(self):
         self.roaming_random_perturbation = self.unit.GAME.DEFAULT_ROAMING_RANDOM_PERTURBATION
@@ -208,9 +215,9 @@ class Roaming(Moving):
         self.max_speed = self.GAME.DEFAULT_ROAM_SPEED
 
 class Occupying():
-    def place_on_target(self):
-        self.x_ = self.order.destination_x
-        self.y_ = self.order.destination_y
+    def place_on_target(self, occupy_x, occupy_y):
+        self.x_ = occupy_x
+        self.y_ = occupy_y
 
 class Communicating():
     def add_self_to_communication_network(self):
