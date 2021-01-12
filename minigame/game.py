@@ -177,9 +177,13 @@ class Moving():  # Parent class to Flying and Roaming
         if ideal_speed <= self.max_speed:  # not too fast
             self.delta_x = ideal_delta_x
             self.delta_y = ideal_delta_y
+            self.vx = self.delta_x / self.GAME.TIMESTEP
+            self.vy = self.delta_y / self.GAME.TIMESTEP
         else:  # too fast
             self.vx = ideal_delta_x * self.max_speed/ideal_speed
             self.vy = ideal_delta_y * self.max_speed/ideal_speed
+            self.delta_x = self.vx * self.GAME.TIMESTEP
+            self.delta_y = self.vy * self.GAME.TIMESTEP
 
     def restore_capability_defaults(self):
         self.max_speed = self.GAME.DEFAULT_FLY_SPEED
