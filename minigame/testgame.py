@@ -71,6 +71,7 @@ class TestTheGame():
         V = game.RoamingTroop(game.GAME1)
         assert V.x_ == .1
         assert V.y_ == .1
+        #TODO Finish this test
 
     def test_roam_submax(self):
         V = game.RoamingTroop(game.GAME1)
