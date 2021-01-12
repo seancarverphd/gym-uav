@@ -18,6 +18,7 @@ import torch
 
 class Game():
     def __init__(self):
+        # FACTIONS
         self.blue = None
         self.red = None
         # CONSTANTS
@@ -44,6 +45,14 @@ class Game():
             self.blue.restore_defaults()
         if self.red is not None:
             self.red.restore_defaults()
+
+    def still_playing(self):
+        assert self is self.blue.GAME
+        assert self is self.red.GAME
+        for unit in self.blue.units:
+            assert self is unit.GAME
+        for unit in self.red.units:
+            assert self is unit.GAME
 
 NoGAME = Game()
 GAME1 = Game()
@@ -95,11 +104,12 @@ class RoamingTroopOrder(BlankOrder):
 
     def restore_defaults(self):
         self.roaming_random_perturbation = self.unit.GAME.DEFAULT_ROAMING_RANDOM_PERTURBATION
-############
-# FACTIONS #
-############
 
-class Faction():  # BLUE OR RED
+###########################
+# FACTIONS -- BLUE OR RED #
+###########################
+
+class Faction():
     def __init__(self, name, GAME):
         self.name = name
         self.GAME = GAME
@@ -213,9 +223,12 @@ class Shooting():
 #########
 
 class Unit():  # Parent class to all units
-    def __init__(self):
+    def __init__(self, GAME=None):
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
-        self.regame(NoGAME)  # defines self.GAME as NoGAME and calls self.restore_defaults()
+        if GAME is None:
+            self.regame(NoGAME)  # defines self.GAME as NoGAME and calls self.restore_defaults()
+        else:
+            self.regame(GAME)
         self.faction = None
         self.name = 'GHOST'
         self.on_roof = False
@@ -275,8 +288,8 @@ class Unit():  # Parent class to all units
 
 
 class Drone(Flying, Unit):  # Parent class of Comm and Jammer
-    def __init__(self):
-        super().__init__()
+    def __init__(self, GAME=None):
+        super().__init__(GAME)
         self.name = 'DRONE'
         self.shot_down = False
 
@@ -286,8 +299,8 @@ class Drone(Flying, Unit):  # Parent class of Comm and Jammer
 
 
 class Comm(Communicating, Drone):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, GAME=None):
+        super().__init__(GAME)
         self.name = 'COMM'
         self.order = CommOrder(self)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
 
@@ -300,8 +313,8 @@ class Comm(Communicating, Drone):
 
 
 class Jammer(Flying, Jamming, Unit):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, GAME=None):
+        super().__init__(GAME)
         self.name = 'JAMMER'
         self.order = JammerOrder(self)  # self is the second arg that becomes "unit" inside JammerOrder.__init__(self, unit)
 
@@ -313,8 +326,8 @@ class Jammer(Flying, Jamming, Unit):
         
 
 class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, GAME=None):
+        super().__init__(GAME)
         self.name = 'OCCUPYING_TROOP'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
@@ -333,8 +346,8 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
 
 
 class RoamingTroop(Roaming, Shooting, Unit):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, GAME=None):
+        super().__init__(GAME)
         self.name = 'ROAMING_TROOP'
         self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
