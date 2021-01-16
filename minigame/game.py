@@ -93,9 +93,9 @@ class MovingToGaussianDestinationOrder(MovingOrder):
         self.var_major = None
         self.var_minor = None
         self.cov_theta = None
-        self.var_x = None
-        self.var_y = None
-        self.cov_xy = None
+        self.var_x_ = None  # trailing underbars mean variable is internal and not under direct control of agents
+        self.var_y_ = None
+        self.cov_xy_ = None
 
     def set_covariance(self, var_major, var_minor, cov_theta):  #TODO this needs to be checked!!
         # "major" axis is actually indicated by max(var_major, var_minor) OK if reversed       
@@ -106,15 +106,14 @@ class MovingToGaussianDestinationOrder(MovingOrder):
         self.var_major = var_major
         self.var_minor = var_minor
         self.cov_theta = cov_theta
-        self.var_x = var_major*sin(cov_theta)**2 + var_minor*cos(cov_theta)**2
-        self.var_y = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
-        self.cov_xy = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
+        self.var_x_ = var_major*sin(cov_theta)**2 + var_minor*cos(cov_theta)**2
+        self.var_y_ = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
+        self.cov_xy_ = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
 
 class CommOrder(MovingOrder): pass
 class JammerOrder(MovingOrder): pass
 class OccupyingTroopOrder(StationaryOrder): pass
 class RoamingTroopOrder(MovingToGaussianDestinationOrder): pass
-
 
 # Might want to add flags to Order classes __init__, where appropriate (especially jam)
 #        self.communicate = True
@@ -136,6 +135,7 @@ class Faction():
         self.communication_network = []
         self.jamming_network = []
 
+    # All methods until noted dont't have counterparts in units classes
     def add_headquarters(self, unit):
         self.add_unit(unit)
         self.headquarters = unit
@@ -145,16 +145,6 @@ class Faction():
         unit.regame(self.GAME)
         self.units.append(unit)
 
-    def add_unit_to_communication_network(self, unit):
-        self.communication_network.append(unit)
-
-    def add_unit_to_jamming_network(self, unit):
-        self.jamming_network.append(unit)
-
-    def restore_defaults(self):
-        for u in self.units:
-            u.restore_defaults()
-
     def pop_unit(self):
         unit = self.units.pop()
         unit.faction = None
@@ -163,6 +153,17 @@ class Faction():
         for u in self.units:
             u.faction = None
         self.units = []
+
+    def add_unit_to_communication_network(self, unit):
+        self.communication_network.append(unit)
+
+    def add_unit_to_jamming_network(self, unit):
+        self.jamming_network.append(unit)
+
+    # All methods below have counterparts in units classes
+    def restore_defaults(self):
+        for unit in self.units:
+            unit.restore_defaults()
 
     def initialize(self):
         for unit in self.units:
@@ -179,6 +180,20 @@ class Faction():
     def post_timestep(self):
         for unit in self.units:
             unit.post_timestep()
+
+    def step(self, action):  #TODO NEED WORK!
+        obs_list = []
+        reward_list = []
+        done_list = []
+        info_list = []
+        for i, unit in enumerate(self.units)
+            obs_i, reward_i, done_i, info_i = unit.step(action[i])
+            obs_list.append(obs_i)
+            reward_list.append(reward_i)
+            done_list = append(done_i)
+            info_list = append(info_i)
+        return obs_list, reward_list, done_list, info_list
+
 
 ################
 # CAPABILITIES #
