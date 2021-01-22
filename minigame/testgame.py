@@ -83,4 +83,16 @@ class TestTheGame():
         assert V.x_ == .14
         assert V.y_ == .15
 
+    def test_circle(self):
+        C = game.CircleOrder(game.Unit())
+        assert C.pos_x(0) == 1.
+        assert C.pos_x(np.pi/4) == .5
+        assert C.pos_x(np.pi/2) == 0
+        assert abs(C.pos_x(3*np.pi/4) - .5) < 0.000001
+        assert C.pos_x(np.pi) == 1.
+        assert C.pos_y(0) == .5
+        assert C.pos_y(np.pi/4) == 1
+        assert abs(C.pos_y(np.pi/2) - .5) < 0.000001
+        assert abs(C.pos_y(3*np.pi/4)) < 0.000001
+        assert abs(C.pos_y(np.pi) - .5) < 0.000001
 

@@ -77,6 +77,47 @@ class BlankOrder():  # Default values for orders
 
 class StationaryOrder(BlankOrder): pass
 
+class ParameterizedOrder(BlankOrder):
+    def __init__(self, unit):
+        super().__init__(unit)
+
+    def pos_x(self, time):
+        return 0.
+
+    def vel_x(self, time):
+        return 0.
+
+    def pos_y(self, time):
+        return 0.
+
+    def vel_y(self, time):
+        return 0.
+ 
+class CircleOrder(BlankOrder):
+    def __init__(self, unit):
+        super().__init__(unit)
+        self.center_x = .5
+        self.center_y = .5
+        self.radius = .5
+        self.initial_phase = 0.
+        self.time_at_initial_phase = 0.
+        self.signed_speed = 1.  # Positive for counterclockwise, negative for clockwise
+
+    def phase(self, time):
+        return self.signed_speed*(time - self.time_at_initial_phase)/self.radius + self.initial_phase
+
+    def pos_x(self, time):
+        return self.center_x + self.radius*np.cos(self.phase(time))
+
+    def vel_x(self, time):
+        return self.speed*np.sin(self.phase(time))
+
+    def pos_y(self, time):
+        return self.center_y + self.radius*np.sin(self.phase(time))
+
+    def vel_y(self, time):
+        return self.speed*np.cos(self.phase(time))
+
 class ApproachingOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
