@@ -186,7 +186,7 @@ class Faction():
         reward_list = []
         done_list = []
         info_list = []
-        for i, unit in enumerate(self.units)
+        for i, unit in enumerate(self.units):
             obs_i, reward_i, done_i, info_i = unit.step(action[i])
             obs_list.append(obs_i)
             reward_list.append(reward_i)
