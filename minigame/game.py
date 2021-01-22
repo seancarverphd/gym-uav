@@ -77,7 +77,7 @@ class BlankOrder():  # Default values for orders
 
 class StationaryOrder(BlankOrder): pass
 
-class MovingOrder(BlankOrder):
+class ApproachingOrder(BlankOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.destination_x = None
@@ -87,7 +87,7 @@ class MovingOrder(BlankOrder):
         self.destination_x = dest_x
         self.destination_y = dest_y
 
-class MovingToGaussianDestinationOrder(MovingOrder):
+class ApproachingGaussianOrder(ApproachingOrder):
     def __init__(self, unit):
         super().__init__(unit)
         self.var_major = None
@@ -110,10 +110,10 @@ class MovingToGaussianDestinationOrder(MovingOrder):
         self.var_y_ = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
         self.cov_xy_ = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
 
-class CommOrder(MovingOrder): pass
-class JammerOrder(MovingOrder): pass
+class CommOrder(ApproachingOrder): pass
+class JammerOrder(ApproachingOrder): pass
 class OccupyingTroopOrder(StationaryOrder): pass
-class RoamingTroopOrder(MovingToGaussianDestinationOrder): pass
+class RoamingTroopOrder(ApproachingGaussianOrder): pass
 
 # Might want to add flags to Order classes __init__, where appropriate (especially jam)
 #        self.communicate = True
