@@ -95,9 +95,10 @@ class Game():
     def create_empty_grid(self):
         return list(('. '*self.N_STREETS_EW+'\n')*self.N_STREETS_NS)
 
-    def add_faction_to_grid(self, faction, grid, character):
+    def add_faction_to_grid(self, faction, grid, character=None):
         for unit in faction.units:
-            self.add_character_to_grid(grid, character, int(round(unit.y_)), int(round(unit.x_)))
+            char = unit.character_label if character is None else character
+            self.add_character_to_grid(grid, char, int(round(unit.y_)), int(round(unit.x_)))
 
     def add_character_to_grid(self, grid, character, ns, ew):
         grid[ns*(2*self.N_STREETS_NS + 1) + 2*ew] = character
@@ -108,8 +109,8 @@ class Game():
     def render(self, mode='human', close=False):
         assert mode == 'human'
         grid = self.create_empty_grid()
-        self.add_faction_to_grid(self.blue, grid, 'B')
-        self.add_faction_to_grid(self.red, grid, 'R')
+        self.add_faction_to_grid(self.blue, grid)
+        self.add_faction_to_grid(self.red, grid)
         print(self.convert_grid_to_string(grid))
 
 
@@ -540,8 +541,16 @@ RED = Faction('RED', GAME1)
 GAME1.add_blue_red(BLUE, RED)
 GAME1.blue.add_unit(Comm())
 GAME1.blue.units[-1].order.set_destination(0.9, 0.9)
+GAME1.blue.units[-1].x_ = 3
+GAME1.blue.units[-1].y_ = 4
 GAME1.blue.add_unit(OccupyingTroop())
+GAME1.blue.units[-1].x_ = 2
+GAME1.blue.units[-1].y_ = 3
 GAME1.red.add_unit(Jammer())
 GAME1.red.units[-1].order.set_destination(0.1, 0.9)
+GAME1.red.units[-1].x_ = 5
+GAME1.red.units[-1].y_ = 1
 GAME1.red.add_unit(RoamingTroop())
 GAME1.red.units[-1].order.set_destination(0.9, 0.1)
+GAME1.red.units[-1].x_ = 5
+GAME1.red.units[-1].y_ = 2
