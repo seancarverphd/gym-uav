@@ -151,10 +151,25 @@ class ApproachingGaussianOrder(ApproachingOrder):
         self.var_y_ = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
         self.cov_xy_ = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
 
-class ApproachingCommOrder(ApproachingOrder): pass
-class ApproachingJammerOrder(ApproachingOrder): pass
-class OccupyingTroopOrder(StationaryOrder): pass
-class ApproachingGaussianRoamingTroopOrder(ApproachingGaussianOrder): pass
+class ApproachingCommOrder(ApproachingOrder):
+    def __init__(self, unit):
+        assert isinstance(unit, Comm)
+        super().__init__(unit)
+
+class ApproachingJammerOrder(ApproachingOrder):
+    def __init__(self, unit):
+        assert isinstance(unit, Jammer)
+        super().__init__(unit)
+
+class OccupyingTroopOrder(StationaryOrder):
+    def __init__(self, unit):
+        assert isinstance(unit, OccupyingTroop)
+        super().__init__(unit)
+
+class ApproachingGaussianRoamingTroopOrder(ApproachingGaussianOrder):
+    def __init__(self, unit):
+        assert isinstance(unit, RoamingTroop)
+        super().__init__(unit)
 
 # Might want to add flags to Order classes __init__, where appropriate (especially jam)
 #        self.communicate = True
