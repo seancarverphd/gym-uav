@@ -1,16 +1,16 @@
 import numpy as np
 import torch
 
-########################################################################################
-# CLASSES:                                                                             #
-#  There are classes for                                                               #
-#     * Games                                                                          #
-#     * Orders for each unit type                                                      #
-#     * Factions (eg Blue or Re)                                                       #
-#     * Capabilities (Communicating, Jamming, Flying, Roaming, Occupying, Shooting)    #
-#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                           #
-#     * Parent classes (Unit, Drone, Moving, BlankOrder)                               #
-########################################################################################
+##########################################################################################################
+# CLASSES:                                                                                               #
+#  There are classes for                                                                                 #
+#     * Games                                                                                            #
+#     * Orders for each unit type                                                                        #
+#     * Factions (eg Blue or Re)                                                                         #
+#     * Capabilities (Communicating, Jamming, ApproachFlying, PathFlying, Roaming, Occupying, Shooting)  #
+#     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                                             #
+#     * Parent classes (Unit, Drone, Moving, BlankOrder)                                                 #
+##########################################################################################################
 
 ########
 # GAME #
@@ -21,6 +21,8 @@ class Game():
         # FACTIONS
         self.blue = None
         self.red = None
+        # GLOBAL VARIABLES
+        self.clock = 0
         # CONSTANTS
         self.TIMESTEP = None
         self.DEFAULT_ROAMING_RANDOM_PERTURBATION = None
@@ -52,6 +54,30 @@ class Game():
             assert self is unit.GAME
         for unit in self.red.units:
             assert self is unit.GAME
+
+    def initialize(self):
+        self.blue.initialize()
+        self.red.initialize()
+
+    def implement_ceoi(self):
+        self.blue.implement_ceoi()
+        self.red.implement_ceoi()
+
+    def move(self):
+        self.blue.move()
+        self.red.move()
+
+    def post_timestep(self):
+        self.blue.post_timestep()
+        self.red.post_timestep()
+
+    def run(self, n):
+        self.initialize()
+        self.implement_ceoi()
+        for _ in range(n):
+            self.clock += self.TIMESTEP
+            self.move()
+            self.post_timestep()
 
 NoGAME = Game()
 GAME1 = Game()
@@ -156,7 +182,17 @@ class ApproachingCommOrder(ApproachingOrder):
         assert isinstance(unit, Comm)
         super().__init__(unit)
 
+class CircleCommOrder(CircleOrder):
+    def __init__(self, unit):
+        assert isinstance(unit, Comm)
+        super().__init__(unit)
+
 class ApproachingJammerOrder(ApproachingOrder):
+    def __init__(self, unit):
+        assert isinstance(unit, Jammer)
+        super().__init__(unit)
+
+class CircleJammerOrder(CircleOrder):
     def __init__(self, unit):
         assert isinstance(unit, Jammer)
         super().__init__(unit)
@@ -286,6 +322,10 @@ class Flying(Moving):
     def restore_capability_defaults(self):
         self.max_speed = self.GAME.DEFAULT_FLY_SPEED
 
+class ApproachFlying(Flying): pass
+
+class PathFlying(Flying): pass
+
 class Roaming(Moving):
     def roam(self):
         self.step_xy()
@@ -386,7 +426,7 @@ class Unit():  # Parent class to all units
     def distance_to_target(self):  # l2 distance with flying, shouldn't have both Roaming and Flying capabilities
         return self.vector_norm_2D(self.order.destination_x - self.x_, self.order.destination_y - self.y_)
 
-class Drone(Flying, Unit):  # Parent class of Comm and Jammer
+class Drone(ApproachFlying, Unit):  # Parent class of Comm and Jammer
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'DRONE'
