@@ -30,6 +30,8 @@ class Game():
         self.DEFAULT_ROAM_SPEED = None
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = None
+        self.N_STREETS_EW = None
+        self.N_STREETS_NS = None
 
     def add_blue_red(self, blue, red):
         assert blue is not red
@@ -48,6 +50,9 @@ class Game():
             self.red.restore_defaults()
 
     def still_playing(self):
+        '''
+        still_playing(): asserts that self is the same game that its units and factions are playing
+        '''
         assert self is self.blue.GAME
         assert self is self.red.GAME
         for unit in self.blue.units:
@@ -71,7 +76,7 @@ class Game():
         self.blue.post_timestep()
         self.red.post_timestep()
 
-    def run(self, n):
+    def run(self, n=1):
         self.initialize()
         self.implement_ceoi()
         for _ in range(n):
@@ -79,15 +84,28 @@ class Game():
             self.move()
             self.post_timestep()
 
-NoGAME = Game()
-GAME1 = Game()
-GAME1.TIMESTEP = .1
-GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
-GAME1.DEFAULT_FLY_SPEED = 5.
-GAME1.DEFAULT_ROAM_SPEED = 2.
-GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10.
-GAME1.restore_defaults()
+    def step(self, action):
+        self.run()  #TODO Write this function; define action, obs, reward, done, info
+        obs = None
+        reward = None
+        done = None
+        info = None
+        return obs, reward, done, info
+
+    def render(self, mode='human', close=False):
+        assert mode == 'human'
+        grid = ('. '*self.N_STREETS_EW+'\n')*self.N_STREETS_NS
+        gridlist = list(grid)
+        for unit in self.blue.units:
+            unit_ns = self.N_STREETS_NS - int(round(unit.y_))
+            unit_ew = int(round(unit.x_))
+            gridlist[(self.N_STREETS_NS-1-unit_ns)*(2*self.N_STREETS_NS+1)+2*unit_ew] = 'B'
+        for unit in self.red.units:
+            unit_ns = self.N_STREETS_NS - int(round(unit.y_))
+            unit_ew = int(round(unit.x_))
+            gridlist[(self.N_STREETS_NS-1-unit_ns)*(2*self.N_STREETS_NS+1)+2*unit_ew] = 'R'
+        grid = ''.join(gridlist)
+        print(grid)
 
 
 ##########
@@ -285,7 +303,6 @@ class Faction():
             done_list = append(done_i)
             info_list = append(info_i)
         return obs_list, reward_list, done_list, info_list
-
 
 ################
 # CAPABILITIES #
@@ -496,3 +513,24 @@ class RoamingTroop(Roaming, Shooting, Unit):
     def post_timestep(self):
         self.shoot_enemy_drones()
 
+NoGAME = Game()
+GAME1 = Game()
+GAME1.TIMESTEP = .1
+GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
+GAME1.DEFAULT_FLY_SPEED = 5.
+GAME1.DEFAULT_ROAM_SPEED = 2.
+GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
+GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10.
+GAME1.N_STREETS_EW = 48
+GAME1.N_STREETS_NS = 48
+GAME1.restore_defaults()
+BLUE = Faction('BLUE', GAME1)
+RED = Faction('RED', GAME1)
+GAME1.add_blue_red(BLUE, RED)
+GAME1.blue.add_unit(Comm())
+GAME1.blue.units[-1].order.set_destination(0.9, 0.9)
+GAME1.blue.add_unit(OccupyingTroop())
+GAME1.red.add_unit(Jammer())
+GAME1.red.units[-1].order.set_destination(0.1, 0.9)
+GAME1.red.add_unit(RoamingTroop())
+GAME1.red.units[-1].order.set_destination(0.9, 0.1)
