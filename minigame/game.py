@@ -92,20 +92,25 @@ class Game():
         info = None
         return obs, reward, done, info
 
+    def create_empty_grid(self):
+        return list(('. '*self.N_STREETS_EW+'\n')*self.N_STREETS_NS)
+
+    def add_faction_to_grid(self, faction, grid, character):
+        for unit in faction.units:
+            self.add_character_to_grid(grid, character, int(round(unit.y_)), int(round(unit.x_)))
+
+    def add_character_to_grid(self, grid, character, ns, ew):
+        grid[ns*(2*self.N_STREETS_NS + 1) + 2*ew] = character
+
+    def convert_grid_to_string(self, grid):
+        return ''.join(grid)
+
     def render(self, mode='human', close=False):
         assert mode == 'human'
-        grid = ('. '*self.N_STREETS_EW+'\n')*self.N_STREETS_NS
-        gridlist = list(grid)
-        for unit in self.blue.units:
-            unit_ns = self.N_STREETS_NS - int(round(unit.y_))
-            unit_ew = int(round(unit.x_))
-            gridlist[(self.N_STREETS_NS-1-unit_ns)*(2*self.N_STREETS_NS+1)+2*unit_ew] = 'B'
-        for unit in self.red.units:
-            unit_ns = self.N_STREETS_NS - int(round(unit.y_))
-            unit_ew = int(round(unit.x_))
-            gridlist[(self.N_STREETS_NS-1-unit_ns)*(2*self.N_STREETS_NS+1)+2*unit_ew] = 'R'
-        grid = ''.join(gridlist)
-        print(grid)
+        grid = self.create_empty_grid()
+        self.add_faction_to_grid(self.blue, grid, 'B')
+        self.add_faction_to_grid(self.red, grid, 'R')
+        print(self.convert_grid_to_string(grid))
 
 
 ##########
@@ -384,6 +389,7 @@ class Unit():  # Parent class to all units
             self.regame(GAME)
         self.faction = None
         self.name = 'GHOST'
+        self.character_label = 'G'
         self.on_roof = False
         self.x_ = 0.1
         self.y_ = 0.1
@@ -447,6 +453,7 @@ class Drone(ApproachFlying, Unit):  # Parent class of Comm and Jammer
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'DRONE'
+        self.character_label = 'D'
         self.shot_down = False
 
     def move(self):
@@ -458,6 +465,7 @@ class Comm(Communicating, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'COMM'
+        self.character_label = 'C'
         self.order = ApproachingCommOrder(self)  # self is the second arg that becomes "unit" inside ApproachingCommOrder.__init__(self, unit)
         self.asset_value = 1.
 
@@ -473,6 +481,7 @@ class Jammer(Jamming, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'JAMMER'
+        self.character_label = 'J'
         self.order = ApproachingJammerOrder(self)  # self is the second arg that becomes "unit" inside ApproachingJammerOrder.__init__(self, unit)
 
     def restore_unit_defaults(self):
@@ -486,6 +495,7 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'OCCUPYING_TROOP'
+        self.character_label = 'O'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.asset_value = 10.
 
@@ -504,6 +514,7 @@ class RoamingTroop(Roaming, Shooting, Unit):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'ROAMING_TROOP'
+        self.character_label = 'R'
         self.order = ApproachingGaussianRoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
     def move(self):
