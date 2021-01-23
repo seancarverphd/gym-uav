@@ -110,13 +110,13 @@ class CircleOrder(BlankOrder):
         return self.center_x + self.radius*np.cos(self.phase(time))
 
     def vel_x(self, time):
-        return self.speed*np.sin(self.phase(time))
+        return self.signed_speed*np.sin(self.phase(time))
 
     def pos_y(self, time):
         return self.center_y + self.radius*np.sin(self.phase(time))
 
     def vel_y(self, time):
-        return self.speed*np.cos(self.phase(time))
+        return self.signed_speed*np.cos(self.phase(time))
 
 class ApproachingOrder(BlankOrder):
     def __init__(self, unit):
@@ -151,10 +151,10 @@ class ApproachingGaussianOrder(ApproachingOrder):
         self.var_y_ = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
         self.cov_xy_ = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
 
-class CommOrder(ApproachingOrder): pass
-class JammerOrder(ApproachingOrder): pass
+class ApproachingCommOrder(ApproachingOrder): pass
+class ApproachingJammerOrder(ApproachingOrder): pass
 class OccupyingTroopOrder(StationaryOrder): pass
-class RoamingTroopOrder(ApproachingGaussianOrder): pass
+class ApproachingGaussianRoamingTroopOrder(ApproachingGaussianOrder): pass
 
 # Might want to add flags to Order classes __init__, where appropriate (especially jam)
 #        self.communicate = True
@@ -386,7 +386,7 @@ class Comm(Communicating, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'COMM'
-        self.order = CommOrder(self)  # self is the second arg that becomes "unit" inside CommOrder.__init__(self, unit)
+        self.order = ApproachingCommOrder(self)  # self is the second arg that becomes "unit" inside ApproachingCommOrder.__init__(self, unit)
         self.asset_value = 1.
 
     def restore_unit_defaults(self):
@@ -401,7 +401,7 @@ class Jammer(Jamming, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'JAMMER'
-        self.order = JammerOrder(self)  # self is the second arg that becomes "unit" inside JammerOrder.__init__(self, unit)
+        self.order = ApproachingJammerOrder(self)  # self is the second arg that becomes "unit" inside ApproachingJammerOrder.__init__(self, unit)
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -432,7 +432,7 @@ class RoamingTroop(Roaming, Shooting, Unit):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'ROAMING_TROOP'
-        self.order = RoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
+        self.order = ApproachingGaussianRoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
     def move(self):
         self.plan_timestep_motion()

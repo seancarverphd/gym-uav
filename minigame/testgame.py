@@ -95,4 +95,5 @@ class TestTheGame():
         assert abs(C.pos_y(np.pi/2) - .5) < 0.000001
         assert abs(C.pos_y(3*np.pi/4)) < 0.000001
         assert abs(C.pos_y(np.pi) - .5) < 0.000001
+        assert abs(C.vel_x(.111)**2 + C.vel_y(.111)**2 - C.signed_speed**2) < .000001
 
