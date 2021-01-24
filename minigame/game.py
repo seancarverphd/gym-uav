@@ -526,31 +526,29 @@ class RoamingTroop(Roaming, Shooting, Unit):
         self.shoot_enemy_drones()
 
 NoGAME = Game()
-GAME1 = Game()
-GAME1.TIMESTEP = .1
-GAME1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
-GAME1.DEFAULT_FLY_SPEED = 5.
-GAME1.DEFAULT_ROAM_SPEED = 2.
-GAME1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-GAME1.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10.
-GAME1.N_STREETS_EW = 48
-GAME1.N_STREETS_NS = 48
-GAME1.restore_defaults()
-BLUE = Faction('BLUE', GAME1)
-RED = Faction('RED', GAME1)
-GAME1.add_blue_red(BLUE, RED)
-GAME1.blue.add_unit(Comm())
-GAME1.blue.units[-1].order.set_destination(0.9, 0.9)
-GAME1.blue.units[-1].x_ = 3
-GAME1.blue.units[-1].y_ = 4
-GAME1.blue.add_unit(OccupyingTroop())
-GAME1.blue.units[-1].x_ = 2
-GAME1.blue.units[-1].y_ = 3
-GAME1.red.add_unit(Jammer())
-GAME1.red.units[-1].order.set_destination(0.1, 0.9)
-GAME1.red.units[-1].x_ = 5
-GAME1.red.units[-1].y_ = 1
-GAME1.red.add_unit(RoamingTroop())
-GAME1.red.units[-1].order.set_destination(0.9, 0.1)
-GAME1.red.units[-1].x_ = 5
-GAME1.red.units[-1].y_ = 2
+GAME0 = Game()
+GAME0.TIMESTEP = .1
+GAME0.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
+GAME0.DEFAULT_FLY_SPEED = 5.
+GAME0.DEFAULT_ROAM_SPEED = 2.
+GAME0.DEFAULT_POINT_SOURCE_CONSTANT = 1.
+GAME0.DEFAULT_RECEPTION_PROBABILITY_SLOPE = 10.
+GAME0.N_STREETS_EW = 48
+GAME0.N_STREETS_NS = 48
+GAME0.restore_defaults()
+GAME0.add_blue_red(Faction('BLUE', GAME0), Faction('RED', GAME0))
+GAME0.blue.add_unit(Comm())
+GAME0.blue.units[-1].order.set_destination(0.9, 0.9)
+GAME0.blue.units[-1].x_ = 3
+GAME0.blue.units[-1].y_ = 4
+GAME0.blue.add_unit(OccupyingTroop())
+GAME0.blue.units[-1].x_ = 2
+GAME0.blue.units[-1].y_ = 3
+GAME0.red.add_unit(Jammer())
+GAME0.red.units[-1].order.set_destination(0.1, 0.9)
+GAME0.red.units[-1].x_ = 5
+GAME0.red.units[-1].y_ = 1
+GAME0.red.add_unit(RoamingTroop())
+GAME0.red.units[-1].order.set_destination(0.9, 0.1)
+GAME0.red.units[-1].x_ = 5
+GAME0.red.units[-1].y_ = 2
