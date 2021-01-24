@@ -1,3 +1,5 @@
+import gym
+import gym.spaces
 import numpy as np
 import torch
 
@@ -32,6 +34,12 @@ class Game():
         self.DEFAULT_RECEPTION_PROBABILITY_SLOPE = None
         self.N_STREETS_EW = None
         self.N_STREETS_NS = None
+        # SPACES
+        self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}), 
+                                                     'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}), 
+                                                  'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}), 
+                                                  'SELF2wayASSET': gym.spaces.Discrete(2), 'SELF2wayHQ': gym.spaces.Discrete(2)})
+        self.action_space = gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
 
     def add_blue_red(self, blue, red):
         assert blue is not red
@@ -85,7 +93,7 @@ class Game():
             self.post_timestep()
 
     def step(self, action):
-        self.run()  #TODO Write this function; define action, obs, reward, done, info
+        self.run(1)  #TODO Write this function; define action, obs, reward, done, info
         obs = None
         reward = None
         done = None
