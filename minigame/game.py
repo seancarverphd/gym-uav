@@ -36,9 +36,10 @@ class Game():
         self.N_STREETS_NS = None
         # SPACES
         self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
-                                                     'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
-                                                  'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
-                                                  'SELF2wayASSET': gym.spaces.Discrete(2), 'SELF2wayHQ': gym.spaces.Discrete(2)})
+                                                    'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
+                                                 'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
+                                            'SELF2wayHQ': gym.spaces.Discrete(2),
+                                         'SELF2wayASSET': gym.spaces.Discrete(2)})
         self.action_space = gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
 
     def add_blue_red(self, blue, red):
@@ -84,16 +85,24 @@ class Game():
         self.blue.post_timestep()
         self.red.post_timestep()
 
-    def run(self, n=1):
-        self.initialize()
-        self.implement_ceoi()
-        for _ in range(n):
-            self.clock += self.TIMESTEP
-            self.move()
-            self.post_timestep()
+#    def run(self, n=1):
+#        self.initialize()
+#        self.implement_ceoi()
+#        for _ in range(n):
+#            self.clock += self.TIMESTEP
+#            self.move()
+#            self.post_timestep()
+
+    def reset(self):
+        obs = {      'SELF': {'posx': 1, 'posy': 1},
+                       'HQ': {'posx': 0, 'posy': 0},
+                    'ASSET': {'posx': 31, 'posy': 31},
+               'SELF2wayHQ': True,            #TODO need to compute
+            'SELF2wayASSET': False}           #TODO need to compute
+        return obs
 
     def step(self, action):
-        self.run(1)  #TODO Write this function; define action, obs, reward, done, info
+        # TODO Write this function
         obs = None
         reward = None
         done = None
