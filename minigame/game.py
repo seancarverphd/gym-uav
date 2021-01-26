@@ -15,6 +15,44 @@ import torch
 ##########################################################################################################
 
 ########
+# MAPS #
+########
+
+class Map():
+    def __init__(self, n):
+        self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
+        self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
+        self.DEFAULT_N_STREETS_EW = n
+        self.DEFAULT_N_STREETS_NS = n
+        self.DEFAULT_COMMX = 1.
+        self.DEFAULT_COMMY = 1.
+        self.DEFAULT_HQX = 0.
+        self.DEFAULT_HQY = 0.
+        self.DEFAULT_ASSETX = n - 1.
+        self.DEFAULT_ASSETY = n - 1.
+        self.restore_map_defaults()
+
+    def restore_map_defaults(self):
+        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
+        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
+        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
+        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+        self.commx = self.DEFAULT_COMMX
+        self.commy = self.DEFAULT_COMMY
+        self.hqx = self.DEFAULT_HQX
+        self.hqy = self.DEFAULT_HQY
+        self.assetx = self.DEFAULT_ASSETX
+        self.assety = self.DEFAULT_ASSETY
+
+    def remap(self, GAME):
+        GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
+        GAME.blue.clear_units()
+        GAME.red.clear_units()
+        GAME.blue.add_unit(Comm(GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
+        GAME.blue.add_headquarters(OccupyingTroop(GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
+        GAME.blue.add_unit(OccupyingTroop(GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
+
+########
 # GAME #
 ########
 
@@ -31,11 +69,10 @@ class Game():
         self.DEFAULT_FLY_SPEED = None
         self.DEFAULT_ROAM_SPEED = None
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
-        self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = None
-        self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = None
-        self.N_STREETS_EW = None
-        self.N_STREETS_NS = None
         self.AMBIENT_POWER = None
+        # MAP
+        self.map = Map(8)
+        self.map.remap(self)  # Passes own game object into Map as self
         # SPACES
         self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
                                                     'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
@@ -65,6 +102,7 @@ class Game():
             self.blue.restore_defaults()
         if self.red is not None:
             self.red.restore_defaults()
+        self.map.restore_map_defaults()
 
     def still_playing(self):
         '''
@@ -122,7 +160,7 @@ class Game():
         return obs, reward, done, info
 
     def create_empty_grid(self):
-        return list(('. '*self.N_STREETS_EW+'\n')*self.N_STREETS_NS)
+        return list(('. '*self.N_STREETS_EW+'\n')*self.map.N_STREETS_NS)
 
     def add_faction_to_grid(self, faction, grid, character=None):
         for unit in faction.units:
@@ -130,7 +168,7 @@ class Game():
             self.add_character_to_grid(grid, char, int(round(unit.y_)), int(round(unit.x_)))
 
     def add_character_to_grid(self, grid, character, ns, ew):
-        grid[ns*(2*self.N_STREETS_NS + 1) + 2*ew] = character
+        grid[ns*(2*self.map.N_STREETS_NS + 1) + 2*ew] = character
 
     def convert_grid_to_string(self, grid):
         return ''.join(grid)
@@ -307,11 +345,13 @@ class Faction():
     def pop_unit(self):
         unit = self.units.pop()
         unit.faction = None
+        self.make_units_dictionary()
 
     def clear_units(self):
         for u in self.units:
             u.faction = None
         self.units = []
+        self.make_units_dictionary()
 
     def add_unit_to_communication_network(self, unit):
         self.communication_network.append(unit)
@@ -533,8 +573,8 @@ class Comm(Communicating, Drone):
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
-        self.receiver_characteristic_distance = self.GAME.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE  # DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE is a global constant
-        self.sender_characteristic_distance = self.GAME.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE  # DEFAULT_SENDER_CHARACTERISTIC_DISTANCE is a global constant
+        self.receiver_characteristic_distance = self.GAME.map.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE  # DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE is a global constant
+        self.sender_characteristic_distance = self.GAME.map.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE  # DEFAULT_SENDER_CHARACTERISTIC_DISTANCE is a global constant
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
@@ -566,8 +606,8 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
-        self.receiver_characteristic_distance = self.GAME.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
-        self.sender_characteristic_distance = self.GAME.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE  # DEFAULT_SENDER_PROBABILITY_SLOPE is a global constant
+        self.receiver_characteristic_distance = self.GAME.map.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
+        self.sender_characteristic_distance = self.GAME.map.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE  # DEFAULT_SENDER_PROBABILITY_SLOPE is a global constant
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
@@ -622,21 +662,14 @@ GAME0.red.units[-1].x_ = 5.
 GAME0.red.units[-1].y_ = 2.
 GAME0.make_units_dictionaries()
 
-def GAME1(ew, ns):
+def GAME1(n):
     G1 = Game()
     G1.TIMESTEP = .1
     G1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
     G1.DEFAULT_FLY_SPEED = 5.
     G1.DEFAULT_ROAM_SPEED = 2.
     G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-    G1.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
-    G1.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
-    G1.N_STREETS_EW = ew
-    G1.N_STREETS_NS = ns
     G1.AMBIENT_POWER = 1.
-    G1.restore_defaults()
-    G1.add_blue_red(Faction('BLUE'), Faction('RED'))
-    G1.blue.add_unit(Comm(), name='COMM', label='C', x_=1., y_=1.)
-    G1.blue.add_headquarters(OccupyingTroop(), name='HQ', label='H', x_=0., y_=0.)
-    G1.blue.add_unit(OccupyingTroop(), name='ASSET', label='A', x_=ew-1., y_=ns-1.)  # SE Corner of map
+    G1.map = Map(G1)
     return G1
+
