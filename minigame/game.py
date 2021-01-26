@@ -102,10 +102,13 @@ class Game():
 #            self.post_timestep()
 
     def reset(self):
-        obs = {      'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
-                       'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET', False}},
-                    'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
-        return obs
+         return {key : {'posx': self.blue.units_d[key].x_,
+                        'posy': self.blue.units_d[key].y_,
+                        'hears': {key2.name: False for key2 in self.blue.units_d[key].my_communicators()}}
+                        for key in self.blue.units_d}
+#        return { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
+#                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
+#                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
 
     def step(self, action):
         # TODO Write this function
@@ -395,6 +398,7 @@ class Occupying():
 
 class Communicating():
     def add_self_to_communication_network(self):
+        # TODO Consider: maybe don't need communication_network if have self.communicate flags for each unit; has consistent order; redundant for now
         self.faction.add_unit_to_communication_network(self)  # self becomes "unit" inside faction
 
     def radio_power(self, x_receiver, y_receiver):
@@ -437,6 +441,12 @@ class Unit():  # Parent class to all units
         self.vx = 0.
         self.vy = 0.
         self.asset_value = 0.
+        self.communicates = False
+
+    def my_communicators(self):
+        for unit in self.faction.units:
+            if unit is not self and self.communicates and unit.communicates:
+                yield unit
 
     def set_name(self, name):
         self.name = name
@@ -507,6 +517,7 @@ class Comm(Communicating, Drone):
         self.character_label = 'C'
         self.order = ApproachingCommOrder(self)  # self is the second arg that becomes "unit" inside ApproachingCommOrder.__init__(self, unit)
         self.asset_value = 1.
+        self.communicates = True
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -515,6 +526,7 @@ class Comm(Communicating, Drone):
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
+        self.communicates = True
 
 
 class Jammer(Jamming, Drone):
@@ -538,6 +550,7 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
         self.character_label = 'O'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.asset_value = 10.
+        self.communicates = True
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
@@ -546,6 +559,7 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
 
     def implement_ceoi(self):
         self.add_self_to_communication_network()
+        self.communicates = True
 
     def post_timestep(self):
         self.shoot_enemy_drones()
