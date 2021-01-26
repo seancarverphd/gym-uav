@@ -102,11 +102,9 @@ class Game():
 #            self.post_timestep()
 
     def reset(self):
-        obs = {      'SELF': {'posx': 1, 'posy': 1},
-                       'HQ': {'posx': 0, 'posy': 0},
-                    'ASSET': {'posx': 31, 'posy': 31},
-               'SELF2wayHQ': True,            #TODO need to compute
-            'SELF2wayASSET': False}           #TODO need to compute
+        obs = {      'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
+                       'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET', False}},
+                    'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
         return obs
 
     def step(self, action):
