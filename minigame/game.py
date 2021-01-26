@@ -54,6 +54,12 @@ class Game():
         red.enemy = blue
         self.restore_defaults()
 
+    def make_units_dictionaries(self):
+        if self.blue is not None:
+            self.blue.make_units_dictionary()
+        if self.red is not None:
+            self.red.make_units_dictionary()
+
     def restore_defaults(self):
         if self.blue is not None:
             self.blue.restore_defaults()
@@ -266,6 +272,7 @@ class Faction():
         self.enemy = None
         self.GAME = GAME
         self.units = []
+        self.units_d = {}
         self.headquarters = None
         self.communication_network = []
         self.jamming_network = []
@@ -279,6 +286,10 @@ class Faction():
         unit.faction = self
         unit.regame(self.GAME)
         self.units.append(unit)
+
+    def make_units_dictionary(self):
+        self.units_d = {unit.name: unit for unit in self.units}
+        assert len(self.units_d) == len(self.units)
 
     def pop_unit(self):
         unit = self.units.pop()
@@ -396,7 +407,7 @@ class Communicating():
 
     def radio_message_received(self, x_receiver, y_receiver):
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
-        return self.sjr_db(self.radio_power(x_receiver, y_receiver)) > 0
+        return self.sjr_db(x_receiver, y_receiver) > 0
 
 class Jamming():
     def add_self_to_jamming_network(self):
@@ -564,7 +575,7 @@ GAME0.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
 GAME0.DEFAULT_FLY_SPEED = 5.
 GAME0.DEFAULT_ROAM_SPEED = 2.
 GAME0.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-GAME0.DEFAULT_RECIEVER_CHARACTERISTIC_DISTANCE = 0.
+GAME0.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
 GAME0.N_STREETS_EW = 48
 GAME0.N_STREETS_NS = 48
 GAME0.AMBIENT_POWER = 1.
@@ -585,6 +596,7 @@ GAME0.red.add_unit(RoamingTroop())
 GAME0.red.units[-1].order.set_destination(0.9, 0.1)
 GAME0.red.units[-1].x_ = 5
 GAME0.red.units[-1].y_ = 2
+GAME0.make_units_dictionaries()
 
 def GAME1(ew, ns):
     G1 = Game()
@@ -593,7 +605,7 @@ def GAME1(ew, ns):
     G1.DEFAULT_FLY_SPEED = 5.
     G1.DEFAULT_ROAM_SPEED = 2.
     G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-    G1.DEFAULT_RECIEVER_CHARACTERISTIC_DISTANCE = 0.
+    G1.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
     G1.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.
     G1.N_STREETS_EW = ew
     G1.N_STREETS_NS = ns
@@ -604,12 +616,15 @@ def GAME1(ew, ns):
     G1.blue.units[-1].order.set_destination(0.9, 0.9)
     G1.blue.units[-1].x_ = 1.
     G1.blue.units[-1].y_ = 1.
-    G1.blue.add_unit(OccupyingTroop())
+    G1.blue.add_headquarters(OccupyingTroop())
     G1.blue.units[-1].name = 'HQ'
     G1.blue.units[-1].character_label = 'H'
     G1.blue.units[-1].x_ = 0.
     G1.blue.units[-1].y_ = 0.
     G1.blue.add_unit(OccupyingTroop())
+    G1.blue.units[-1].name = 'ASSET'
+    G1.blue.units[-1].character_label = 'A'
     G1.blue.units[-1].x_ = ew - 1  # SE Corner of map
     G1.blue.units[-1].y_ = ns - 1
+    G1.make_units_dictionaries()
     return G1
