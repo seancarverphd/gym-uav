@@ -101,11 +101,14 @@ class Game():
 #            self.move()
 #            self.post_timestep()
 
-    def reset(self):
-         return {key : {'posx': self.blue.units_d[key].x_,
-                        'posy': self.blue.units_d[key].y_,
-                        'hears': {key2.name: False for key2 in self.blue.units_d[key].my_communicators()}}
+    def observe_blue(self):
+         return {key : {'posx': int(round(self.blue.units_d[key].x_)),
+                        'posy': int(round(self.blue.units_d[key].y_)),
+                        'hears': {key2.name: self.blue.units_d[key].radio_message_received(key2) for key2 in self.blue.units_d[key].my_communicators()}}
                         for key in self.blue.units_d}
+    def reset(self):
+        return self.observe_blue()
+
 #        return { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
 #                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
@@ -123,7 +126,7 @@ class Game():
 
     def add_faction_to_grid(self, faction, grid, character=None):
         for unit in faction.units:
-            char = unit.character_label if character is None else character
+            char = unit.label if character is None else character
             self.add_character_to_grid(grid, char, int(round(unit.y_)), int(round(unit.x_)))
 
     def add_character_to_grid(self, grid, character, ns, ew):
@@ -279,14 +282,23 @@ class Faction():
         self.jamming_network = []
 
     # All methods until noted dont't have counterparts in units classes
-    def add_headquarters(self, unit):
-        self.add_unit(unit)
+    def add_headquarters(self, unit, name=None, label=None, x_=None, y_=None):
+        self.add_unit(unit, name, label, x_, y_)
         self.headquarters = unit
 
-    def add_unit(self, unit):
+    def add_unit(self, unit, name=None, label=None, x_=None, y_=None):
         unit.faction = self
         unit.regame(self.GAME)
+        if name is not None:
+            unit.name = name
+        if label is not None:
+            unit.label = label
+        if x_ is not None:
+            unit.x_ = x_
+        if y_ is not None:
+            unit.y_ = y_
         self.units.append(unit)
+        self.make_units_dictionary()
 
     def make_units_dictionary(self):
         self.units_d = {unit.name: unit for unit in self.units}
@@ -407,9 +419,9 @@ class Communicating():
     def sjr_db(self, x_receiver, y_receiver):
         return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.AMBIENT_POWER)
 
-    def radio_message_received(self, x_receiver, y_receiver):
+    def radio_message_received(self, unit):  # unit instead of x_ and y_
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
-        return self.sjr_db(x_receiver, y_receiver) > 0
+        return self.sjr_db(unit.x_, unit.y_) > 0  #TODO Add probabilistic function like in findjam
 
 class Jamming():
     def add_self_to_jamming_network(self):
@@ -432,7 +444,7 @@ class Unit():  # Parent class to all units
             self.regame(GAME)
         self.faction = None
         self.name = 'GHOST'
-        self.character_label = 'G'
+        self.label = 'G'
         self.on_roof = False
         self.x_ = 0.1
         self.y_ = 0.1
@@ -502,7 +514,7 @@ class Drone(ApproachFlying, Unit):  # Parent class of Comm and Jammer
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'DRONE'
-        self.character_label = 'D'
+        self.label = 'D'
         self.shot_down = False
 
     def move(self):
@@ -514,7 +526,7 @@ class Comm(Communicating, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'COMM'
-        self.character_label = 'C'
+        self.label = 'C'
         self.order = ApproachingCommOrder(self)  # self is the second arg that becomes "unit" inside ApproachingCommOrder.__init__(self, unit)
         self.asset_value = 1.
         self.communicates = True
@@ -533,7 +545,7 @@ class Jammer(Jamming, Drone):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'JAMMER'
-        self.character_label = 'J'
+        self.label = 'J'
         self.order = ApproachingJammerOrder(self)  # self is the second arg that becomes "unit" inside ApproachingJammerOrder.__init__(self, unit)
 
     def restore_unit_defaults(self):
@@ -547,7 +559,7 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'OCCUPYING_TROOP'
-        self.character_label = 'O'
+        self.label = 'O'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
         self.asset_value = 10.
         self.communicates = True
@@ -569,7 +581,7 @@ class RoamingTroop(Roaming, Shooting, Unit):
     def __init__(self, GAME=None):
         super().__init__(GAME)
         self.name = 'ROAMING_TROOP'
-        self.character_label = 'R'
+        self.label = 'R'
         self.order = ApproachingGaussianRoamingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
 
     def move(self):
@@ -595,19 +607,19 @@ GAME0.restore_defaults()
 GAME0.add_blue_red(Faction('BLUE', GAME0), Faction('RED', GAME0))
 GAME0.blue.add_unit(Comm())
 GAME0.blue.units[-1].order.set_destination(0.9, 0.9)
-GAME0.blue.units[-1].x_ = 3
-GAME0.blue.units[-1].y_ = 4
+GAME0.blue.units[-1].x_ = 3.
+GAME0.blue.units[-1].y_ = 4.
 GAME0.blue.add_unit(OccupyingTroop())
-GAME0.blue.units[-1].x_ = 2
-GAME0.blue.units[-1].y_ = 3
+GAME0.blue.units[-1].x_ = 2.
+GAME0.blue.units[-1].y_ = 3.
 GAME0.red.add_unit(Jammer())
 GAME0.red.units[-1].order.set_destination(0.1, 0.9)
-GAME0.red.units[-1].x_ = 5
-GAME0.red.units[-1].y_ = 1
+GAME0.red.units[-1].x_ = 5.
+GAME0.red.units[-1].y_ = 1.
 GAME0.red.add_unit(RoamingTroop())
 GAME0.red.units[-1].order.set_destination(0.9, 0.1)
-GAME0.red.units[-1].x_ = 5
-GAME0.red.units[-1].y_ = 2
+GAME0.red.units[-1].x_ = 5.
+GAME0.red.units[-1].y_ = 2.
 GAME0.make_units_dictionaries()
 
 def GAME1(ew, ns):
@@ -618,25 +630,13 @@ def GAME1(ew, ns):
     G1.DEFAULT_ROAM_SPEED = 2.
     G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
     G1.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
-    G1.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.
+    G1.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
     G1.N_STREETS_EW = ew
     G1.N_STREETS_NS = ns
     G1.AMBIENT_POWER = 1.
     G1.restore_defaults()
     G1.add_blue_red(Faction('BLUE'), Faction('RED'))
-    G1.blue.add_unit(Comm())
-    G1.blue.units[-1].order.set_destination(0.9, 0.9)
-    G1.blue.units[-1].x_ = 1.
-    G1.blue.units[-1].y_ = 1.
-    G1.blue.add_headquarters(OccupyingTroop())
-    G1.blue.units[-1].name = 'HQ'
-    G1.blue.units[-1].character_label = 'H'
-    G1.blue.units[-1].x_ = 0.
-    G1.blue.units[-1].y_ = 0.
-    G1.blue.add_unit(OccupyingTroop())
-    G1.blue.units[-1].name = 'ASSET'
-    G1.blue.units[-1].character_label = 'A'
-    G1.blue.units[-1].x_ = ew - 1  # SE Corner of map
-    G1.blue.units[-1].y_ = ns - 1
-    G1.make_units_dictionaries()
+    G1.blue.add_unit(Comm(), name='COMM', label='C', x_=1., y_=1.)
+    G1.blue.add_headquarters(OccupyingTroop(), name='HQ', label='H', x_=0., y_=0.)
+    G1.blue.add_unit(OccupyingTroop(), name='ASSET', label='A', x_=ew-1., y_=ns-1.)  # SE Corner of map
     return G1
