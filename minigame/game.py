@@ -327,18 +327,18 @@ class Faction():
         for unit in self.units:
             unit.post_timestep()
 
-    def step(self, action):  #TODO NEED WORK!
-        obs_list = []
-        reward_list = []
-        done_list = []
-        info_list = []
-        for i, unit in enumerate(self.units):
-            obs_i, reward_i, done_i, info_i = unit.step(action[i])
-            obs_list.append(obs_i)
-            reward_list.append(reward_i)
-            done_list = append(done_i)
-            info_list = append(info_i)
-        return obs_list, reward_list, done_list, info_list
+#    def step(self, action):  #TODO NEED WORK!
+#        obs_list = []
+#        reward_list = []
+#        done_list = []
+#        info_list = []
+#        for i, unit in enumerate(self.units):
+#            obs_i, reward_i, done_i, info_i = unit.step(action[i])
+#            obs_list.append(obs_i)
+#            reward_list.append(reward_i)
+#            done_list = append(done_i)
+#            info_list = append(info_i)
+#        return obs_list, reward_list, done_list, info_list
 
 ################
 # CAPABILITIES #
