@@ -19,17 +19,17 @@ import torch
 ########
 
 class Map():
-    def __init__(self, n):
+    def __init__(self):
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
-        self.DEFAULT_N_STREETS_EW = n
-        self.DEFAULT_N_STREETS_NS = n
+        self.DEFAULT_N_STREETS_EW = 8
+        self.DEFAULT_N_STREETS_NS = 8
         self.DEFAULT_COMMX = 1.
         self.DEFAULT_COMMY = 1.
         self.DEFAULT_HQX = 0.
         self.DEFAULT_HQY = 0.
-        self.DEFAULT_ASSETX = n - 1.
-        self.DEFAULT_ASSETY = n - 1.
+        self.DEFAULT_ASSETX = 7.
+        self.DEFAULT_ASSETY = 7.
         self.restore_map_defaults()
 
     def restore_map_defaults(self):
@@ -71,7 +71,7 @@ class Game():
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.AMBIENT_POWER = None
         # MAP
-        self.map = Map(8)
+        self.map = Map()
         self.map.remap(self)  # Passes own game object into Map as self
         # SPACES
         self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
@@ -160,25 +160,25 @@ class Game():
         return obs, reward, done, info
 
     def create_empty_grid(self):
-        return list(('. '*self.N_STREETS_EW+'\n')*self.map.N_STREETS_NS)
+        return list(('. '*self.map.n_streets_ew+'\n')*self.map.n_streets_ns)
 
-    def add_faction_to_grid(self, faction, grid, character=None):
+    def add_faction_to_grid(self, faction, faction_character=None):
         for unit in faction.units:
-            char = unit.label if character is None else character
-            self.add_character_to_grid(grid, char, int(round(unit.y_)), int(round(unit.x_)))
+            char = unit.label if faction_character is None else faction_character
+            self.add_character_to_grid(char, int(round(unit.y_)), int(round(unit.x_)))
 
-    def add_character_to_grid(self, grid, character, ns, ew):
-        grid[ns*(2*self.map.N_STREETS_NS + 1) + 2*ew] = character
+    def add_character_to_grid(self, character, ns, ew):
+        self.grid[ns*(2*self.map.n_streets_ew + 1) + 2*ew] = character
 
-    def convert_grid_to_string(self, grid):
-        return ''.join(grid)
+    def convert_grid_to_string(self):
+        return ''.join(self.grid)
 
     def render(self, mode='human', close=False):
         assert mode == 'human'
-        grid = self.create_empty_grid()
-        self.add_faction_to_grid(self.blue, grid)
-        self.add_faction_to_grid(self.red, grid)
-        print(self.convert_grid_to_string(grid))
+        self.grid = self.create_empty_grid()
+        self.add_faction_to_grid(self.blue)
+        self.add_faction_to_grid(self.red)
+        print(self.convert_grid_to_string())
 
 
 ##########
@@ -670,6 +670,6 @@ def GAME1(n):
     G1.DEFAULT_ROAM_SPEED = 2.
     G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
     G1.AMBIENT_POWER = 1.
-    G1.map = Map(G1)
+    G1.map = Map()
     return G1
 
