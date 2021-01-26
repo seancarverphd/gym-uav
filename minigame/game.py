@@ -18,7 +18,47 @@ import torch
 # MAPS #
 ########
 
-class Map():
+class Map0():
+    def __init__(self):
+        self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
+        self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
+        self.DEFAULT_N_STREETS_EW = 6
+        self.DEFAULT_N_STREETS_NS = 6
+        self.DEFAULT_COMMX = 3.
+        self.DEFAULT_COMMY = 4.
+        self.DEFAULT_OCCX = 2.
+        self.DEFAULT_OCCY = 3.
+        self.DEFAULT_JAMX = 5.
+        self.DEFAULT_JAMY = 1.
+        self.DEFAULT_ROAMX = 5.
+        self.DEFAULT_ROAMY = 2.
+        self.restore_map_defaults()
+
+    def restore_map_defaults(self):
+        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
+        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
+        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
+        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+        self.commx = self.DEFAULT_COMMX
+        self.commy = self.DEFAULT_COMMY
+        self.occx = self.DEFAULT_OCCX
+        self.occy = self.DEFAULT_OCCY
+        self.jamx = self.DEFAULT_JAMX
+        self.jamy = self.DEFAULT_JAMY
+        self.roamx = self.DEFAULT_ROAMX
+        self.roamy = self.DEFAULT_ROAMY
+
+    def remap(self, GAME):
+        GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
+        GAME.blue.clear_units()
+        GAME.red.clear_units()
+        GAME.blue.add_unit(Comm(GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
+        GAME.blue.add_headquarters(OccupyingTroop(GAME), name='OCC', label='O', x_=self.occx, y_=self.occy)
+        GAME.blue.add_unit(OccupyingTroop(GAME), name='JAM', label='J', x_=self.jamx, y_=self.jamy)  # SE Corner of map
+        GAME.blue.add_unit(OccupyingTroop(GAME), name='ROAM', label='R', x_=self.roamx, y_=self.roamy)  # SE Corner of map
+
+
+class Map1():
     def __init__(self):
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
@@ -70,9 +110,9 @@ class Game():
         self.DEFAULT_ROAM_SPEED = None
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.AMBIENT_POWER = None
-        # MAP
-        self.map = Map()
-        self.map.remap(self)  # Passes own game object into Map as self
+        # MAP these are called by GAME0 and GAME1
+        # self.map = Map()
+        # self.map.remap(self)  # Passes own game object into Map as self
         # SPACES
         self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
                                                     'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
@@ -633,34 +673,17 @@ class RoamingTroop(Roaming, Shooting, Unit):
 
 NoGAME = Game()
 
-GAME0 = Game()
-GAME0.TIMESTEP = .1
-GAME0.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
-GAME0.DEFAULT_FLY_SPEED = 5.
-GAME0.DEFAULT_ROAM_SPEED = 2.
-GAME0.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-GAME0.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
-GAME0.N_STREETS_EW = 48
-GAME0.N_STREETS_NS = 48
-GAME0.AMBIENT_POWER = 1.
-GAME0.restore_defaults()
-GAME0.add_blue_red(Faction('BLUE', GAME0), Faction('RED', GAME0))
-GAME0.blue.add_unit(Comm())
-GAME0.blue.units[-1].order.set_destination(0.9, 0.9)
-GAME0.blue.units[-1].x_ = 3.
-GAME0.blue.units[-1].y_ = 4.
-GAME0.blue.add_unit(OccupyingTroop())
-GAME0.blue.units[-1].x_ = 2.
-GAME0.blue.units[-1].y_ = 3.
-GAME0.red.add_unit(Jammer())
-GAME0.red.units[-1].order.set_destination(0.1, 0.9)
-GAME0.red.units[-1].x_ = 5.
-GAME0.red.units[-1].y_ = 1.
-GAME0.red.add_unit(RoamingTroop())
-GAME0.red.units[-1].order.set_destination(0.9, 0.1)
-GAME0.red.units[-1].x_ = 5.
-GAME0.red.units[-1].y_ = 2.
-GAME0.make_units_dictionaries()
+def GAME0():
+    G0 = Game()
+    G0.TIMESTEP = .1
+    G0.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
+    G0.DEFAULT_FLY_SPEED = 5.
+    G0.DEFAULT_ROAM_SPEED = 2.
+    G0.AMBIENT_POWER = 1.
+    G0.map = Map0()
+    G0.restore_defaults()
+    G0.map.remap(G0)
+    return G0
 
 def GAME1(n):
     G1 = Game()
@@ -670,6 +693,12 @@ def GAME1(n):
     G1.DEFAULT_ROAM_SPEED = 2.
     G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
     G1.AMBIENT_POWER = 1.
-    G1.map = Map()
+    G1.map = Map1()
+    G1.map.DEFAULT_N_STREETS_NS = n
+    G1.map.DEFAULT_N_STREETS_EW = n
+    G1.map.DEFAULT_ASSETX = n - 1.
+    G1.map.DEFAULT_ASSETY = n - 1.
+    G1.restore_defaults()
+    G1.map.remap(G1)
     return G1
 
