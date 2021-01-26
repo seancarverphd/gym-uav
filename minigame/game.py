@@ -6,12 +6,14 @@ import torch
 ##########################################################################################################
 # CLASSES:                                                                                               #
 #  There are classes for                                                                                 #
+#     * Maps                                                                                             #
 #     * Games                                                                                            #
 #     * Orders for each unit type                                                                        #
 #     * Factions (eg Blue or Re)                                                                         #
 #     * Capabilities (Communicating, Jamming, ApproachFlying, PathFlying, Roaming, Occupying, Shooting)  #
 #     * Units (Comm, Jammer, Occupying_Troop, Roaming_Troop)                                             #
 #     * Parent classes (Unit, Drone, Moving, BlankOrder)                                                 #
+#  Plus predefined games at the end.                                                                     #
 ##########################################################################################################
 
 ########
