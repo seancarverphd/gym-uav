@@ -251,6 +251,25 @@ class Game():
         print(self.convert_grid_to_string())
         print(self.observe_connections(self.blue))  #TODO add red connections
 
+class Game0(Game):
+    def make_map(self):
+        self.map = Map0(self)
+        self.map.remap()
+
+class Game1(Game):
+    def __init__(self, n):
+        self.mapsize = n
+        super().__init__()
+
+    def make_map(self):
+        self.map = Map1(self)
+        self.map.DEFAULT_N_STREETS_NS = self.mapsize
+        self.map.DEFAULT_N_STREETS_EW = self.mapsize
+        self.map.DEFAULT_ASSETX = self.mapsize - 1.
+        self.map.DEFAULT_ASSETY = self.mapsize - 1.
+        self.restore_defaults()
+        self.map.remap()
+
 
 ##########
 # ORDERS #
@@ -706,25 +725,4 @@ class RoamingTroop(Roaming, Shooting, Unit):
 
     def post_timestep(self):
         self.shoot_enemy_drones()
-
-NoGAME = Game()
-
-class Game0(Game):
-    def make_map(self):
-        self.map = Map0(self)
-        self.map.remap()
-
-class Game1(Game):
-    def __init__(self, n):
-        self.mapsize = n
-        super().__init__()
-
-    def make_map(self):
-        self.map = Map1(self)
-        self.map.DEFAULT_N_STREETS_NS = self.mapsize
-        self.map.DEFAULT_N_STREETS_EW = self.mapsize
-        self.map.DEFAULT_ASSETX = self.mapsize - 1.
-        self.map.DEFAULT_ASSETY = self.mapsize - 1.
-        self.restore_defaults()
-        self.map.remap()
 
