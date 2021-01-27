@@ -5,7 +5,7 @@ import torch
 class TestTheGame():
 
     def setup(self):
-        self.GAME = game.GAME0
+        self.GAME = game.Game0()
         self.BLUE = game.Faction('BLUE', self.GAME)
         self.RED = game.Faction('RED', self.GAME)
         self.GAME.add_blue_red(self.BLUE, self.RED)
@@ -58,7 +58,7 @@ class TestTheGame():
         assert U.y_ == 0.5
 
     def test_fly_submax(self):
-        U = game.Comm(game.GAME0)
+        U = game.Comm(game.Game0())
         assert U.x_ == .1
         assert U.y_ == .1
         U.order.set_destination(.2, .15)
@@ -68,13 +68,13 @@ class TestTheGame():
         assert U.y_ == .15
 
     def test_roam_supermax(self):
-        V = game.RoamingTroop(game.GAME0)
+        V = game.RoamingTroop(game.Game0())
         assert V.x_ == .1
         assert V.y_ == .1
         #TODO Finish this test
 
     def test_roam_submax(self):
-        V = game.RoamingTroop(game.GAME0)
+        V = game.RoamingTroop(game.Game0())
         assert V.x_ == .1
         assert V.y_ == .1
         V.order.set_destination(.14, .15)

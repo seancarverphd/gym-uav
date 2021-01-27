@@ -114,10 +114,14 @@ class Game():
         self.DEFAULT_FLY_SPEED = 2.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_AMBIENT_POWER = 1.5
+        self.make_map()  # usually calls overloaded method
         # MAP -- now called by GAME0 and GAME1
         # Map.remap() defines observation_space and action_space
         # self.map = Map(self)  # Passes own game object into Map as self
         # self.map.remap()
+
+    def make_map(self):  # Overload for specific game
+        pass
 
     def define_observation_space(self):
         return gym.spaces.Dict({
@@ -705,20 +709,22 @@ class RoamingTroop(Roaming, Shooting, Unit):
 
 NoGAME = Game()
 
-def GAME0():
-    G0 = Game()
-    G0.map = Map0(G0)
-    G0.map.remap()
-    return G0
+class Game0(Game):
+    def make_map(self):
+        self.map = Map0(self)
+        self.map.remap()
 
-def GAME1(n):
-    G1 = Game()
-    G1.map = Map1(G1)
-    G1.map.DEFAULT_N_STREETS_NS = n
-    G1.map.DEFAULT_N_STREETS_EW = n
-    G1.map.DEFAULT_ASSETX = n - 1.
-    G1.map.DEFAULT_ASSETY = n - 1.
-    G1.restore_defaults()
-    G1.map.remap()
-    return G1
+class Game1(Game):
+    def __init__(self, n):
+        self.mapsize = n
+        super().__init__()
+
+    def make_map(self):
+        self.map = Map1(self)
+        self.map.DEFAULT_N_STREETS_NS = self.mapsize
+        self.map.DEFAULT_N_STREETS_EW = self.mapsize
+        self.map.DEFAULT_ASSETX = self.mapsize - 1.
+        self.map.DEFAULT_ASSETY = self.mapsize - 1.
+        self.restore_defaults()
+        self.map.remap()
 
