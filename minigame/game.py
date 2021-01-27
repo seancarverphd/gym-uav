@@ -59,6 +59,8 @@ class Map0():
         self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='OCC', label='O', x_=self.occx, y_=self.occy)
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='JAM', label='J', x_=self.jamx, y_=self.jamy)  # SE Corner of map
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ROAM', label='R', x_=self.roamx, y_=self.roamy)  # SE Corner of map
+        self.GAME.observation_space = self.GAME.define_observation_space()
+        self.GAME.action_space = self.GAME.define_action_space()
 
 
 class Map1():
@@ -95,7 +97,8 @@ class Map1():
         self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
         self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
-
+        self.GAME.observation_space = self.GAME.define_observation_space()
+        self.GAME.action_space = self.GAME.define_action_space()
 ########
 # GAME #
 ########
@@ -115,21 +118,25 @@ class Game():
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.AMBIENT_POWER = None
         # MAP -- now called by GAME0 and GAME1
+        # Map.remap() defines observation_space and action_space
         # self.map = Map(self)  # Passes own game object into Map as self
         # self.map.remap()
-        #
-        # SPACES
-        self.observation_space = self.define_observation_space()
-        self.action_space = self.define_action_space()
 
     def define_observation_space(self):
         return gym.spaces.Dict({
-            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
-                'hears': gym.spaces.Dict({'HQ': gym.spaces.Discrete(2), 'ASSET': gym.spaces.Discrete(2)})}),
-            'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
-                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'ASSET':  gym.spaces.Discrete(2)})}),
-            'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32), 
-                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
+            key : gym.spaces.Dict(
+            {'posx': gym.spaces.Discrete(self.map.n_streets_ew),
+             'posy': gym.spaces.Discrete(self.map.n_streets_ns),
+             'hears': gym.spaces.Dict(
+                 {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.units_d[key].my_communicators()})})
+            for key in self.blue.units_d})  #TODO Make obsevation include red
+#        return gym.spaces.Dict({
+#            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
+#                'hears': gym.spaces.Dict({'HQ': gym.spaces.Discrete(2), 'ASSET': gym.spaces.Discrete(2)})}),
+#            'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
+#                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'ASSET':  gym.spaces.Discrete(2)})}),
+#            'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32), 
+#                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
 
     def define_action_space(self):
         return gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
@@ -197,10 +204,10 @@ class Game():
                 for key in faction.units_d}
 
     def observe_faction(self, faction):
-         return {key : {'posx': int(round(faction.units_d[key].x_)),
-                        'posy': int(round(faction.units_d[key].y_)),
-                        'hears': {key2.name: faction.units_d[key].radio_message_received(key2) for key2 in faction.units_d[key].my_communicators()}}
-                        for key in faction.units_d}
+        return {key : {'posx': int(round(faction.units_d[key].x_)),
+                       'posy': int(round(faction.units_d[key].y_)),
+                       'hears': {key2.name: faction.units_d[key].radio_message_received(key2) for key2 in faction.units_d[key].my_communicators()}}
+                       for key in faction.units_d}
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
 #                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
