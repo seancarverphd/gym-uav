@@ -21,7 +21,8 @@ import torch
 ########
 
 class Map0():
-    def __init__(self):
+    def __init__(self, GAME):
+        self.GAME = GAME
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
         self.DEFAULT_N_STREETS_EW = 6
@@ -50,18 +51,19 @@ class Map0():
         self.roamx = self.DEFAULT_ROAMX
         self.roamy = self.DEFAULT_ROAMY
 
-    def remap(self, GAME):
-        GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
-        GAME.blue.clear_units()
-        GAME.red.clear_units()
-        GAME.blue.add_unit(Comm(GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
-        GAME.blue.add_headquarters(OccupyingTroop(GAME), name='OCC', label='O', x_=self.occx, y_=self.occy)
-        GAME.blue.add_unit(OccupyingTroop(GAME), name='JAM', label='J', x_=self.jamx, y_=self.jamy)  # SE Corner of map
-        GAME.blue.add_unit(OccupyingTroop(GAME), name='ROAM', label='R', x_=self.roamx, y_=self.roamy)  # SE Corner of map
+    def remap(self):
+        self.GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
+        self.GAME.blue.clear_units()
+        self.GAME.red.clear_units()
+        self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
+        self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='OCC', label='O', x_=self.occx, y_=self.occy)
+        self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='JAM', label='J', x_=self.jamx, y_=self.jamy)  # SE Corner of map
+        self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ROAM', label='R', x_=self.roamx, y_=self.roamy)  # SE Corner of map
 
 
 class Map1():
-    def __init__(self):
+    def __init__(self, GAME):
+        self.GAME = GAME
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
         self.DEFAULT_N_STREETS_EW = 8
@@ -86,13 +88,13 @@ class Map1():
         self.assetx = self.DEFAULT_ASSETX
         self.assety = self.DEFAULT_ASSETY
 
-    def remap(self, GAME):
-        GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
-        GAME.blue.clear_units()
-        GAME.red.clear_units()
-        GAME.blue.add_unit(Comm(GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
-        GAME.blue.add_headquarters(OccupyingTroop(GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
-        GAME.blue.add_unit(OccupyingTroop(GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
+    def remap(self):
+        self.GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
+        self.GAME.blue.clear_units()
+        self.GAME.red.clear_units()
+        self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
+        self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
+        self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
 
 ########
 # GAME #
@@ -113,8 +115,8 @@ class Game():
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.AMBIENT_POWER = None
         # MAP these are called by GAME0 and GAME1
-        # self.map = Map()
-        # self.map.remap(self)  # Passes own game object into Map as self
+        # self.map = Map(self)
+        # self.map.remap()  # Passes own game object into Map as self
         # SPACES
         self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
                                                     'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
@@ -181,17 +183,23 @@ class Game():
 #            self.move()
 #            self.post_timestep()
 
+    def observe_blue_connections(self):
+        return {key: {key2.name: self.blue.units_d[key].radio_message_received(key2) 
+                      for key2 in self.blue.units_d[key].hears_me()}
+                for key in self.blue.units_d}
+
     def observe_blue(self):
          return {key : {'posx': int(round(self.blue.units_d[key].x_)),
                         'posy': int(round(self.blue.units_d[key].y_)),
                         'hears': {key2.name: self.blue.units_d[key].radio_message_received(key2) for key2 in self.blue.units_d[key].my_communicators()}}
                         for key in self.blue.units_d}
-    def reset(self):
-        return self.observe_blue()
-
-#        return { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
+#               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
 #                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
+
+    def reset(self):
+        self.map.remap()
+        return self.observe_blue()
 
     def step(self, action):
         # TODO Write this function
@@ -542,6 +550,11 @@ class Unit():  # Parent class to all units
             if unit is not self and self.communicates and unit.communicates:
                 yield unit
 
+    def hears_me(self):  #TODO only works for determinisic connections, save an adjacency matrix otherwise, or output probabilities
+        for unit in self.faction.units:
+            if unit is not self and self.communicates and unit.communicates and self.radio_message_received(unit):
+                yield unit
+
     def set_name(self, name):
         self.name = name
 
@@ -682,9 +695,9 @@ def GAME0():
     G0.DEFAULT_FLY_SPEED = 5.
     G0.DEFAULT_ROAM_SPEED = 2.
     G0.AMBIENT_POWER = 1.
-    G0.map = Map0()
+    G0.map = Map0(G0)
     G0.restore_defaults()
-    G0.map.remap(G0)
+    G0.map.remap()
     return G0
 
 def GAME1(n):
@@ -695,12 +708,12 @@ def GAME1(n):
     G1.DEFAULT_ROAM_SPEED = 2.
     G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
     G1.AMBIENT_POWER = 1.
-    G1.map = Map1()
+    G1.map = Map1(G1)
     G1.map.DEFAULT_N_STREETS_NS = n
     G1.map.DEFAULT_N_STREETS_EW = n
     G1.map.DEFAULT_ASSETX = n - 1.
     G1.map.DEFAULT_ASSETY = n - 1.
     G1.restore_defaults()
-    G1.map.remap(G1)
+    G1.map.remap()
     return G1
 
