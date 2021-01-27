@@ -23,10 +23,25 @@ import torch
 class Map0():
     def __init__(self, GAME):
         self.GAME = GAME
+        self.define_map_defaults()
+        self.define_specific_defaults()
+        self.restore_map_defaults()
+
+    def define_map_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
+        self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
+
+    def restore_map_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
+        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
+        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
+        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
+        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+        self.restore_specific_defaults()
+
+    def define_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
         self.DEFAULT_COMMX = 3.
         self.DEFAULT_COMMY = 4.
         self.DEFAULT_OCCX = 2.
@@ -35,13 +50,8 @@ class Map0():
         self.DEFAULT_JAMY = 1.
         self.DEFAULT_ROAMX = 5.
         self.DEFAULT_ROAMY = 2.
-        self.restore_map_defaults()
 
-    def restore_map_defaults(self):
-        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
-        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
-        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
-        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+    def restore_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
         self.commx = self.DEFAULT_COMMX
         self.commy = self.DEFAULT_COMMY
         self.occx = self.DEFAULT_OCCX
@@ -55,34 +65,27 @@ class Map0():
         self.GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
         self.GAME.blue.clear_units()
         self.GAME.red.clear_units()
+        self.add_units_to_map()
+        self.GAME.observation_space = self.GAME.define_observation_space()
+        self.GAME.action_space = self.GAME.define_action_space()
+
+    def add_units_to_map(self):
         self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
         self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='OCC', label='O', x_=self.occx, y_=self.occy)
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='JAM', label='J', x_=self.jamx, y_=self.jamy)  # SE Corner of map
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ROAM', label='R', x_=self.roamx, y_=self.roamy)  # SE Corner of map
-        self.GAME.observation_space = self.GAME.define_observation_space()
-        self.GAME.action_space = self.GAME.define_action_space()
 
 
-class Map1():
-    def __init__(self, GAME):
-        self.GAME = GAME
-        self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
-        self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
-        self.DEFAULT_N_STREETS_EW = 8
-        self.DEFAULT_N_STREETS_NS = 8
+class Map1(Map0):
+    def define_specific_defaults(self):
         self.DEFAULT_COMMX = 1.
         self.DEFAULT_COMMY = 1.
         self.DEFAULT_HQX = 0.
         self.DEFAULT_HQY = 0.
         self.DEFAULT_ASSETX = 7.
         self.DEFAULT_ASSETY = 7.
-        self.restore_map_defaults()
 
-    def restore_map_defaults(self):
-        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
-        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
-        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
-        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+    def restore_specific_defaults(self):
         self.commx = self.DEFAULT_COMMX
         self.commy = self.DEFAULT_COMMY
         self.hqx = self.DEFAULT_HQX
@@ -90,15 +93,11 @@ class Map1():
         self.assetx = self.DEFAULT_ASSETX
         self.assety = self.DEFAULT_ASSETY
 
-    def remap(self):
-        self.GAME.add_blue_red(Faction('BLUE'), Faction('RED'))
-        self.GAME.blue.clear_units()
-        self.GAME.red.clear_units()
+    def add_units_to_map(self):
         self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
         self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
-        self.GAME.observation_space = self.GAME.define_observation_space()
-        self.GAME.action_space = self.GAME.define_action_space()
+
 ########
 # GAME #
 ########
@@ -111,12 +110,10 @@ class Game():
         # GLOBAL VARIABLES
         self.clock = 0
         # CONSTANTS
-        self.TIMESTEP = None
-        self.DEFAULT_ROAMING_RANDOM_PERTURBATION = None
-        self.DEFAULT_FLY_SPEED = None
-        self.DEFAULT_ROAM_SPEED = None
-        self.DEFAULT_POINT_SOURCE_CONSTANT = None
-        self.AMBIENT_POWER = None
+        self.DEFAULT_TIMESTEP = .1
+        self.DEFAULT_FLY_SPEED = 2.
+        self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
+        self.DEFAULT_AMBIENT_POWER = 1.5
         # MAP -- now called by GAME0 and GAME1
         # Map.remap() defines observation_space and action_space
         # self.map = Map(self)  # Passes own game object into Map as self
@@ -163,6 +160,10 @@ class Game():
         if self.red is not None:
             self.red.restore_defaults()
         self.map.restore_map_defaults()
+        self.timestep = self.DEFAULT_TIMESTEP 
+        self.fly_speed = self.DEFAULT_FLY_SPEED
+        self.point_source_constant = self.DEFAULT_POINT_SOURCE_CONSTANT
+        self.ambient_power = self.DEFAULT_AMBIENT_POWER
 
     def still_playing(self):
         '''
@@ -195,7 +196,7 @@ class Game():
 #        self.initialize()
 #        self.implement_ceoi()
 #        for _ in range(n):
-#            self.clock += self.TIMESTEP
+#            self.clock += self.timestep
 #            self.move()
 #            self.post_timestep()
 
@@ -470,15 +471,15 @@ class Moving():  # Parent class to Flying and Roaming
         '''
         ideal_delta_x = self.order.destination_x - self.x_
         ideal_delta_y = self.order.destination_y - self.y_
-        ideal_speed = self.distance_to_target() / self.GAME.TIMESTEP  # distance to target l2 for Flying, l1 for Roaming
+        ideal_speed = self.distance_to_target() / self.GAME.timestep  # distance to target l2 for Flying, l1 for Roaming
         if ideal_speed <= self.max_speed:  # not too fast
             self.delta_x = ideal_delta_x
             self.delta_y = ideal_delta_y
         else:  # too fast
             self.delta_x = ideal_delta_x * self.max_speed/ideal_speed
             self.delta_y = ideal_delta_y * self.max_speed/ideal_speed
-        self.vx = self.delta_x / self.GAME.TIMESTEP
-        self.vy = self.delta_y / self.GAME.TIMESTEP
+        self.vx = self.delta_x / self.GAME.timestep
+        self.vy = self.delta_y / self.GAME.timestep
 
     def step_xy(self):
         self.x_ += self.delta_x
@@ -507,7 +508,7 @@ class Roaming(Moving):
         return np.abs(x) + np.abs(y)
 
     def restore_capability_defaults(self):
-        self.max_speed = self.GAME.DEFAULT_ROAM_SPEED
+        self.max_speed = 5  #TODO Update this 
 
 class Occupying():
     def place_on_target(self, occupy_x, occupy_y):
@@ -523,7 +524,7 @@ class Communicating():
         return self.point_source_constant * self.sender_characteristic_distance**2 / ((x_receiver - self.x_)**2 + (y_receiver - self.y_)**2)
 
     def sjr_db(self, x_receiver, y_receiver):
-        return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.AMBIENT_POWER)
+        return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.ambient_power)
 
     def radio_message_received(self, unit):  # unit instead of x_ and y_
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
@@ -706,24 +707,12 @@ NoGAME = Game()
 
 def GAME0():
     G0 = Game()
-    G0.TIMESTEP = .1
-    G0.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
-    G0.DEFAULT_FLY_SPEED = 5.
-    G0.DEFAULT_ROAM_SPEED = 2.
-    G0.AMBIENT_POWER = 1.
     G0.map = Map0(G0)
-    G0.restore_defaults()
     G0.map.remap()
     return G0
 
 def GAME1(n):
     G1 = Game()
-    G1.TIMESTEP = .1
-    G1.DEFAULT_ROAMING_RANDOM_PERTURBATION = 2.
-    G1.DEFAULT_FLY_SPEED = 5.
-    G1.DEFAULT_ROAM_SPEED = 2.
-    G1.DEFAULT_POINT_SOURCE_CONSTANT = 1.
-    G1.AMBIENT_POWER = 1.
     G1.map = Map1(G1)
     G1.map.DEFAULT_N_STREETS_NS = n
     G1.map.DEFAULT_N_STREETS_EW = n
