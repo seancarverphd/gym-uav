@@ -114,16 +114,25 @@ class Game():
         self.DEFAULT_ROAM_SPEED = None
         self.DEFAULT_POINT_SOURCE_CONSTANT = None
         self.AMBIENT_POWER = None
-        # MAP these are called by GAME0 and GAME1
-        # self.map = Map(self)
-        # self.map.remap()  # Passes own game object into Map as self
+        # MAP -- now called by GAME0 and GAME1
+        # self.map = Map(self)  # Passes own game object into Map as self
+        # self.map.remap()
+        #
         # SPACES
-        self.observation_space = gym.spaces.Dict({'SELF': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
-                                                    'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
-                                                 'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32)}),
-                                            'SELF2wayHQ': gym.spaces.Discrete(2),
-                                         'SELF2wayASSET': gym.spaces.Discrete(2)})
-        self.action_space = gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
+        self.observation_space = self.define_observation_space()
+        self.action_space = self.define_action_space()
+
+    def define_observation_space(self):
+        return gym.spaces.Dict({
+            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
+                'hears': gym.spaces.Dict({'HQ': gym.spaces.Discrete(2), 'ASSET': gym.spaces.Discrete(2)})}),
+            'HQ': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
+                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'ASSET':  gym.spaces.Discrete(2)})}),
+            'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32), 
+                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
+
+    def define_action_space(self):
+        return gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
 
     def add_blue_red(self, blue, red):
         assert blue is not red
@@ -183,23 +192,22 @@ class Game():
 #            self.move()
 #            self.post_timestep()
 
-    def observe_blue_connections(self):
-        return {key: {key2.name: self.blue.units_d[key].radio_message_received(key2) 
-                      for key2 in self.blue.units_d[key].hears_me()}
-                for key in self.blue.units_d}
+    def observe_connections(self, faction):
+        return {key: {key2.name for key2 in faction.units_d[key].hears_me()}
+                for key in faction.units_d}
 
-    def observe_blue(self):
-         return {key : {'posx': int(round(self.blue.units_d[key].x_)),
-                        'posy': int(round(self.blue.units_d[key].y_)),
-                        'hears': {key2.name: self.blue.units_d[key].radio_message_received(key2) for key2 in self.blue.units_d[key].my_communicators()}}
-                        for key in self.blue.units_d}
+    def observe_faction(self, faction):
+         return {key : {'posx': int(round(faction.units_d[key].x_)),
+                        'posy': int(round(faction.units_d[key].y_)),
+                        'hears': {key2.name: faction.units_d[key].radio_message_received(key2) for key2 in faction.units_d[key].my_communicators()}}
+                        for key in faction.units_d}
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
 #                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
 
     def reset(self):
         self.map.remap()
-        return self.observe_blue()
+        return self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
 
     def step(self, action):
         # TODO Write this function
@@ -226,9 +234,10 @@ class Game():
     def render(self, mode='human', close=False):
         assert mode == 'human'
         self.grid = self.create_empty_grid()
-        self.add_faction_to_grid(self.blue)
+        self.add_faction_to_grid(self.blue)   #TODO add red labels
         self.add_faction_to_grid(self.red)
         print(self.convert_grid_to_string())
+        print(self.observe_connections(self.blue))  #TODO add red connections
 
 
 ##########
