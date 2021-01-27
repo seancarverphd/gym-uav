@@ -569,7 +569,7 @@ class Unit():  # Parent class to all units
     def __init__(self, GAME=None):
         self.order = BlankOrder(self)  # self is the second arg that becomes unit inside __init__
         if GAME is None:
-            self.regame(NoGAME)  # defines self.GAME as NoGAME and calls self.restore_defaults()
+            self.regame(Game())  # defines self.GAME as Empty Game and calls self.restore_defaults()
         else:
             self.regame(GAME)
         self.faction = None
