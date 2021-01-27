@@ -25,7 +25,7 @@ class Map0():
         self.GAME = GAME
         self.define_map_defaults()
         self.define_specific_defaults()
-        self.restore_map_defaults()
+        self.restore_defaults()
 
     def define_map_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
@@ -34,7 +34,7 @@ class Map0():
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
 
-    def restore_map_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
+    def restore_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
         self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
         self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
         self.n_streets_ew = self.DEFAULT_N_STREETS_EW
@@ -163,7 +163,7 @@ class Game():
             self.blue.restore_defaults()
         if self.red is not None:
             self.red.restore_defaults()
-        self.map.restore_map_defaults()
+        self.map.restore_defaults()
         self.timestep = self.DEFAULT_TIMESTEP 
         self.fly_speed = self.DEFAULT_FLY_SPEED
         self.point_source_constant = self.DEFAULT_POINT_SOURCE_CONSTANT
@@ -257,8 +257,8 @@ class Game0(Game):
         self.map.remap()
 
 class Game1(Game):
-    def __init__(self, n):
-        self.mapsize = n
+    def __init__(self, mapsize):
+        self.mapsize = mapsize
         super().__init__()
 
     def make_map(self):
@@ -267,7 +267,7 @@ class Game1(Game):
         self.map.DEFAULT_N_STREETS_EW = self.mapsize
         self.map.DEFAULT_ASSETX = self.mapsize - 1.
         self.map.DEFAULT_ASSETY = self.mapsize - 1.
-        self.restore_defaults()
+        self.map.restore_defaults()
         self.map.remap()
 
 

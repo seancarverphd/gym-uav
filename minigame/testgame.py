@@ -20,6 +20,8 @@ class TestTheGame():
 #        self.GAME.blue.post_timestep()
 #        self.GAME.red.post_timestep()
 
+# One other removed test verified the names of the units
+
     def test_fly_supermax(self):
         U = game.Comm(self.GAME)
         assert U.x_ == .1
