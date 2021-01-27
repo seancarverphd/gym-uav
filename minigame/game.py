@@ -114,11 +114,8 @@ class Game():
         self.DEFAULT_FLY_SPEED = 2.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_AMBIENT_POWER = 1.
-        self.make_map()  # usually calls overloaded method
-        # MAP -- now called by GAME0 and GAME1
-        # Map.remap() defines observation_space and action_space
-        # self.map = Map(self)  # Passes own game object into Map as self
-        # self.map.remap()
+        # MAPS
+        self.make_map()  # usually calls overloaded method which calls remap() which defines observation_space and action_space
 
     def make_map(self):  # Overload for specific game
         pass
