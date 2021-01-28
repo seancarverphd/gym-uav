@@ -23,23 +23,16 @@ import torch
 class Map0():
     def __init__(self, GAME):
         self.GAME = GAME
-        self.define_map_defaults()
-        self.define_specific_defaults()
+        self.define_defaults()
         self.restore_defaults()
 
-    def define_map_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
+    def define_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
-
-    def restore_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
-        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
-        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
-        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
-        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
-        self.restore_specific_defaults()
+        self.define_specific_defaults()
 
     def define_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
         self.DEFAULT_COMMX = 3.
@@ -50,6 +43,13 @@ class Map0():
         self.DEFAULT_JAMY = 1.
         self.DEFAULT_ROAMX = 5.
         self.DEFAULT_ROAMY = 2.
+
+    def restore_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
+        self.receiver_characteristic_distance = self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE
+        self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
+        self.n_streets_ew = self.DEFAULT_N_STREETS_EW
+        self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+        self.restore_specific_defaults()
 
     def restore_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
         self.commx = self.DEFAULT_COMMX
@@ -137,9 +137,10 @@ class Game():
 #            'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32), 
 #                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
 
-    def define_action_space(self):
+    def define_action_space(self):  # need to adjust for red actions
+        # for unitname in 
         return gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
-
+#                              { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }  # add speed 
     def add_blue_red(self, blue, red):
         assert blue is not red
         self.blue = blue
@@ -616,7 +617,7 @@ class Roaming(Moving):
         return np.abs(x) + np.abs(y)
 
     def restore_capability_defaults(self):
-        self.max_speed = 5  #TODO Update this 
+        self.max_speed = self.GAME.DEFAULT_FLY_SPEED
 
 class Occupying():
     def place_on_target(self, occupy_x, occupy_y):
