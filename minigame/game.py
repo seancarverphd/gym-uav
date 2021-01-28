@@ -168,8 +168,9 @@ class Game():
 
     def still_playing(self):
         '''
-        still_playing(): asserts that self is the same game that its units and factions are playing
+        still_playing(): asserts that self is the same Game that its map, factions and units are associated with
         '''
+        assert self is self.map.GAME
         assert self is self.blue.GAME
         assert self is self.red.GAME
         for unit in self.blue.units:
@@ -188,6 +189,10 @@ class Game():
     def move(self):
         self.blue.move()
         self.red.move()
+
+    def pre_timestep(self):
+        self.blue.pre_timestep()
+        self.red.pre_timestep()
 
     def post_timestep(self):
         self.blue.post_timestep()
@@ -216,11 +221,19 @@ class Game():
 
     def reset(self):
         self.map.remap()
+        self.initialize()
+        self.implement_ceoi()
         return self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
 
-    def step(self, action):
-        # TODO Write this function
-        obs = None
+    def parse_action_into_order(step, action):
+        pass
+
+    def step(self, action): # TODO Write this function
+        self.parse_action_into_order(action)
+        self.pre_timestep()
+        self.move()
+        self.post_timestep()
+        obs = self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
         reward = None
         done = None
         info = None
@@ -275,6 +288,50 @@ class Game1(Game):
 class BlankOrder():  # Default values for orders
     def __init__(self, unit):
         self.unit = unit
+        self.destination_specification = {'controlled': None, 'stationary': None}
+        self.speed_specification = {'controlled': None, 'zero': None, 'maximum': None}
+        self.turn_on_stationary()
+    # Destination: if controlled, parse action, if stationary, put in None
+    # Speed: [if controlled, parse action], if zero, put in None, if max, put that in.
+
+    # TODO Add specification for random motion
+
+    def turn_on_stationary(self):
+        self.destination_specification = {'controlled': False, 'stationary': True}
+        self.speed_specification = {'controlled': False, 'zero': True, 'maximum': False}
+        self.specification_integrity()
+
+    def turn_on_control(self):
+        self.destination_specification = {'controlled': True, 'stationary': False}
+        self.speed_specification = {'controlled': True, 'zero': False, 'maximum': False}
+        self.specification_integrity()
+
+    def turn_on_controlled_destination_max_speed(self):
+        self.destination_specification = {'controlled': True, 'stationary': False}
+        self.speed_specification = {'controlled': False, 'zero': False, 'maximum': True}
+        self.specification_integrity()
+
+    def specification_integrity(self):
+        self.assert_one_hot(self.destination_specification)
+        self.assert_one_hot(self.speed_specification)
+        self.assert_zero_consistent()
+        self.assert_if_speed_controlled_then_destination_controlled()
+
+    def assert_one_hot(self, spec):
+        hot = 0
+        for key in spec:
+            assert spec[key] is True or spec[key] is False
+            if spec[key]:
+                hot += 1
+        assert hot == 1
+
+    def assert_zero_consistent(self):
+        assert ((self.destination_specification['stationary'] and self.speed_specification['zero'])
+                or not(self.destination_specification['stationary'] and not self.speed_specification['zero']))
+
+    def assert_if_speed_controlled_then_destination_controlled(self):
+        if self.speed_specification['controlled']:
+            assert self.destination_specification['controlled']
 
     def restore_defaults(self):
         pass
@@ -446,6 +503,16 @@ class Faction():
     def add_unit_to_jamming_network(self, unit):
         self.jamming_network.append(unit)
 
+    def units_with_controlled_destination(self):
+        for unit in self.units:
+            if unit.order.destination_specification['controlled']:
+                yield unit
+
+    def units_with_controlled_speed(self):
+        for unit in self.units:
+            if unit.order.speed_specification['controlled']:
+                yield unit
+
     # All methods below have counterparts in units classes
     def restore_defaults(self):
         for unit in self.units:
@@ -466,6 +533,10 @@ class Faction():
     def post_timestep(self):
         for unit in self.units:
             unit.post_timestep()
+
+    def pre_timestep(self):
+        for unit in self.units:
+            unit.pre_timestep()
 
 #    def step(self, action):  #TODO NEED WORK!
 #        obs_list = []
@@ -625,6 +696,9 @@ class Unit():  # Parent class to all units
         pass
 
     def move(self):
+        pass
+
+    def pre_timestep(self):
         pass
 
     def post_timestep(self):
