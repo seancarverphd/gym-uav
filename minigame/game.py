@@ -127,8 +127,8 @@ class Game():
             {'posx': gym.spaces.Discrete(self.map.n_streets_ew),
              'posy': gym.spaces.Discrete(self.map.n_streets_ns),
              'hears': gym.spaces.Dict(
-                 {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.units_d[key].my_communicators()})})
-            for key in self.blue.units_d})  #TODO Make obsevation include red
+                 {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
+            for key in self.blue.unitd})  #TODO Make obsevation include red
 #        return gym.spaces.Dict({
 #            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
 #                'hears': gym.spaces.Dict({'HQ': gym.spaces.Discrete(2), 'ASSET': gym.spaces.Discrete(2)})}),
@@ -203,14 +203,14 @@ class Game():
         self.red.post_timestep()
 
     def observe_connections(self, faction):
-        return {key: {key2.name for key2 in faction.units_d[key].hears_me()}
-                for key in faction.units_d}
+        return {key: {key2.name for key2 in faction.unitd[key].hears_me()}
+                for key in faction.unitd}
 
     def observe_faction(self, faction):
-        return {key : {'posx': int(round(faction.units_d[key].x_)),
-                       'posy': int(round(faction.units_d[key].y_)),
-                       'hears': {key2.name: faction.units_d[key].radio_message_received(key2) for key2 in faction.units_d[key].my_communicators()}}
-                       for key in faction.units_d}
+        return {key : {'posx': int(round(faction.unitd[key].x_)),
+                       'posy': int(round(faction.unitd[key].y_)),
+                       'hears': {key2.name: faction.unitd[key].radio_message_received(key2) for key2 in faction.unitd[key].my_communicators()}}
+                       for key in faction.unitd}
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
 #                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
@@ -223,11 +223,11 @@ class Game():
 
     def parse_blue_into_order(self, action):
         for unitname in action:
-            assert self.blue.units_d[unitname].order.destination_specification['controlled']
-            self.blue.units_d[unitname].order.destination_x = action[unitname]['destx']
-            self.blue.units_d[unitname].order.destination_y = action[unitname]['desty']
-            if self.blue.units_d[unitname].order.speed_specification['controlled']:
-                self.blue.units_d[unitname].order.speed = action[unitname]['speed']
+            assert self.blue.unitd[unitname].order.destination_specification['controlled']
+            self.blue.unitd[unitname].order.destination_x = action[unitname]['destx']
+            self.blue.unitd[unitname].order.destination_y = action[unitname]['desty']
+            if self.blue.unitd[unitname].order.speed_specification['controlled']:
+                self.blue.unitd[unitname].order.speed = action[unitname]['speed']
 #       eg. parse something like: action = { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }  # add speed 
         pass
 
@@ -475,7 +475,7 @@ class Faction():
         self.enemy = None
         self.GAME = GAME
         self.units = []
-        self.units_d = {}
+        self.unitd = {}
         self.headquarters = None
         self.communication_network = []
         self.jamming_network = []
@@ -500,8 +500,8 @@ class Faction():
         self.make_units_dictionary()
 
     def make_units_dictionary(self):
-        self.units_d = {unit.name: unit for unit in self.units}
-        assert len(self.units_d) == len(self.units)
+        self.unitd = {unit.name: unit for unit in self.units}
+        assert len(self.unitd) == len(self.units)
 
     def pop_unit(self):
         unit = self.units.pop()
