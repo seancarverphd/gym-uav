@@ -66,8 +66,7 @@ class Map0():
         self.GAME.blue.clear_units()
         self.GAME.red.clear_units()
         self.add_units_to_map()
-        self.GAME.observation_space = self.GAME.define_observation_space()
-        self.GAME.action_space = self.GAME.define_action_space()
+        self.GAME.define_spaces()
 
     def add_units_to_map(self):
         self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
@@ -98,9 +97,9 @@ class Map1(Map0):
         self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
 
-########
-# GAME #
-########
+#########
+# GAMES #
+#########
 
 class Game():
     def __init__(self):
@@ -137,10 +136,27 @@ class Game():
 #            'ASSET': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32), 
 #                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
 
-    def define_action_space(self):  # need to adjust for red actions
-        # for unitname in 
-        return gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
-#                              { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }  # add speed 
+    def define_action_space(self):  # TODO need to adjust for red actions
+        return gym.spaces.Dict(
+                {unit.name: 
+                      gym.spaces.Dict(
+                           {'destx': gym.spaces.Discrete(self.map.n_streets_ew),
+                            'desty': gym.spaces.Discrete(self.map.n_streets_ns)}
+                           )
+                      if not unit.order.speed_specification['controlled']
+                      else gym.spaces.Dict(
+                           {'destx': gym.spaces.Discrete(self.map.n_streets_ew),
+                            'desty': gym.spaces.Discrete(self.map.n_streets_ns),
+                            'speed': gym.spaces.Discrete(3)} # speed 0, 1, or 2 TODO Generalize
+                           )
+                      for unit in self.blue.units_with_controlled_destination()})  # TODO Generalize to Red
+#               gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
+#               { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }
+
+    def define_spaces(self):
+        self.observation_space = self.define_observation_space()
+        self.action_space = self.define_action_space()
+
     def add_blue_red(self, blue, red):
         assert blue is not red
         self.blue = blue
