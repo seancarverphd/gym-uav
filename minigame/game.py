@@ -111,6 +111,7 @@ class Game():
         self.clock = 0
         # CONSTANTS
         self.DEFAULT_TIMESTEP = .1
+        self.DEFAULT_MAX_TIME = 50.
         self.DEFAULT_FLY_SPEED = 2.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_AMBIENT_POWER = 1.
@@ -161,7 +162,8 @@ class Game():
         if self.red is not None:
             self.red.restore_defaults()
         self.map.restore_defaults()
-        self.timestep = self.DEFAULT_TIMESTEP 
+        self.timestep = self.DEFAULT_TIMESTEP
+        self.max_time = self.DEFAULT_MAX_TIME
         self.fly_speed = self.DEFAULT_FLY_SPEED
         self.point_source_constant = self.DEFAULT_POINT_SOURCE_CONSTANT
         self.ambient_power = self.DEFAULT_AMBIENT_POWER
@@ -179,6 +181,7 @@ class Game():
             assert self is unit.GAME
 
     def initialize(self):
+        self.clock = 0.
         self.blue.initialize()
         self.red.initialize()
 
@@ -186,25 +189,18 @@ class Game():
         self.blue.implement_ceoi()
         self.red.implement_ceoi()
 
+    def pre_timestep(self):
+        self.clock += self.timestep
+        self.blue.pre_timestep()
+        self.red.pre_timestep()
+
     def move(self):
         self.blue.move()
         self.red.move()
 
-    def pre_timestep(self):
-        self.blue.pre_timestep()
-        self.red.pre_timestep()
-
     def post_timestep(self):
         self.blue.post_timestep()
         self.red.post_timestep()
-
-#    def run(self, n=1):
-#        self.initialize()
-#        self.implement_ceoi()
-#        for _ in range(n):
-#            self.clock += self.timestep
-#            self.move()
-#            self.post_timestep()
 
     def observe_connections(self, faction):
         return {key: {key2.name for key2 in faction.units_d[key].hears_me()}
@@ -225,8 +221,22 @@ class Game():
         self.implement_ceoi()
         return self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
 
-    def parse_action_into_order(step, action):
+    def parse_blue_into_order(self, action):
+        for unitname in action:
+            assert self.blue.units_d[unitname].order.destination_specification['controlled']
+            self.blue.units_d[unitname].order.destination_x = action[unitname]['destx']
+            self.blue.units_d[unitname].order.destination_y = action[unitname]['desty']
+            if self.blue.units_d[unitname].order.speed_specification['controlled']:
+                self.blue.units_d[unitname].order.speed = action[unitname]['speed']
+#       eg. parse something like: action = { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }  # add speed 
         pass
+
+    def parse_red_into_order(self, action):
+        pass
+
+    def parse_action_into_order(self, action):  # eventually action = {'BLUE': {...}, 'RED': {...}} but only if both have controlled units
+        self.parse_blue_into_order(action)      # eventually ...into_order(action['BLUE'])
+                                                # eventually ...into_order(action['RED'])
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
@@ -234,10 +244,17 @@ class Game():
         self.move()
         self.post_timestep()
         obs = self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
-        reward = None
-        done = None
-        info = None
+        reward = None  #TODO Last piece for functioning step()
+        done = self.clock > self.max_time
+        info = {}  # No info until debug time
         return obs, reward, done, info
+
+#    def run(self, n=1):  # Only run if no units are controlled
+#        self.initialize()
+#        self.implement_ceoi()
+#        for _ in range(n):
+#            self.move()
+#            self.post_timestep()
 
     def create_empty_grid(self):
         return list(('. '*self.map.n_streets_ew+'\n')*self.map.n_streets_ns)
