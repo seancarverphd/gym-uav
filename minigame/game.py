@@ -275,6 +275,9 @@ class Game():
         assert 'HQ' in self.blue.unitd
         assert 'ASSET' in self.blue.unitd
         assert len(self.blue.unitd) == 3
+        return self.blue.unitd['ASSET'].asset_value*(
+                self.blue.unitd['HQ'].radio_message_received(self.blue.unitd['COMM']) +
+                self.blue.unitd['COMM'].radio_message_received(self.blue.unitd['ASSET']))
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
