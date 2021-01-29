@@ -113,6 +113,7 @@ class Game():
         self.DEFAULT_TIMESTEP = .1
         self.DEFAULT_MAX_TIME = 50.
         self.DEFAULT_FLY_SPEED = 2.
+        self.DEFAULT_ROAM_SPEED = 1.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_AMBIENT_POWER = 1.
         # RANDOM NUMBER GENERATORS
@@ -197,6 +198,7 @@ class Game():
         self.timestep = self.DEFAULT_TIMESTEP
         self.max_time = self.DEFAULT_MAX_TIME
         self.fly_speed = self.DEFAULT_FLY_SPEED
+        self.roam_speed = self.DEFAULT_ROAM_SPEED
         self.point_source_constant = self.DEFAULT_POINT_SOURCE_CONSTANT
         self.ambient_power = self.DEFAULT_AMBIENT_POWER
 
@@ -256,14 +258,12 @@ class Game():
     def parse_blue_into_order(self, action):
         for unitname in action:
             assert self.blue.unitd[unitname].order.destination_specification['controlled']
-            self.blue.unitd[unitname].order.destination_x = action[unitname]['destx']
-            self.blue.unitd[unitname].order.destination_y = action[unitname]['desty']
+            self.blue.unitd[unitname].order.set_destination(action[unitname]['destx'], action[unitname]['desty'])
             if self.blue.unitd[unitname].order.speed_specification['controlled']:
-                self.blue.unitd[unitname].order.speed = action[unitname]['speed']
+                self.blue.unitd[unitname].order.set_speed(action[unitname]['speed'])
 #       eg. parse something like: action = { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }  # add speed 
-        pass
 
-    def parse_red_into_order(self, action):
+    def parse_red_into_order(self, action):  #TODO Write this function
         pass
 
     def parse_action_into_order(self, action):  # eventually action = {'BLUE': {...}, 'RED': {...}} but only if both have controlled units
@@ -281,12 +281,13 @@ class Game():
         info = {}  # No info until debug time
         return obs, reward, done, info
 
-#    def run(self, n=1):  # Only run if no units are controlled
-#        self.initialize()
-#        self.implement_ceoi()
-#        for _ in range(n):
-#            self.move()
-#            self.post_timestep()
+    def run(self, action, n=1):  # Only run if no units are controlled
+        for _ in range(n):
+            self.step(action)
+
+    def advance(self, action, n=1):
+        self.run(action, n)
+        self.render()
 
     def create_empty_grid(self):
         return list(('. '*self.map.n_streets_ew+'\n')*self.map.n_streets_ns)
@@ -358,6 +359,7 @@ class BlankOrder():  # Default values for orders
     def turn_on_controlled_destination_max_speed(self):
         self.destination_specification = {'controlled': True, 'stationary': False}
         self.speed_specification = {'controlled': False, 'zero': False, 'maximum': True}
+        self.set_speed()
         self.specification_integrity()
 
     def specification_integrity(self):
@@ -433,10 +435,14 @@ class ApproachingOrder(BlankOrder):
         super().__init__(unit)
         self.destination_x = None
         self.destination_y = None
+        self.speed = None
 
     def set_destination(self, dest_x, dest_y):
         self.destination_x = dest_x
         self.destination_y = dest_y
+
+    def set_speed(self, speed=None):
+        self.speed = speed if speed is not None else self.max_speed
 
 class ApproachingGaussianOrder(ApproachingOrder):
     def __init__(self, unit):
@@ -607,17 +613,17 @@ class Faction():
 class Moving():  # Parent class to Flying and Roaming
     def plan_timestep_motion(self):   # Used for Comm, Jammer & RoamingTroop but NOT Occupying Troop
         '''
-        plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.max_speed
+        plan_timestep_motion(): defines delta_x, delta_y, vx, vy in direction of destination but magnitude not greater than self.order.speed
         '''
         ideal_delta_x = self.order.destination_x - self.x_
         ideal_delta_y = self.order.destination_y - self.y_
         ideal_speed = self.distance_to_target() / self.GAME.timestep  # distance to target l2 for Flying, l1 for Roaming
-        if ideal_speed <= self.max_speed:  # not too fast
+        if ideal_speed <= self.order.speed:  # not too fast
             self.delta_x = ideal_delta_x
             self.delta_y = ideal_delta_y
         else:  # too fast
-            self.delta_x = ideal_delta_x * self.max_speed/ideal_speed
-            self.delta_y = ideal_delta_y * self.max_speed/ideal_speed
+            self.delta_x = ideal_delta_x * self.order.speed/ideal_speed
+            self.delta_y = ideal_delta_y * self.order.speed/ideal_speed
         self.vx = self.delta_x / self.GAME.timestep
         self.vy = self.delta_y / self.GAME.timestep
 
@@ -648,7 +654,7 @@ class Roaming(Moving):
         return np.abs(x) + np.abs(y)
 
     def restore_capability_defaults(self):
-        self.max_speed = self.GAME.DEFAULT_FLY_SPEED
+        self.max_speed = self.GAME.DEFAULT_ROAM_SPEED
 
 class Occupying():
     def place_on_target(self, occupy_x, occupy_y):
