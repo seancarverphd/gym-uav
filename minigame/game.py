@@ -270,13 +270,19 @@ class Game():
         self.parse_blue_into_order(action)      # eventually ...into_order(action['BLUE'])
                                                 # eventually ...into_order(action['RED'])
 
+    def temp_reward(self):
+        assert 'COMM' in self.blue.unitd
+        assert 'HQ' in self.blue.unitd
+        assert 'ASSET' in self.blue.unitd
+        assert len(self.blue.unitd) == 3
+
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
         self.pre_timestep()
         self.move()
         self.post_timestep()
         obs = self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
-        reward = None  #TODO Last piece for functioning step()
+        reward = self.temp_reward()
         done = self.clock > self.max_time
         info = {}  # No info until debug time
         return obs, reward, done, info
