@@ -94,6 +94,7 @@ class Map1(Map0):
 
     def add_units_to_map(self):
         self.GAME.blue.add_unit(Comm(self.GAME), name='COMM', label='C', x_=self.commx, y_=self.commy)
+        self.GAME.blue.units[-1].order.turn_on_control()
         self.GAME.blue.add_headquarters(OccupyingTroop(self.GAME), name='HQ', label='H', x_=self.hqx, y_=self.hqy)
         self.GAME.blue.add_unit(OccupyingTroop(self.GAME), name='ASSET', label='A', x_=self.assetx, y_=self.assety)  # SE Corner of map
 
@@ -114,6 +115,8 @@ class Game():
         self.DEFAULT_FLY_SPEED = 2.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_AMBIENT_POWER = 1.
+        # RANDOM NUMBER GENERATORS
+        self.example_rng = np.random.RandomState()
         # MAPS
         self.make_map()  # usually calls overloaded method which calls remap() which defines observation_space and action_space
 
@@ -152,6 +155,18 @@ class Game():
                       for unit in self.blue.units_with_controlled_destination()})  # TODO Generalize to Red
 #               gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
 #               { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }
+
+    def example_action(self, seed=None):
+        self.example_rng.seed(seed)
+        return {unit.name:
+                           {'destx': self.example_rng.randint(self.map.n_streets_ew),
+                            'desty': self.example_rng.randint(self.map.n_streets_ns)}
+                      if not unit.order.speed_specification['controlled']
+                      else
+                           {'destx': self.example_rng.randint(self.map.n_streets_ew),
+                            'desty': self.example_rng.randint(self.map.n_streets_ns),
+                            'speed': self.example_rng.randint(3)}  # TODO Generalize
+                      for unit in self.blue.units_with_controlled_destination()}  # TODO Generalize to Red
 
     def define_spaces(self):
         self.observation_space = self.define_observation_space()
