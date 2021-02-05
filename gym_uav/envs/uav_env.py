@@ -2,6 +2,8 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 import numpy as np
+import flatten_dict
+import dflat
 
 ##########################################################################################################
 # CLASSES:                                                                                               #
@@ -125,13 +127,13 @@ class Game(gym.Env):
         pass
 
     def define_observation_space(self):
-        return gym.spaces.Dict({
+        return dflat.gflatten(gym.spaces.Dict({
             key : gym.spaces.Dict(
             {'posx': gym.spaces.Discrete(self.map.n_streets_ew),
              'posy': gym.spaces.Discrete(self.map.n_streets_ns),
              'hears': gym.spaces.Dict(
                  {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
-            for key in self.blue.unitd})  #TODO Make obsevation include red
+            for key in self.blue.unitd}))  #TODO Make obsevation include red
 #        return gym.spaces.Dict({
 #            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
 #                'hears': gym.spaces.Dict({'HQ': gym.spaces.Discrete(2), 'ASSET': gym.spaces.Discrete(2)})}),
@@ -141,7 +143,7 @@ class Game(gym.Env):
 #                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
 
     def define_action_space(self):  # TODO need to adjust for red actions
-        return gym.spaces.Dict(
+        return dflat.gflatten(gym.spaces.Dict(
                 {unit.name: 
                       gym.spaces.Dict(
                            {'destx': gym.spaces.Discrete(self.map.n_streets_ew),
@@ -153,13 +155,13 @@ class Game(gym.Env):
                             'desty': gym.spaces.Discrete(self.map.n_streets_ns),
                             'speed': gym.spaces.Discrete(3)} # speed 0, 1, or 2 TODO Generalize
                            )
-                      for unit in self.blue.units_with_controlled_destination()})  # TODO Generalize to Red
+                      for unit in self.blue.units_with_controlled_destination()}))  # TODO Generalize to Red
 #               gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
 #               { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }
 
     def example_action(self, seed=None):
         self.example_rng.seed(seed)
-        return {unit.name:
+        unflattened_action = {unit.name:
                            {'destx': self.example_rng.randint(self.map.n_streets_ew),
                             'desty': self.example_rng.randint(self.map.n_streets_ns)}
                       if not unit.order.speed_specification['controlled']
@@ -168,6 +170,7 @@ class Game(gym.Env):
                             'desty': self.example_rng.randint(self.map.n_streets_ns),
                             'speed': self.example_rng.randint(3)}  # TODO Generalize
                       for unit in self.blue.units_with_controlled_destination()}  # TODO Generalize to Red
+        return flatten_dict.flatten(unflattened_action, reducer='underscore')
 
     def define_spaces(self):
         self.observation_space = self.define_observation_space()
@@ -254,6 +257,7 @@ class Game(gym.Env):
         self.initialize()
         self.implement_ceoi()
         return self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
+        # TODO TODO TODO Flatten here  CREATE OBSERVE_FLATTENED
 
     def parse_blue_into_order(self, action):
         for unitname in action:
@@ -280,11 +284,12 @@ class Game(gym.Env):
                 self.blue.unitd['COMM'].radio_message_received(self.blue.unitd['ASSET']))
 
     def step(self, action): # TODO Write this function
-        self.parse_action_into_order(action)
+        self.parse_action_into_order(action)  # TODO TODO TODO Flatten Action
         self.pre_timestep()
         self.move()
         self.post_timestep()
         obs = self.observe_faction(self.blue)  #TODO Need to observe red eventually, too.
+        # TODO TODO TODO Flatten here  CREATE OBSERVE_FLATTENED
         reward = self.temp_reward()
         done = self.clock > self.max_time
         info = {}  # No info until debug time
