@@ -127,13 +127,13 @@ class Game(gym.Env):
         pass
 
     def define_observation_space(self):
-        return dflat.gflatten(gym.spaces.Dict({
+        return gym.spaces.Dict(dflat.gflatten(gym.spaces.Dict({
             key : gym.spaces.Dict(
             {'posx': gym.spaces.Discrete(self.map.n_streets_ew),
              'posy': gym.spaces.Discrete(self.map.n_streets_ns),
              'hears': gym.spaces.Dict(
                  {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
-            for key in self.blue.unitd}))  #TODO Make obsevation include red
+            for key in self.blue.unitd})))  #TODO Make obsevation include red
 #        return gym.spaces.Dict({
 #            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
 #                'hears': gym.spaces.Dict({'HQ': gym.spaces.Discrete(2), 'ASSET': gym.spaces.Discrete(2)})}),
@@ -143,7 +143,7 @@ class Game(gym.Env):
 #                'hears': gym.spaces.Dict({'COMM': gym.spaces.Discrete(2), 'HQ': gym.spaces.Discrete(2)})})})
 
     def define_action_space(self):  # TODO need to adjust for red actions
-        return dflat.gflatten(gym.spaces.Dict(
+        return gym.spaces.Dict(dflat.gflatten(gym.spaces.Dict(
                 {unit.name: 
                       gym.spaces.Dict(
                            {'destx': gym.spaces.Discrete(self.map.n_streets_ew),
@@ -155,7 +155,7 @@ class Game(gym.Env):
                             'desty': gym.spaces.Discrete(self.map.n_streets_ns),
                             'speed': gym.spaces.Discrete(3)} # speed 0, 1, or 2 TODO Generalize
                            )
-                      for unit in self.blue.units_with_controlled_destination()}))  # TODO Generalize to Red
+                      for unit in self.blue.units_with_controlled_destination()})))  # TODO Generalize to Red
 #               gym.spaces.Dict({'destx': gym.spaces.Discrete(32), 'desty': gym.spaces.Discrete(32), 'speed': gym.spaces.Discrete(8)})
 #               { 'COMM': {'destx': 9, 'desty': 9, 'speed': 1} }
 
@@ -244,10 +244,10 @@ class Game(gym.Env):
                 for key in faction.unitd}
 
     def observe_faction(self, faction):
-        return {key : {'posx': int(round(faction.unitd[key].x_)),
+        return flatten_dict.flatten({key : {'posx': int(round(faction.unitd[key].x_)),
                        'posy': int(round(faction.unitd[key].y_)),
                        'hears': {key2.name: faction.unitd[key].radio_message_received(key2) for key2 in faction.unitd[key].my_communicators()}}
-                       for key in faction.unitd}
+                       for key in faction.unitd}, reducer='underscore')
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
 #                'ASSET': {'posx': 31, 'posy': 31, 'hears': {'COMM': False, 'HQ': False}}}
@@ -284,7 +284,7 @@ class Game(gym.Env):
                 self.blue.unitd['COMM'].radio_message_received(self.blue.unitd['ASSET']))
 
     def step(self, action): # TODO Write this function
-        self.parse_action_into_order(action)  # TODO TODO TODO Flatten Action
+        self.parse_action_into_order(flatten_dict.unflatten(action, splitter='underscore'))  # TODO TODO TODO Flatten Action
         self.pre_timestep()
         self.move()
         self.post_timestep()
