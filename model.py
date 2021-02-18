@@ -44,3 +44,32 @@ class ModelA2C(nn.Module):
                 self.major_axis_angle(base_out)
                 self.value(base_out)  # Here can translate variables to in range
 
+
+class AgentA2C(ptan.agent.BaseAgent):
+    def __init__(self, net, device="cpu"):
+        self.net = net
+        self.device = device
+
+    def __call__(self, states, agent_states):  # states are really observations
+        states_v = ptan.agent.float32_preprocessor(states)  # states are really observations
+        states_v = states_v.to(self.device)  # states are really observations
+
+        mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(states_v)  # states are really observations
+
+        mean_x = 4. + 4.*mean_x_v.data.cpu().numpy()  # Based on an 8x8 grid TODO Generalize
+        mean_y = 4. + 4.*mean_y_v.data.cpu().numpy()  # Based on an 8x8 grid TODO Generalize
+        var_minor = var_minor_v.data.cpu().numpy()
+        var_delta = var_delta_v.data.cpu().numpy()
+        cov_theta = np.pi*major_axis_angle_x_v.data.cpu().numpy()
+
+        var_major = var_minor + var_delta
+        var_x = var_major*sin(cov_theta)**2 + var_minor*cos(cov_theta)**2
+        var_y = var_major*cos(cov_theta)**2 + var_minor*sin(cov_theta)**2
+        cov_xy = (var_major - var_minor)*sin(cov_theta)*cos(cov_theta)
+        cov = numpy.array([[var_x, cov_xy], [cov_xy, var_y]])
+        mu = numpy.array([mean_x, mean_y])
+
+        actions = np.random.multivariate_normal(mu, cov)
+        actions = np.clip(actions, 0, 7)  # Based on an 8x8 grid TODO Generalize
+        return actions, agent_states
+
