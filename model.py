@@ -51,10 +51,10 @@ class AgentA2C(ptan.agent.BaseAgent):
         self.device = device
 
     def __call__(self, states, agent_states):  # states are really observations
-        states_v = ptan.agent.float32_preprocessor(states)  # states are really observations
-        states_v = states_v.to(self.device)  # states are really observations
+        obs_v = ptan.agent.float32_preprocessor(states)
+        obs_v = states_v.to(self.device)
 
-        mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(states_v)  # states are really observations
+        mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(obs_v)
 
         mean_x = 4. + 4.*mean_x_v.data.cpu().numpy()  # Based on an 8x8 grid TODO Generalize
         mean_y = 4. + 4.*mean_y_v.data.cpu().numpy()  # Based on an 8x8 grid TODO Generalize
