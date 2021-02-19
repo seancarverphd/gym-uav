@@ -32,14 +32,23 @@ def test_net(net, env, count=40, device="cpu"):
         obs = env.reset()
         while True:
             # Convert the obs here
-            # eg = {'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
+            cpx = obs['COMM']['posx']/7.
+            cpy = obs['COMM']['posy']/7.
+            chh = float(obs['COMM']['hears']['HQ'])
+            cha = float(obs['COMM']['hears']['Asset'])  # TODO Need more hears for Jammers
+            hpx = obs['HQ']['posx']/7.
+            hpy = obs['HQ']['posy']/7.
+            apx = obs['ASSET']['posx']/7.
+            apy = obs['ASSET']['posy']/7.
+            # eg:  {'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
             #         'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
             #      'ASSET': {'posx': 7, 'posy': 7, 'hears': {'COMM': False, 'HQ': False}}}
-            obs_v = ptan.agent.float32_preprocessor([obs])
+            obs_v = ptan.agent.float32_preprocessor([cpx, cpy, chh, cha, hpx, hpy, apx, apy])
             obs_v = obs_v.to(device)
             net_obs_v = net(obs_v)
             mean_x_v = net_obs_v[0]
             mean_x_v = net_obs_v[1]
+            # eg: {'COMM': {'destx': 0, 'desty': 7, 'speed': 1}}
             action = {'COMM': {'destx': mean_x_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), \ # TODO Generalize beyond 8x8
                 'desty': mean_y_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), 'speed': 1}}  # TODO squeeze? Check dims
             obs, reward, done, _ = env.step(action)  #TODO Check OK
