@@ -36,8 +36,8 @@ def test_net(net, env, count=40, device="cpu"):
             net_obs_v = net(obs_v)
             mean_x_v = net_obs_v[0]
             mean_x_v = net_obs_v[1]
-            action = numpy.array([mean_x_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), \ # first arg of clip was action TODO Generalize beyond 8x8
-                    mean_y_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7)])  # TODO Check dims
+            action = {'COMM': {'destx': mean_x_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), \ # TODO Generalize beyond 8x8
+                'desty': mean_y_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), 'speed': 1}}  # TODO squeeze? Check dims
             obs, reward, done, _ = env.step(action)  #TODO Check OK
             rewards += reward
             steps += 1
