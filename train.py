@@ -31,6 +31,10 @@ def test_net(net, env, count=40, device="cpu"):
     for _ in range(count):
         obs = env.reset()
         while True:
+            # Convert the obs here
+            # eg = {'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
+            #         'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
+            #      'ASSET': {'posx': 7, 'posy': 7, 'hears': {'COMM': False, 'HQ': False}}}
             obs_v = ptan.agent.float32_preprocessor([obs])
             obs_v = obs_v.to(device)
             net_obs_v = net(obs_v)
