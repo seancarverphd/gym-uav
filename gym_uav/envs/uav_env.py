@@ -240,9 +240,14 @@ class Game(gym.Env):
         return {key: {key2.name for key2 in faction.unitd[key].hears_me()}
                 for key in faction.unitd}
 
-    def observe_faction(self, faction):
-        return {key : {'posx': int(round(faction.unitd[key].x_)),
-                       'posy': int(round(faction.unitd[key].y_)),
+    def observe_faction(self, faction):  # Now taking rounding out
+        # return {key : {'posx': int(round(faction.unitd[key].x_)),
+        #                'posy': int(round(faction.unitd[key].y_)),
+        #                'hears': {key2.name: faction.unitd[key].radio_message_received(key2) for key2 in faction.unitd[key].my_communicators()}}
+        #                for key in faction.unitd}
+#       #         { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
+        return {key : {'posx': faction.unitd[key].x_,
+                       'posy': faction.unitd[key].y_,
                        'hears': {key2.name: faction.unitd[key].radio_message_received(key2) for key2 in faction.unitd[key].my_communicators()}}
                        for key in faction.unitd}
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
