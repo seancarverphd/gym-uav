@@ -78,7 +78,7 @@ if __name__ == "__main__":
     env = gym.make(ENV_ID)
     test_env = gym.make(ENV_ID)
 
-    net = model.ModelA2C(env.observation_space.shape[0], env.action_space.shape[0]).to(device)
+    net = model.ModelA2C(8, 3).to(device) #TODO make general env.observation_space.shape[0], env.action_space.shape[0]).to(device)
     print(net)
 
     writer = SummaryWriter(comment="-a2c_" + args.name)
