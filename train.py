@@ -16,6 +16,8 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
+import gym_uav
+
 
 ENV_ID = "uav-v0"
 GAMMA = 0.99
@@ -37,7 +39,7 @@ def test_net(net, env, count=40, device="cpu"):
             cpx = obs['COMM']['posx']/7.
             cpy = obs['COMM']['posy']/7.
             chh = float(obs['COMM']['hears']['HQ'])
-            cha = float(obs['COMM']['hears']['Asset'])  # TODO Need more hears for Jammers
+            cha = float(obs['COMM']['hears']['ASSET'])  # TODO Need more hears for Jammers
             hpx = obs['HQ']['posx']/7.
             hpy = obs['HQ']['posy']/7.
             apx = obs['ASSET']['posx']/7.

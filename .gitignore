@@ -5,6 +5,7 @@ __pycache__/
 
 #
 *.swp
+runs/
 
 # LaTeX files
 *.aux
