@@ -7,7 +7,9 @@ import gym
 import argparse
 from tensorboardX import SummaryWriter
 
-from lib import model, common
+# from lib import model, common
+import model
+import common
 
 import numpy as np
 import torch
@@ -49,7 +51,7 @@ def test_net(net, env, count=40, device="cpu"):
             mean_x_v = net_obs_v[0]  # if not in test_net here and next I would sample from the multi-variate normal to get destx, desty, instead of using means
             mean_x_v = net_obs_v[1]
             # eg: {'COMM': {'destx': 0, 'desty': 7, 'speed': 1}}
-            action = {'COMM': {'destx': mean_x_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), \ # TODO Generalize beyond 8x8
+            action = {'COMM': {'destx': mean_x_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7),  # TODO Generalize beyond 8x8
                 'desty': mean_y_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), 'speed': 1}}  # TODO squeeze? Check dims
             obs, reward, done, _ = env.step(action)  #TODO Check OK
             rewards += reward
@@ -62,7 +64,7 @@ def calc_logprob(mu_v, cov_v, actions_v):
     U, D, V = torch.svd(cov_v)
     p1 = - 1./2.*(actions_v-mu_v).T@V@torch.diagflat(1./D[0].clamp(min=1e-3),1./D[1].clamp(min=1e-3))@U.T@(actions_v-mu_v)
     p2 = - torch.log(2 * math.pi)
-    p3 = - 1./2. torch.logdet(U@torch.diagflat(D[0].clamp(min=1e-3), D[1].clamp(min=1e3))@V.T)
+    p3 = - 1./2.*torch.logdet(U@torch.diagflat(D[0].clamp(min=1e-3), D[1].clamp(min=1e3))@V.T)
     return p1 + p2 + p3
 
 if __name__ == "__main__":

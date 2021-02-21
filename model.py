@@ -41,7 +41,7 @@ class ModelA2C(nn.Module):
         base_out = self.base(x)
         return self.mean_x(base_out), self.mean_y(base_out), \
                 self.var_minor(base_out), self.var_delta(base_out), \
-                self.major_axis_angle(base_out)
+                self.major_axis_angle(base_out), \
                 self.value(base_out)  # Here can translate variables to in range
 
 
