@@ -90,5 +90,6 @@ class AgentA2C(ptan.agent.BaseAgent):
         #        np.array([1,1]), np.array([[1, 0], [0, 1]])) # 
         print("actions", str(actions))
         actions = np.clip(actions, 0, 7)  # Based on an 8x8 grid TODO Generalize
-        return actions, agent_states
+        act = {'COMM': {'destx': actions[0], 'desty': actions[1], 'speed': 1}}
+        return [act], agent_states
 

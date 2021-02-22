@@ -51,7 +51,7 @@ def test_net(net, env, count=40, device="cpu"):
             obs_v = obs_v.to(device)
             net_obs_v = net(obs_v)
             mean_x_v = net_obs_v[0]  # if not in test_net here and next I would sample from the multi-variate normal to get destx, desty, instead of using means
-            mean_x_v = net_obs_v[1]
+            mean_y_v = net_obs_v[1]
             # eg: {'COMM': {'destx': 0, 'desty': 7, 'speed': 1}}
             action = {'COMM': {'destx': mean_x_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7),  # TODO Generalize beyond 8x8
                 'desty': mean_y_v.squeeze(dim=0).data.cpu().numpy().clip(0, 7), 'speed': 1}}  # TODO squeeze? Check dims
