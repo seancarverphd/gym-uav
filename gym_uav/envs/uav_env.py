@@ -127,8 +127,8 @@ class Game(gym.Env):
     def define_observation_space(self):
         return gym.spaces.Dict({
             key : gym.spaces.Dict(
-            {'posx': gym.spaces.Discrete(self.map.n_streets_ew),
-             'posy': gym.spaces.Discrete(self.map.n_streets_ns),
+            {'posx': gym.spaces.Box(low=0., high=float(self.map.n_streets_ew-1), shape=[1]),
+             'posy': gym.spaces.Box(low=0., high=float(self.map.n_streets_ns-1), shape=[1]),
              'hears': gym.spaces.Dict(
                  {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
             for key in self.blue.unitd})  #TODO Make obsevation include red
@@ -144,13 +144,13 @@ class Game(gym.Env):
         return gym.spaces.Dict(
                 {unit.name: 
                       gym.spaces.Dict(
-                           {'destx': gym.spaces.Discrete(self.map.n_streets_ew),
-                            'desty': gym.spaces.Discrete(self.map.n_streets_ns)}
+                           {'destx': gym.spaces.Box(low=0., high=float(self.map.n_streets_ew-1), shape=[1]),
+                            'desty': gym.spaces.Box(low=0., high=float(self.map.n_streets_ns-1), shape=[1])}
                            )
                       if not unit.order.speed_specification['controlled']
                       else gym.spaces.Dict(
-                           {'destx': gym.spaces.Discrete(self.map.n_streets_ew),
-                            'desty': gym.spaces.Discrete(self.map.n_streets_ns),
+                           {'destx': gym.spaces.Box(low=0., high=float(self.map.n_streets_ew-1), shape=[1]),
+                            'desty': gym.spaces.Box(low=0., high=float(self.map.n_streets_ns-1), shape=[1]),
                             'speed': gym.spaces.Discrete(3)} # speed 0, 1, or 2 TODO Generalize
                            )
                       for unit in self.blue.units_with_controlled_destination()})  # TODO Generalize to Red

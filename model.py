@@ -85,9 +85,10 @@ class AgentA2C(ptan.agent.BaseAgent):
         cov2 = U@np.diagflat([d0, d1])@Vh
         mu = np.array([mean_x, mean_y])
 
-        _ = np.linalg.cholesky(cov2)
+        # _ = np.linalg.cholesky(cov2)
         actions = np.random.multivariate_normal(mu.reshape(2), cov2)
         #        np.array([1,1]), np.array([[1, 0], [0, 1]])) # 
+        print("actions", str(actions))
         actions = np.clip(actions, 0, 7)  # Based on an 8x8 grid TODO Generalize
         return actions, agent_states
 
