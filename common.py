@@ -18,12 +18,12 @@ def unpack_batch_a2c(batch, net, last_val_gamma, device="cpu", env=None):
     not_done_idx = []
     last_states = []
     for idx, exp in enumerate(batch):
-        states.append(exp.state)
-        actions.append(exp.action)
+        states.append(serialize(exp.state, env.observation_space))
+        actions.append(serialize(exp.action, env.action_space))
         rewards.append(exp.reward)
         if exp.last_state is not None:
             not_done_idx.append(idx)
-            last_states.append(exp.last_state)
+            last_states.append(serialize(exp.last_state, env.observation_space))
     states_v = ptan.agent.float32_preprocessor(states).to(device)
     actions_v = torch.FloatTensor(actions).to(device)
 
