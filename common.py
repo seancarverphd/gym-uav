@@ -5,8 +5,18 @@ from torch.autograd import Variable
 import ptan
 
 
-def serialize(d, template, prefix=None):
-    pass
+def serialize(d, template):  # Only works for (nested) dictionaries and values that can be cast to floats (not tuples, yet)
+    assert isinstance(d, dict)
+    tspaces = template.spaces
+    assert isinstance(tspaces, dict)
+    value = []
+    for idx, key in enumerate(tspaces):
+        if isinstance(d[key], dict):
+            value.extend(serialize(d[key], tspaces[key]))
+        else:
+            value.append(float(d[key]))
+    return value
+
 
 def unpack_batch_a2c(batch, net, last_val_gamma, device="cpu", env=None):
     """
