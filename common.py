@@ -5,7 +5,7 @@ from torch.autograd import Variable
 import ptan
 
 
-def unpack_batch_a2c(batch, net, last_val_gamma, device="cpu"):
+def unpack_batch_a2c(batch, net, last_val_gamma, device="cpu", env=None):
     """
     Convert batch into training tensors
     :param batch:

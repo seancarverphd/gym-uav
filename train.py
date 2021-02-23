@@ -124,7 +124,8 @@ if __name__ == "__main__":
                 states_v, actions_v, vals_ref_v = \
                     common.unpack_batch_a2c(
                         batch, net, device=device,
-                        last_val_gamma=GAMMA ** REWARD_STEPS)
+                        last_val_gamma=GAMMA ** REWARD_STEPS,
+                        env=env)
                 batch.clear()
 
                 optimizer.zero_grad()
