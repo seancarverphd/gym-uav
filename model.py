@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from common import serialize
+
 HID_SIZE = 128
 
 class ModelA2C(nn.Module):
@@ -46,24 +48,26 @@ class ModelA2C(nn.Module):
 
 
 class AgentA2C(ptan.agent.BaseAgent):
-    def __init__(self, net, device="cpu"):
+    def __init__(self, net, device="cpu", env=None):
+        self.env = env
         self.net = net
         self.device = device
 
     def __call__(self, obs, agent_states):  # states are really observations
         # DRY THIS OUT
-        cpx = obs[0]['COMM']['posx']/7.
-        cpy = obs[0]['COMM']['posy']/7.
-        chh = float(obs[0]['COMM']['hears']['HQ'])
-        cha = float(obs[0]['COMM']['hears']['ASSET'])  # TODO Need more hears for Jammers
-        hpx = obs[0]['HQ']['posx']/7.
-        hpy = obs[0]['HQ']['posy']/7.
-        apx = obs[0]['ASSET']['posx']/7.
-        apy = obs[0]['ASSET']['posy']/7.
+        # cpx = obs[0]['COMM']['posx']/7.
+        # cpy = obs[0]['COMM']['posy']/7.
+        # chh = float(obs[0]['COMM']['hears']['HQ'])
+        # cha = float(obs[0]['COMM']['hears']['ASSET'])  # TODO Need more hears for Jammers
+        # hpx = obs[0]['HQ']['posx']/7.
+        # hpy = obs[0]['HQ']['posy']/7.
+        # apx = obs[0]['ASSET']['posx']/7.
+        # apy = obs[0]['ASSET']['posy']/7.
         # eg:  {'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
         #         'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
         #      'ASSET': {'posx': 7, 'posy': 7, 'hears': {'COMM': False, 'HQ': False}}}
-        obs_v = ptan.agent.float32_preprocessor([cpx, cpy, chh, cha, hpx, hpy, apx, apy])
+        # obs_v = ptan.agent.float32_preprocessor([cpx, cpy, chh, cha, hpx, hpy, apx, apy])
+        obs_v = ptan.agent.float32_preprocessor(serialize(obs[0], self.env.observation_space))
         obs_v = obs_v.to(self.device)
 
         mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(obs_v)
