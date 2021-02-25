@@ -84,11 +84,11 @@ def calc_logprob(mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_
         p1.append(-1./2.*(actions_v[idx][0:1].T-mu_v[idx]).T@V@inverse_singular_values@U.T@(actions_v[idx][0:1].T-mu_v[idx]))
         p2.append(-torch.log(2.*pi))
         p3.append(-1./2.*torch.logdet(U@singular_values@V.T))
-        entropy.append(torch.logdet(2*math.pi*math.e*U@singular_values@V.T))
+        entropy.append(torch.logdet(2*math.pi*math.e*U@singular_values@V.T))  # minus sign taken below
     p1_v = torch.tensor(p1)
     p2_v = torch.tensor(p2)
     p3_v = torch.tensor(p3)
-    ent_v = torch.tensor(entropy)
+    ent_v = torch.tensor(entropy)  # minus sign taken below
     return p1_v + p2_v + p3_v, ent_v
 
 if __name__ == "__main__":
@@ -163,7 +163,7 @@ if __name__ == "__main__":
                 #    mu_v, var_v, actions_v)
                 #    def calc_logprob(mu_v, cov_v, actions_v):
                 loss_policy_v = -log_prob_v.mean()
-                entropy_loss_v = ENTROPY_BETA * ent_v.mean()
+                entropy_loss_v = -ENTROPY_BETA * ent_v.mean()  # minus sign taken here
 
                 loss_v = loss_policy_v + entropy_loss_v + \
                          loss_value_v
