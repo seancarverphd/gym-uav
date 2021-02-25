@@ -72,16 +72,24 @@ def calc_logprob(mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_
     var_x_v = var_major_v*torch.sin(pi*major_axis_angle_v)**2 + var_minor_v*torch.cos(pi*major_axis_angle_v)**2
     var_y_v = var_major_v*torch.cos(pi*major_axis_angle_v)**2 + var_minor_v*torch.sin(pi*major_axis_angle_v)**2
     cov_xy_v = (var_major_v - var_minor_v)*torch.sin(pi*major_axis_angle_v)*torch.cos(pi*major_axis_angle_v)
+    p1 = []
+    p2 = []
+    p3 = []
+    entropy = []
     for idx in range(len(mean_x_v)): 
-        cov = torch.tensor([[var_x_v[idx], cov_xy_v[idx]], [cov_xy_v[idx], var_y_v[idx]])
+        cov = torch.tensor([[var_x_v[idx], cov_xy_v[idx]], [cov_xy_v[idx], var_y_v[idx]]])
         U, D, V = torch.svd(cov)
-        p1.append(-1./2.*(actions_v-mu_v).T@V@torch.diagflat(1./D[0].clamp(min=1e-3),1./D[1].clamp(min=1e-3))@U.T@(actions_v-mu_v))
-        p2.append(-torch.log(2 * math.pi))
-        p3.append(-1./2.*torch.logdet(U@torch.diagflat(D[0].clamp(min=1e-3), D[1].clamp(min=1e3))@V.T))
-    p1_v = torch.Tensor(p1)
-    p2_v = torch.Tensor(p2)
-    p3_v = torch.Tensor(p3)
-    return p1_v + p2_v + p3_v
+        inverse_singular_values = torch.diagflat(torch.Tensor([1./D[0].clamp(min=1e-3), 1./D[1].clamp(min=1e-3)]))
+        singular_values = torch.diagflat(torch.Tensor([D[0].clamp(min=1e-3), D[1].clamp(min=1e3)]))
+        p1.append(-1./2.*(actions_v[idx][0:1].T-mu_v[idx]).T@V@inverse_singular_values@U.T@(actions_v[idx][0:1].T-mu_v[idx]))
+        p2.append(-torch.log(2.*pi))
+        p3.append(-1./2.*torch.logdet(U@singular_values@V.T))
+        entropy.append(torch.logdet(2*math.pi*math.e*U@singular_values@V.T))
+    p1_v = torch.tensor(p1)
+    p2_v = torch.tensor(p2)
+    p3_v = torch.tensor(p3)
+    ent_v = torch.tensor(entropy)
+    return p1_v + p2_v + p3_v, ent_v
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -149,14 +157,12 @@ if __name__ == "__main__":
                 loss_value_v = F.mse_loss(
                     value_v.squeeze(-1), vals_ref_v)
 
-                adv_v = vals_ref_v.unsqueeze(dim=-1) - \
-                        value_v.detach()
-                log_prob_v = adv_v * calc_logprob(
-                    mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, actions_v)
+                adv_v = vals_ref_v.unsqueeze(dim=-1) - value_v.detach()
+                log_prob_v, ent_v = calc_logprob(mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, actions_v)
+                log_prob_v  = adv_v * log_prob_v
                 #    mu_v, var_v, actions_v)
                 #    def calc_logprob(mu_v, cov_v, actions_v):
                 loss_policy_v = -log_prob_v.mean()
-                ent_v = -(torch.log(2*math.pi*var_v) + 1)/2
                 entropy_loss_v = ENTROPY_BETA * ent_v.mean()
 
                 loss_v = loss_policy_v + entropy_loss_v + \
