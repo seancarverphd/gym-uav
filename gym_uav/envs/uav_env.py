@@ -28,7 +28,7 @@ class Map0():
 
     def define_defaults(self):  # THESE DEFAULTS SHOULD BE SHARED BY ALL MAPS
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
-        self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 1.5
+        self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 5.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
@@ -110,8 +110,8 @@ class Game(gym.Env):
         # GLOBAL VARIABLES
         self.clock = 0
         # CONSTANTS
-        self.DEFAULT_TIMESTEP = .1
-        self.DEFAULT_MAX_TIME = 50.
+        self.DEFAULT_TIMESTEP = 5.
+        self.DEFAULT_MAX_TIME = 20.
         self.DEFAULT_FLY_SPEED = 2.
         self.DEFAULT_ROAM_SPEED = 1.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
@@ -281,8 +281,8 @@ class Game(gym.Env):
         assert 'ASSET' in self.blue.unitd
         assert len(self.blue.unitd) == 3
         return self.blue.unitd['ASSET'].asset_value*(
-                self.blue.unitd['HQ'].radio_message_received(self.blue.unitd['COMM']) +
-                self.blue.unitd['COMM'].radio_message_received(self.blue.unitd['ASSET']))
+                float(self.blue.unitd['HQ'].radio_message_received(self.blue.unitd['COMM'])) +
+                float(self.blue.unitd['COMM'].radio_message_received(self.blue.unitd['ASSET'])))
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
