@@ -130,7 +130,8 @@ class Game(gym.Env):
             {'posx': gym.spaces.Box(low=0., high=float(self.map.n_streets_ew-1), shape=[1]),
              'posy': gym.spaces.Box(low=0., high=float(self.map.n_streets_ns-1), shape=[1]),
              'hears': gym.spaces.Dict(
-                 {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
+                 # {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
+                 {key2.name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=[1]) for key2 in self.blue.unitd[key].my_communicators()})})
             for key in self.blue.unitd})  #TODO Make obsevation include red
 #        return gym.spaces.Dict({
 #            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
