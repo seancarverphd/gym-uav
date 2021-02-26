@@ -131,7 +131,7 @@ class Game(gym.Env):
              'posy': gym.spaces.Box(low=0., high=float(self.map.n_streets_ns-1), shape=[1]),
              'hears': gym.spaces.Dict(
                  # {key2.name: gym.spaces.Discrete(2) for key2 in self.blue.unitd[key].my_communicators()})})
-                 {key2.name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=[1]) for key2 in self.blue.unitd[key].my_communicators()})})
+                 {key2.name: gym.spaces.Box(low=-1e3, high=1e3, shape=[1]) for key2 in self.blue.unitd[key].my_communicators()})})
             for key in self.blue.unitd})  #TODO Make obsevation include red
 #        return gym.spaces.Dict({
 #            'COMM': gym.spaces.Dict({'posx': gym.spaces.Discrete(32), 'posy': gym.spaces.Discrete(32),
@@ -249,7 +249,7 @@ class Game(gym.Env):
 #       #         { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
         return {key : {'posx': faction.unitd[key].x_,
                        'posy': faction.unitd[key].y_,
-                       'hears': {key2.name: faction.unitd[key].sjr_unit_db(key2) for key2 in faction.unitd[key].my_communicators()}}
+                       'hears': {key2.name: faction.unitd[key].sjr_bounded_db(key2) for key2 in faction.unitd[key].my_communicators()}}
                        for key in faction.unitd}
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
@@ -282,8 +282,8 @@ class Game(gym.Env):
         assert 'ASSET' in self.blue.unitd
         assert len(self.blue.unitd) == 3
         return self.blue.unitd['ASSET'].asset_value*(
-                float(self.blue.unitd['HQ'].sjr_unit_db(self.blue.unitd['COMM'])) +
-                float(self.blue.unitd['COMM'].sjr_unit_db(self.blue.unitd['ASSET'])))
+                float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])) +
+                float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET'])))
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
@@ -694,6 +694,14 @@ class Communicating():
     def sjr_unit_db(self, unit):
         return self.sjr_db(unit.x_, unit.y_)
 
+    def sjr_bounded_db(self, unit):
+        x = self.sjr_db(unit.x_, unit.y_)
+        if x < -1e3:
+            return -1e3
+        elif x > 1e3:
+            return 1e3
+        else:
+            return x
     def radio_message_received(self, unit):  # unit instead of x_ and y_
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
         return self.sjr_db(unit.x_, unit.y_) > 0  #TODO Add probabilistic function like in findjam
