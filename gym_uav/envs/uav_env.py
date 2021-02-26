@@ -249,7 +249,7 @@ class Game(gym.Env):
 #       #         { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
         return {key : {'posx': faction.unitd[key].x_,
                        'posy': faction.unitd[key].y_,
-                       'hears': {key2.name: faction.unitd[key].radio_message_received(key2) for key2 in faction.unitd[key].my_communicators()}}
+                       'hears': {key2.name: faction.unitd[key].sjr_unit_db(key2) for key2 in faction.unitd[key].my_communicators()}}
                        for key in faction.unitd}
 #               { 'COMM': {'posx': 1, 'posy': 1, 'hears': {'HQ': True, 'ASSET': False}},
 #                   'HQ': {'posx': 0, 'posy': 0, 'hears': {'COMM': True, 'ASSET': False}},
@@ -282,8 +282,8 @@ class Game(gym.Env):
         assert 'ASSET' in self.blue.unitd
         assert len(self.blue.unitd) == 3
         return self.blue.unitd['ASSET'].asset_value*(
-                float(self.blue.unitd['HQ'].radio_message_received(self.blue.unitd['COMM'])) +
-                float(self.blue.unitd['COMM'].radio_message_received(self.blue.unitd['ASSET'])))
+                float(self.blue.unitd['HQ'].sjr_unit_db(self.blue.unitd['COMM'])) +
+                float(self.blue.unitd['COMM'].sjr_unit_db(self.blue.unitd['ASSET'])))
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
@@ -690,6 +690,9 @@ class Communicating():
 
     def sjr_db(self, x_receiver, y_receiver):
         return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.ambient_power)
+
+    def sjr_unit_db(self, unit):
+        return self.sjr_db(unit.x_, unit.y_)
 
     def radio_message_received(self, unit):  # unit instead of x_ and y_
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
