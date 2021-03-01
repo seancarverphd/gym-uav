@@ -72,8 +72,11 @@ class AgentA2C(ptan.agent.BaseAgent):
 
         mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(obs_v)
 
-        mean_x = 4. + 4.*mean_x_v.data.cpu().numpy()  # Based on an 8x8 grid TODO Generalize
-        mean_y = 4. + 4.*mean_y_v.data.cpu().numpy()  # Based on an 8x8 grid TODO Generalize
+        midpoint_x = self.env.map.n_streets_ew/2
+        midpoint_y = self.env.map.n_streets_ns/2
+
+        mean_x = midpoint_x*(1 + mean_x_v.data.cpu().numpy())  # Based on an 8x8 grid TODO Generalize
+        mean_y = midpoint_y*(1 + mean_y_v.data.cpu().numpy())  # Based on an 8x8 grid TODO Generalize
         var_minor = var_minor_v.data.cpu().numpy()
         var_delta = var_delta_v.data.cpu().numpy()
         cov_theta = np.pi*major_axis_angle_v.data.cpu().numpy()

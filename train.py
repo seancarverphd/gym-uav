@@ -104,7 +104,9 @@ if __name__ == "__main__":
     env = gym.make(ENV_ID)
     test_env = gym.make(ENV_ID)
 
-    net = model.ModelA2C(12, 3).to(device) #TODO make general env.observation_space.shape[0], env.action_space.shape[0]).to(device)
+    n_obs = len(serialize(env.reset(), env.observation_space))
+    n_actions = len(serialize(env.example_action(), env.action_space))
+    net = model.ModelA2C(n_obs, n_actions).to(device)
     print(net)
 
     writer = SummaryWriter(comment="-a2c_" + args.name)

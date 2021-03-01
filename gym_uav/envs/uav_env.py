@@ -30,6 +30,7 @@ class Map0():
         self.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE = 0.
         self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE = 5.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
+        self.DEFAULT_IDENTICAL_LOCATIONS_EPSILON = 1e-3
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
         self.define_specific_defaults()
@@ -115,6 +116,7 @@ class Game(gym.Env):
         self.DEFAULT_FLY_SPEED = 2.
         self.DEFAULT_ROAM_SPEED = 1.
         self.DEFAULT_POINT_SOURCE_CONSTANT = 1.
+        self.DEFAULT_IDENTICAL_LOCATIONS_EPSILON = 1e-3
         self.DEFAULT_AMBIENT_POWER = 1.
         # RANDOM NUMBER GENERATORS
         self.example_rng = np.random.RandomState()
@@ -202,6 +204,7 @@ class Game(gym.Env):
         self.roam_speed = self.DEFAULT_ROAM_SPEED
         self.point_source_constant = self.DEFAULT_POINT_SOURCE_CONSTANT
         self.ambient_power = self.DEFAULT_AMBIENT_POWER
+        self.identical_locations_epsilon = self.DEFAULT_IDENTICAL_LOCATIONS_EPSILON 
 
     def still_playing(self):
         '''
@@ -686,7 +689,8 @@ class Communicating():
         self.faction.add_unit_to_communication_network(self)  # self becomes "unit" inside faction
 
     def radio_power(self, x_receiver, y_receiver):
-        return self.point_source_constant * self.sender_characteristic_distance**2 / ((x_receiver - self.x_)**2 + (y_receiver - self.y_)**2)
+        return self.point_source_constant * self.sender_characteristic_distance**2 / \
+                ((x_receiver - self.x_ + self.identical_locations_epsilon)**2 + (y_receiver - self.y_ + self.identical_locations_epsilon)**2)
 
     def sjr_db(self, x_receiver, y_receiver):
         return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.ambient_power)
@@ -823,6 +827,7 @@ class Comm(Communicating, Drone):
         self.communicates = True
 
     def restore_unit_defaults(self):
+        self.identical_locations_epsilon = self.GAME.DEFAULT_IDENTICAL_LOCATIONS_EPSILON 
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
         self.receiver_characteristic_distance = self.GAME.map.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE  # DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE is a global constant
         self.sender_characteristic_distance = self.GAME.map.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE  # DEFAULT_SENDER_CHARACTERISTIC_DISTANCE is a global constant
@@ -841,6 +846,7 @@ class Jammer(Jamming, Drone):
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.identical_locations_epsilon = self.GAME.DEFAULT_IDENTICAL_LOCATIONS_EPSILON 
 
     def implement_ceoi(self):
         self.add_self_to_jamming_network()
@@ -857,6 +863,7 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
 
     def restore_unit_defaults(self):
         self.point_source_constant = self.GAME.DEFAULT_POINT_SOURCE_CONSTANT  # DEFAULT_POINT_SOURCE_CONSTANT is a global constant
+        self.identical_locations_epsilon = self.GAME.DEFAULT_IDENTICAL_LOCATIONS_EPSILON 
         self.receiver_characteristic_distance = self.GAME.map.DEFAULT_RECEIVER_CHARACTERISTIC_DISTANCE  # DEFAULT_RECEPTION_PROBABILITY_SLOPE is a global constant
         self.sender_characteristic_distance = self.GAME.map.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE  # DEFAULT_SENDER_PROBABILITY_SLOPE is a global constant
 
