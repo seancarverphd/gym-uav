@@ -48,17 +48,32 @@ class ModelA2C(nn.Module):
 
 
 class AgentA2C(ptan.agent.BaseAgent):
-    def __init__(self, net, device="cpu", env=None):
+    def __init__(self, net=None, device="cpu", env=None):
         self.env = env
-        self.net = net
+        if net is not None:
+            self.net = net
+        else:
+            n_obs = len(serialize(self.env.reset(), self.env.observation_space))
+            n_actions = len(serialize(self.env.example_action(), self.env.action_space))
+            self.net = ModelA2C(n_obs, n_actions).to(device)
         self.device = device
+
+    def load(self, fname):
+        n_obs = len(serialize(self.env.reset(), self.env.observation_space))
+        n_actions = len(serialize(self.env.example_action(), self.env.action_space))
+        self.net = ModelA2C(n_obs, n_actions).to(self.device)
+        self.net.load_state_dict(torch.load(fname))
+        self.net.eval()
+
+    def next_action(self, obs):
+        return self([obs], [])[0][0]
 
     def __call__(self, obs, agent_states):  # states are really observations
         # DRY THIS OUT
         # cpx = obs[0]['COMM']['posx']/7.
         # cpy = obs[0]['COMM']['posy']/7.
         # chh = float(obs[0]['COMM']['hears']['HQ'])
-        # cha = float(obs[0]['COMM']['hears']['ASSET'])  # TODO Need more hears for Jammers
+        # cha = float(obs[0]['COMM']['hears']['ASSET'])  # Need more hears for Jammers
         # hpx = obs[0]['HQ']['posx']/7.
         # hpy = obs[0]['HQ']['posy']/7.
         # apx = obs[0]['ASSET']['posx']/7.
@@ -75,8 +90,8 @@ class AgentA2C(ptan.agent.BaseAgent):
         midpoint_x = self.env.map.n_streets_ew/2
         midpoint_y = self.env.map.n_streets_ns/2
 
-        mean_x = midpoint_x*(1 + mean_x_v.data.cpu().numpy())  # Based on an 8x8 grid TODO Generalize
-        mean_y = midpoint_y*(1 + mean_y_v.data.cpu().numpy())  # Based on an 8x8 grid TODO Generalize
+        mean_x = midpoint_x*(1 + mean_x_v.data.cpu().numpy())
+        mean_y = midpoint_y*(1 + mean_y_v.data.cpu().numpy())
         var_minor = var_minor_v.data.cpu().numpy()
         var_delta = var_delta_v.data.cpu().numpy()
         cov_theta = np.pi*major_axis_angle_v.data.cpu().numpy()
