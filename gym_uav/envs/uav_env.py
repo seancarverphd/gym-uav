@@ -285,8 +285,8 @@ class Game(gym.Env):
         assert 'ASSET' in self.blue.unitd
         assert len(self.blue.unitd) == 3
         return self.blue.unitd['ASSET'].asset_value*(
-                float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])) +
-                float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET'])))
+                min(float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])),
+                float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET']))))
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
@@ -706,6 +706,7 @@ class Communicating():
             return 1e3
         else:
             return x
+
     def radio_message_received(self, unit):  # unit instead of x_ and y_
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
         return self.sjr_db(unit.x_, unit.y_) > 0  #TODO Add probabilistic function like in findjam
