@@ -329,6 +329,12 @@ class Game(gym.Env):
         print(self.convert_grid_to_string())
         print(self.observe_connections(self.blue))  #TODO add red connections
 
+    def temp_reward_surface(self):
+        self.blue.unitd['ASSET'].asset_value*(
+            min(float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])),
+            float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET']))))
+
+
 class Game0(Game):
     def make_map(self):
         self.map = Map0(self)
@@ -692,20 +698,24 @@ class Communicating():
         return self.point_source_constant * self.sender_characteristic_distance**2 / \
                 ((x_receiver - self.x_ + self.identical_locations_epsilon)**2 + (y_receiver - self.y_ + self.identical_locations_epsilon)**2)
 
+    #TODO Fix naming conventions ti use _unit_ and _xy_ consistently
     def sjr_db(self, x_receiver, y_receiver):
         return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.ambient_power)
 
     def sjr_unit_db(self, unit):
         return self.sjr_db(unit.x_, unit.y_)
 
-    def sjr_bounded_db(self, unit):
-        x = self.sjr_db(unit.x_, unit.y_)
-        if x < -1e3:
+    def sjr_xy_bounded_db(self, x, y):
+        dB = self.sjr_db(x, y)
+        if dB < -1e3:
             return -1e3
-        elif x > 1e3:
+        elif dB > 1e3:
             return 1e3
         else:
-            return x
+            return dB
+
+    def sjr_bounded_db(self, unit):
+        return self.sjr_xy_bounded_db(unit.x_, unit.y_)
 
     def radio_message_received(self, unit):  # unit instead of x_ and y_
         assert self.receiver_characteristic_distance == 0  # == 0 determinisitic, \neq 0 not yet implemented
