@@ -104,7 +104,7 @@ class AgentA2C(ptan.agent.BaseAgent):
         U, D, Vh = np.linalg.svd(cov)  # U and Vh are always orthogonal; will differ if cov is not symmetric; forcing U=Vh below
         d0 = np.clip(D[0], 1e-3, 1e3) # np.inf)
         d1 = np.clip(D[1], 1e-3, 1e3) # np.inf)
-        cov2 = U@np.diagflat([d0, d1])@U.T # Vh
+        cov2 = U@np.diagflat([d0, d1])@U.T # U.T = Vh unless cov is not symmetric
         mu = np.array([mean_x, mean_y])
 
         # _ = np.linalg.cholesky(cov2)
