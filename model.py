@@ -101,16 +101,17 @@ class AgentA2C(ptan.agent.BaseAgent):
         var_y = var_major*np.cos(cov_theta)**2 + var_minor*np.sin(cov_theta)**2
         cov_xy = (var_major - var_minor)*np.sin(cov_theta)*np.cos(cov_theta)
         cov = np.array([[var_x, cov_xy], [cov_xy, var_y]]).reshape([2,2])
-        U, D, Vh = np.linalg.svd(cov) 
-        d0 = np.clip(D[0], 1e-3, np.inf)
-        d1 = np.clip(D[1], 1e-3, np.inf)
-        cov2 = U@np.diagflat([d0, d1])@Vh
+        U, D, Vh = np.linalg.svd(cov)  # U and Vh are always orthogonal; will differ if cov is not symmetric; forcing U=Vh below
+        d0 = np.clip(D[0], 1e-3, 1e3) # np.inf)
+        d1 = np.clip(D[1], 1e-3, 1e3) # np.inf)
+        cov2 = U@np.diagflat([d0, d1])@U.T # Vh
         mu = np.array([mean_x, mean_y])
 
         # _ = np.linalg.cholesky(cov2)
-        actions = np.random.multivariate_normal(mu.reshape(2), cov2)
-        #        np.array([1,1]), np.array([[1, 0], [0, 1]])) # 
-        actions = np.clip(actions, 0, 7)  # Based on an 8x8 grid TODO Generalize
-        act = {'COMM': {'destx': actions[0], 'desty': actions[1], 'speed': 1}}
-        return [act], agent_states
+        actions_xy = np.random.multivariate_normal(mu.reshape(2), cov2)
+        #            np.array([1,1]), np.array([[1, 0], [0, 1]]))
+        actions_x = np.clip(actions_xy[0], 0, self.env.map.n_streets_ew)
+        actions_y = np.clip(actions_xy[1], 0, self.env.map.n_streets_ns)
+        actions = {'COMM': {'destx': actions_x, 'desty': actions_y, 'speed': 1}}
+        return [actions], agent_states
 
