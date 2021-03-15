@@ -2,6 +2,7 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 import numpy as np
+import matplotlib.pyplot as plt
 
 ##########################################################################################################
 # CLASSES:                                                                                               #
@@ -330,10 +331,15 @@ class Game(gym.Env):
         print(self.observe_connections(self.blue))  #TODO add red connections
 
     def temp_reward_surface(self):
-        self.blue.unitd['ASSET'].asset_value*(
-            min(float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])),
-            float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET']))))
-
+        xv = np.arange(0, 7, .1)
+        yv = np.arange(0, 7, .1)
+        H = np.zeros([len(xv), len(yv)])
+        for i, x in enumerate(xv):
+            for j, y in enumerate(yv):
+                H[i, j] = self.blue.unitd['ASSET'].asset_value*(
+                               min(float(self.blue.unitd['HQ'].sjr_xy_bounded_db(x, y)), float(self.blue.unitd['ASSET'].sjr_xy_bounded_db(x,y))))
+        plt.imshow(H.T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+        return H
 
 class Game0(Game):
     def make_map(self):
@@ -869,7 +875,7 @@ class OccupyingTroop(Occupying, Communicating, Shooting, Unit):
         self.name = 'OCCUPYING_TROOP'
         self.label = 'O'
         self.order = OccupyingTroopOrder(self)  # self is the second arg that becomes unit inside __init__
-        self.asset_value = 10.
+        self.asset_value = 1.
         self.communicates = True
 
     def restore_unit_defaults(self):
