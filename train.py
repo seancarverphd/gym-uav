@@ -156,8 +156,7 @@ if __name__ == "__main__":
                 # mu_v, var_v, value_v = net(states_v)
                 mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, value_v = net(states_v)
 
-                loss_value_v = F.mse_loss(
-                    value_v.squeeze(-1), vals_ref_v)
+                loss_value_v = F.mse_loss(value_v.squeeze(-1), vals_ref_v)
 
                 adv_v = vals_ref_v.unsqueeze(dim=-1) - value_v.detach()
                 log_prob_v, ent_v = calc_logprob(mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, actions_v)
@@ -167,8 +166,7 @@ if __name__ == "__main__":
                 loss_policy_v = -log_prob_v.mean()
                 entropy_loss_v = -ENTROPY_BETA * ent_v.mean()  # minus sign taken here
 
-                loss_v = loss_policy_v + entropy_loss_v + \
-                         loss_value_v
+                loss_v = loss_policy_v + entropy_loss_v + loss_value_v
                 loss_v.backward()
                 optimizer.step()
 
