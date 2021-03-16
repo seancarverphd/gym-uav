@@ -1,9 +1,11 @@
+import copy
 import ptan
 import numpy as np
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from common import serialize
 
@@ -68,7 +70,33 @@ class AgentA2C(ptan.agent.BaseAgent):
     def next_action(self, obs):
         return self([obs], [])[0][0]
 
-    def __call__(self, obs, agent_states):  # states are really observations
+    def critic(self, observation, unit='COMM', x=None, y=None):
+        obs = copy.deepcopy(observation)
+        if x is not None:
+            obs[unit]['posx'] = x
+        if y is not None:
+            obs[unit]['posy'] = y
+        obs_v = ptan.agent.float32_preprocessor(serialize(obs, self.env.observation_space))
+        obs_v = obs_v.to(self.device)
+        _, _, _, _, _, value = self.net(obs_v)
+        return value.data.cpu().numpy()[0]
+
+    def visualize_value(self, observation, unit='COMM'):
+        xr = np.arange(0, self.env.map.n_streets_ew-1, .05)
+        yr = np.arange(0, self.env.map.n_streets_ns-1, .05)
+        H = np.zeros([len(xr), len(yr)])
+        for i, x in enumerate(xr):
+            for j, y in enumerate(yr):
+                H[i,j] = self.critic(observation, x=x, y=y)
+        plt.imshow(H.T, cmap='hot', interpolation='nearest')  # transpose to get plot right
+
+    def center(self, obs, agent_states=[]):  # states are really observations
+        return self([obs], [False])[0][0]
+
+    def reseed(self, seed=None):
+        np.random.seed(seed)
+
+    def __call__(self, obs, agent_states=[]):  # states are really observations
         # DRY THIS OUT
         # cpx = obs[0]['COMM']['posx']/7.
         # cpy = obs[0]['COMM']['posy']/7.
@@ -87,8 +115,8 @@ class AgentA2C(ptan.agent.BaseAgent):
 
         mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(obs_v)
 
-        midpoint_x = self.env.map.n_streets_ew/2
-        midpoint_y = self.env.map.n_streets_ns/2
+        midpoint_x = (self.env.map.n_streets_ew-1.)/2
+        midpoint_y = (self.env.map.n_streets_ns-1.)/2
 
         mean_x = midpoint_x*(1 + mean_x_v.data.cpu().numpy())
         mean_y = midpoint_y*(1 + mean_y_v.data.cpu().numpy())
@@ -108,10 +136,13 @@ class AgentA2C(ptan.agent.BaseAgent):
         mu = np.array([mean_x, mean_y])
 
         # _ = np.linalg.cholesky(cov2)
-        actions_xy = np.random.multivariate_normal(mu.reshape(2), cov2)
-        #            np.array([1,1]), np.array([[1, 0], [0, 1]]))
-        actions_x = np.clip(actions_xy[0], 0, self.env.map.n_streets_ew)
-        actions_y = np.clip(actions_xy[1], 0, self.env.map.n_streets_ns)
+        if len(agent_states) > 0 and agent_states[0] is False:
+            actions_xy = mu.reshape(2)
+        else:
+            actions_xy = np.random.multivariate_normal(mu.reshape(2), cov2)
+            #            np.array([1,1]), np.array([[1, 0], [0, 1]]))
+        actions_x = np.clip(actions_xy[0], 0, self.env.map.n_streets_ew-1.)
+        actions_y = np.clip(actions_xy[1], 0, self.env.map.n_streets_ns-1.)
         actions = {'COMM': {'destx': actions_x, 'desty': actions_y, 'speed': 1}}
         return [actions], agent_states
 
