@@ -35,6 +35,7 @@ class Map0():
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
         self.DEFAULT_DIM1 = False
+        self.DEFAULT_K_SMOOTH = None
         self.define_specific_defaults()
 
     def define_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
@@ -53,6 +54,7 @@ class Map0():
         self.n_streets_ew = self.DEFAULT_N_STREETS_EW
         self.n_streets_ns = self.DEFAULT_N_STREETS_NS
         self.dim1 = self.DEFAULT_DIM1
+        self.k_smooth = self.DEFAULT_K_SMOOTH
         self.restore_specific_defaults()
 
     def restore_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
@@ -282,15 +284,24 @@ class Game(gym.Env):
         self.parse_blue_into_order(action)      # eventually ...into_order(action['BLUE'])
                                                 # eventually ...into_order(action['RED'])
 
+    def smooth_min(self, a, b, k=None):
+        if k is None:
+            return min(a, b)
+        h = .5 + .5*(a-b)/k
+        if h > 1.:
+            h = 1.
+        elif h < 0.:
+            h = 0.
+        return a*(1.- h) + b*h - k*h*(1.-h)
+
     def temp_reward(self):
         assert 'COMM' in self.blue.unitd
         assert 'HQ' in self.blue.unitd
         assert 'ASSET' in self.blue.unitd
-        assert not self.map.dim1
         assert len(self.blue.unitd) == 3
         return self.blue.unitd['ASSET'].asset_value*(
-                min(float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])),
-                float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET']))))
+                self.smooth_min(float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])),
+                float(self.blue.unitd['COMM'].sjr_bounded_db(self.blue.unitd['ASSET'])), self.map.k_smooth))
 
     def step(self, action): # TODO Write this function
         self.parse_action_into_order(action)
@@ -335,12 +346,19 @@ class Game(gym.Env):
 
     def temp_reward_surface(self):
         xv = np.arange(0, 7, .1)
+        if self.map.dim1:
+            H = np.zeros([len(xv)])
+            for i, x in enumerate(xv):
+                H[i] = self.blue.unitd['ASSET'].asset_value*(
+                       self.smooth_min(float(self.blue.unitd['HQ'].sjr_xy_bounded_db(x)), float(self.blue.unitd['ASSET'].sjr_xy_bounded_db(x)), self.map.k_smooth))
+            plt.plot(range(len(xv)), H)
+            return H
         yv = np.arange(0, 7, .1)
         H = np.zeros([len(xv), len(yv)])
         for i, x in enumerate(xv):
             for j, y in enumerate(yv):
                 H[i, j] = self.blue.unitd['ASSET'].asset_value*(
-                               min(float(self.blue.unitd['HQ'].sjr_xy_bounded_db(x, y)), float(self.blue.unitd['ASSET'].sjr_xy_bounded_db(x,y))))
+                               self.smooth_min(float(self.blue.unitd['HQ'].sjr_xy_bounded_db(x, y)), float(self.blue.unitd['ASSET'].sjr_xy_bounded_db(x,y)), self.map.k_smooth))
         plt.imshow(H.T, cmap='hot', interpolation='nearest')  # transpose to get plot right
         return H
 
@@ -703,19 +721,25 @@ class Communicating():
         # TODO Consider: maybe don't need communication_network if have self.communicate flags for each unit; has consistent order; redundant for now
         self.faction.add_unit_to_communication_network(self)  # self becomes "unit" inside faction
 
-    def radio_power(self, x_receiver, y_receiver):
+    def radio_power(self, x_receiver, y_receiver=None):
+        if self.GAME.map.dim1:
+            return self.point_source_constant * self.sender_characteristic_distance**2 / ((x_receiver - self.x_)**2 + self.identical_locations_epsilon) 
         return self.point_source_constant * self.sender_characteristic_distance**2 / \
-                ((x_receiver - self.x_ + self.identical_locations_epsilon)**2 + (y_receiver - self.y_ + self.identical_locations_epsilon)**2)
+                ((x_receiver - self.x_)**2 + (y_receiver - self.y_)**2 + self.identical_locations_epsilon)
 
     #TODO Fix naming conventions ti use _unit_ and _xy_ consistently
-    def sjr_db(self, x_receiver, y_receiver):
+    def sjr_db(self, x_receiver, y_receiver=None):
+        if self.GAME.map.dim1:
+            return 10.*np.log10(self.radio_power(x_receiver)/self.faction.GAME.ambient_power)
         return 10.*np.log10(self.radio_power(x_receiver, y_receiver)/self.faction.GAME.ambient_power)
 
     def sjr_unit_db(self, unit):
+        if self.GAME.map.dim1:
+            return self.sjr_db(unit.x_)
         return self.sjr_db(unit.x_, unit.y_)
 
-    def sjr_xy_bounded_db(self, x, y):
-        dB = self.sjr_db(x, y)
+    def sjr_xy_bounded_db(self, x, y=None):
+        dB = self.sjr_db(x) if self.GAME.map.dim1 else self.sjr_db(x, y)
         if dB < -1e3:
             return -1e3
         elif dB > 1e3:
@@ -724,6 +748,8 @@ class Communicating():
             return dB
 
     def sjr_bounded_db(self, unit):
+        if self.GAME.map.dim1:
+            return self.sjr_xy_bounded_db(unit.x_)
         return self.sjr_xy_bounded_db(unit.x_, unit.y_)
 
     def radio_message_received(self, unit):  # unit instead of x_ and y_
