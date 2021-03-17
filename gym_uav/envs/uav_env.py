@@ -34,6 +34,7 @@ class Map0():
         self.DEFAULT_IDENTICAL_LOCATIONS_EPSILON = 1e-3
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
+        self.DEFAULT_DIM1 = False
         self.define_specific_defaults()
 
     def define_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
@@ -51,6 +52,7 @@ class Map0():
         self.sender_characteristic_distance = self.DEFAULT_SENDER_CHARACTERISTIC_DISTANCE
         self.n_streets_ew = self.DEFAULT_N_STREETS_EW
         self.n_streets_ns = self.DEFAULT_N_STREETS_NS
+        self.dim1 = self.DEFAULT_DIM1
         self.restore_specific_defaults()
 
     def restore_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
@@ -284,6 +286,7 @@ class Game(gym.Env):
         assert 'COMM' in self.blue.unitd
         assert 'HQ' in self.blue.unitd
         assert 'ASSET' in self.blue.unitd
+        assert not self.map.dim1
         assert len(self.blue.unitd) == 3
         return self.blue.unitd['ASSET'].asset_value*(
                 min(float(self.blue.unitd['HQ'].sjr_bounded_db(self.blue.unitd['COMM'])),
