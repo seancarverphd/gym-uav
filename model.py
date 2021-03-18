@@ -93,6 +93,19 @@ class AgentA2C(ptan.agent.BaseAgent):
     def center(self, obs, agent_states=[]):  # states are really observations
         return self([obs], [False])[0][0]
 
+    def spread(self, obs, agent_states=[]):
+        obs_v = ptan.agent.float32_preprocessor(serialize(obs, self.env.observation_space))
+        obs_v = obs_v.to(self.device)
+        mean_x_v, mean_y_v, var_minor_v, var_delta_v, major_axis_angle_v, _ = self.net(obs_v)
+        midpoint_x = (self.env.map.n_streets_ew-1.)/2
+        midpoint_y = (self.env.map.n_streets_ns-1.)/2
+        mean_x = midpoint_x*(1 + mean_x_v.data.cpu().numpy())
+        mean_y = midpoint_y*(1 + mean_y_v.data.cpu().numpy())
+        var_minor = var_minor_v.data.cpu().numpy()
+        var_delta = var_delta_v.data.cpu().numpy()
+        cov_theta_degrees = 180*major_axis_angle_v.data.cpu().numpy()
+        return {'mean_x': mean_x, 'mean_y': mean_y, 'var_minor': var_minor, 'var_delta': var_delta, 'cov_theta_degrees': cov_theta_degrees}
+
     def reseed(self, seed=None):
         np.random.seed(seed)
 
