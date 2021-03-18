@@ -35,7 +35,7 @@ class Map0():
         self.DEFAULT_N_STREETS_EW = 6
         self.DEFAULT_N_STREETS_NS = 6
         self.DEFAULT_DIM1 = False
-        self.DEFAULT_K_SMOOTH = None
+        self.DEFAULT_K_SMOOTH = 10
         self.define_specific_defaults()
 
     def define_specific_defaults(self):  # THESE DEFAULTS SPECIFIC TO JUST THIS MAP
